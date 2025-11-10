@@ -1,4 +1,3 @@
-// app/explorer.jsx
 import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 
 const img = "https://images.unsplash.com/photo-1513475382585-d06e58bcb0ea?w=600&q=80";

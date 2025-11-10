@@ -1,4 +1,3 @@
-// app/_layout.jsx
 import { Stack } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View, TextInput, Pressable, StyleSheet } from "react-native";

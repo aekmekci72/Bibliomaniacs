@@ -3,6 +3,7 @@ export default function Index() {
   return <Redirect href="/landingpage" />;
 }
 
+// default template
 // import { registerRootComponent } from 'expo';
 
 // import App from '../App';

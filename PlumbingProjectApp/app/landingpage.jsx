@@ -1,4 +1,3 @@
-// app/landingpage.jsx
 import { Link } from "expo-router";
 import { View, Text, Pressable, StyleSheet, Image, ScrollView } from "react-native";
 
