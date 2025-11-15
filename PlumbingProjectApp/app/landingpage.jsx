@@ -1,7 +1,43 @@
 import { Link } from "expo-router";
-import { View, Text, Pressable, StyleSheet, Image, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, Image, ScrollView, Platform } from "react-native";
+import jsPDF from "jspdf";
 
 export default function LandingPage() {
+
+  const generateCertificate = () => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "pt",
+      format: "a4",
+    });
+
+    doc.setFontSize(28);
+    doc.text("Certificate of Volunteer Hours", 50, 100);
+
+    doc.setFontSize(20);
+    doc.text("This certifies that NAME", 50, 150);
+    doc.text("has completed 15 volunteer hours", 50, 180);
+
+    doc.setFontSize(18);
+    doc.text("Ridgewood Public Library", 50, 210);
+
+    if (Platform.OS === "web") {
+      doc.save("certificate.pdf");
+    } else {
+      doc.output("dataurlstring").then((pdfDataUri) => {
+        const base64 = pdfDataUri.split(",")[1];
+
+        import("expo-file-system").then(FileSystem => {
+          import("expo-sharing").then(Sharing => {
+            const fileUri = FileSystem.cacheDirectory + "certificate.pdf";
+            FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 })
+              .then(() => Sharing.shareAsync(fileUri));
+          });
+        });
+      });
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Welcome to Bibliomaniacs</Text>
@@ -22,6 +58,12 @@ export default function LandingPage() {
         </Link>
         <Pressable style={styles.secondaryBtn} onPress={() => alert("Logging coming soon!")}>
           <Text style={styles.secondaryText}>Start Logging</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.primaryBtn, { backgroundColor: "#4b6cd1" }]}
+          onPress={generateCertificate}
+        >
+          <Text style={styles.primaryText}>Generate Certificate</Text>
         </Pressable>
       </View>
 

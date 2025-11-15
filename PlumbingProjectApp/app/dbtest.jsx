@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView,} 
-from "react-native";import axios from "axios";
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView } from "react-native";
+import axios from "axios";
+import { getAuth } from "firebase/auth";
 
 export default function App() {
   const [title, setTitle] = useState("");
@@ -13,15 +14,29 @@ export default function App() {
     }
 
     try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not logged in");
+
+      const idToken = await user.getIdToken(true);
+
       const res = await axios.post("http://127.0.0.1:5000/add_book", {
+        idToken,
         title,
       });
+
       console.log("Added book:", res.data);
       setTitle("");
       fetchBooks();
     } catch (err) {
       console.error(err);
-      alert("Failed to add book");
+      if (err.response?.status === 403) {
+        alert("Permission denied: You are not an admin");
+      } else if (err.response?.status === 401) {
+        alert("Unauthorized: Please log in again");
+      } else {
+        alert("Failed to add book: " + err.message);
+      }
     }
   };
 
@@ -42,9 +57,7 @@ export default function App() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>DB Test</Text>
-      <Text style={styles.subtitle}>
-        Add books and fetch below.
-      </Text>
+      <Text style={styles.subtitle}>Add books and fetch below.</Text>
 
       <View style={styles.inputCard}>
         <TextInput
@@ -74,9 +87,7 @@ export default function App() {
               <Text style={styles.bookTitle}>{item.title}</Text>
             </View>
           )}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No books yet.</Text>
-          }
+          ListEmptyComponent={<Text style={styles.emptyText}>No books yet.</Text>}
         />
       </View>
     </ScrollView>
@@ -87,13 +98,8 @@ const styles = StyleSheet.create({
   container: { padding: 24, gap: 16, alignItems: "center" },
   title: { fontSize: 34, fontWeight: "800", textAlign: "center" },
   subtitle: { fontSize: 16, color: "#3b3b3b", textAlign: "center", maxWidth: 720 },
-  hero: { width: "100%", maxWidth: 960, height: 320, borderRadius: 20, backgroundColor: "#ddd" },
-  ctaRow: { flexDirection: "row", gap: 12, marginTop: 10, flexWrap: "wrap" },
   primaryBtn: { backgroundColor: "#2b7a4b", paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12 },
   primaryText: { color: "white", fontWeight: "700" },
   secondaryBtn: { backgroundColor: "white", borderWidth: 2, borderColor: "#2b7a4b", paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12 },
   secondaryText: { color: "#2b7a4b", fontWeight: "700" },
-  features: { flexDirection: "row", gap: 12, flexWrap: "wrap", justifyContent: "center" },
-  featureCard: { backgroundColor: "#eaf6ea", borderWidth: 1, borderColor: "#cfe8cf", borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },
-  featureText: { color: "#224c2f", fontWeight: "700" },
 });
