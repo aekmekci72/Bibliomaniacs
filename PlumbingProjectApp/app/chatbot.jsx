@@ -57,37 +57,45 @@ export default function ChatbotPage() {
     };
 
     const renderMessage = ({ item }) => (
-        <View>
-            <Text>
-                {item.sender === "user" ? "You: " : "Bot: "}
+        <View
+            className={`chatbotMessage ${item.sender === "user" ? "chatbotUser" : "chatbotBot"
+                }`}
+        >
+            <Text className="chatbotMessageText">
                 {item.text}
             </Text>
         </View>
     );
 
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
+            className="flex-1 bg-[#f5fdf5]"
         >
-            <Text>Chatbot</Text>
+            <View className="topbar">
+                <Text className="text-xl font-bold">Chatbot</Text>
+            </View>
 
             <FlatList
                 ref={flatListRef}
                 data={messages}
                 keyExtractor={(item) => item.id}
                 renderItem={renderMessage}
+                className="flex-1 px-4 py-2"
+                contentContainerStyle={{ paddingBottom: 20 }}
             />
 
-            <View>
+            <View className="chatbotInputContainer">
                 <TextInput
                     placeholder="Ask something..."
                     value={input}
                     onChangeText={setInput}
                     multiline
+                    className="chatbotInput"
                 />
-
-                <Pressable onPress={sendMessage}>
-                    <Text>Send</Text>
+                <Pressable onPress={sendMessage} className="chatbotSendBtn">
+                    <Text className="chatbotSendText">Send</Text>
                 </Pressable>
             </View>
         </KeyboardAvoidingView>
