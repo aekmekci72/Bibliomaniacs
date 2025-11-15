@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView,} 
-from "react-native";import axios from "axios";
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView, } from "react-native";
+import axios from "axios";
 
 export default function App() {
   const [title, setTitle] = useState("");
