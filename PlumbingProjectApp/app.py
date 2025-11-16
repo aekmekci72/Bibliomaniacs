@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_cors import CORS
+import asyncio
+from modelsetup import chat
 from cache import get_cache, set_cache, make_prompt_key
 
 app = Flask(__name__)
@@ -37,6 +39,20 @@ def get_books():
 
     set_cache("books", books, ttl=3600)
     return jsonify(books), 200
+
+@app.route("/ask_question", methods=["POST"])
+def ask_question():
+    data = request.json
+    question = data.get("question")
+
+    if not question:
+        return jsonify({"error": "Missing 'question' field"}), 400
+
+    try:
+        response = asyncio.run(chat(question))
+        return jsonify({"response": response}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)

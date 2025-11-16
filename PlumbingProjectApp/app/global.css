@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .topbar {
+    @apply h-14 px-3 bg-[#cfe8cf] border-b border-[#b6d5b6] flex flex-row items-center gap-2.5;
+  }
+
+  .iconBtn {
+    @apply w-8 h-8 items-center justify-center rounded-lg bg-white;
+  }
+
+  .searchBar {
+    @apply flex-1 h-[34px] rounded-lg px-2.5 bg-white border border-[#e5efe5] flex flex-row items-center gap-1.5;
+  }
+
+
+  /* === LandingPage Custom Styles === */
+
+  .container {
+    @apply px-6 py-6 gap-4 items-center;
+  }
+
+  .title {
+    @apply text-4xl font-extrabold text-center;
+  }
+
+  .subtitle {
+    @apply text-base text-neutral-700 text-center max-w-[720px];
+  }
+
+  .hero {
+    @apply w-full max-w-[960px] h-[320px] rounded-2xl bg-neutral-300;
+  }
+
+  .ctaRow {
+    @apply flex-row gap-3 mt-2 flex-wrap;
+  }
+
+  .primaryBtn {
+    @apply bg-[#2b7a4b] py-3 px-4 rounded-xl;
+  }
+
+  .primaryText {
+    @apply text-white font-bold;
+  }
+
+  .secondaryBtn {
+    @apply bg-white border-2 border-[#2b7a4b] py-3 px-4 rounded-xl;
+  }
+
+  .secondaryText {
+    @apply text-[#2b7a4b] font-bold;
+  }
+
+  .features {
+    @apply flex-row gap-3 flex-wrap justify-center;
+  }
+
+  .featureCard {
+    @apply bg-[#eaf6ea] border border-[#cfe8cf] rounded-xl py-2.5 px-3.5;
+  }
+
+  .featureText {
+    @apply text-[#224c2f] font-bold;
+  }
+
+
+
+  /* === DBTest Custom Styles === */
+
+
+  .inputCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-4 border border-neutral-200;
+  }
+
+  /* Input box */
+  .input {
+    @apply w-full border border-neutral-300 rounded-lg px-3 py-2 text-base bg-white;
+  }
+
+  /* Row of buttons */
+  .buttonRow {
+    @apply flex flex-row gap-3 mt-3 flex-wrap;
+  }
+
+  /* Container around list */
+  .listContainer {
+    @apply w-full max-w-[720px] mt-6;
+  }
+
+  /* Section title */
+  .sectionTitle {
+    @apply text-xl font-bold mb-2;
+  }
+
+  /* Book card */
+  .bookCard {
+    @apply bg-[#eaf6ea] border border-[#cfe8cf] rounded-lg p-3 mb-2;
+  }
+
+  /* Book title text */
+  .bookTitle {
+    @apply text-lg font-semibold text-[#224c2f];
+  }
+
+  .emptyText {
+    @apply text-center text-neutral-500 mt-4;
+  }
+
+
+
+  /* === Explorer Custom Styles === */
+
+  /* Page container */
+  .explorerContainer {
+    @apply px-5 py-6 gap-4;
+  }
+
+  /* Main title */
+  .explorerH1 {
+    @apply text-2xl font-extrabold text-center my-2;
+  }
+
+  /* Grid layout (2 columns, wrap on mobile) */
+  .explorerGrid {
+    @apply flex flex-row flex-wrap justify-between gap-6;
+  }
+
+  /* Each column */
+  .explorerCol {
+    @apply flex-1 min-w-[320px] gap-3;
+  }
+
+  /* Section titles */
+  .explorerSection {
+    @apply text-lg font-bold text-[#6b7c6b] mt-2;
+  }
+
+  /* Review card container */
+  .reviewCard {
+    @apply flex flex-row gap-3 p-3 bg-white border border-[#e7eee7] rounded-xl;
+  }
+
+  /* Thumbnail image */
+  .reviewThumb {
+    @apply w-[120px] h-[80px] rounded-lg bg-neutral-300;
+  }
+
+  /* Placeholder lines */
+  .reviewLine {
+    @apply h-3 rounded bg-[#cfe8cf];
+  }
+
+  /* === ChatbotPage Custom Styles === */
+  @layer components {
+    .chatbotMessage {
+      @apply max-w-[75%] rounded-xl p-3 my-1;
+    }
+
+    .chatbotUser {
+      @apply self-end bg-[#2b7a4b];
+    }
+
+    .chatbotBot {
+      @apply self-start bg-[#eaf6ea];
+    }
+
+    .chatbotMessageText {
+      @apply text-base;
+    }
+
+    .chatbotUser .chatbotMessageText {
+      @apply text-white;
+    }
+
+    .chatbotBot .chatbotMessageText {
+      @apply text-[#224c2f];
+    }
+
+    .chatbotInputContainer {
+      @apply flex-row items-center px-4 py-2 bg-white border-t border-neutral-200;
+    }
+
+    .chatbotInput {
+      @apply flex-1 border border-neutral-300 rounded-xl px-4 py-2 text-base bg-white mr-2;
+    }
+
+    .chatbotSendBtn {
+      @apply bg-[#2b7a4b] px-4 py-2 rounded-xl;
+    }
+
+    .chatbotSendText {
+      @apply text-white font-bold;
+    }
+  }
+
+}

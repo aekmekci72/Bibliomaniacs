@@ -17,9 +17,3 @@ async def chat(prompt):
         temperature=0.5,
     )
     return response.choices[0].message["content"]
-
-async def main():
-    print(await chat("Give me a list of 5 popular book titles in an array format, separated by commas with no other text."))
-
-if __name__ == "__main__":
-    asyncio.run(main())
