@@ -48,8 +48,15 @@ def ask_question():
     if not question:
         return jsonify({"error": "Missing 'question' field"}), 400
 
+    cache_key = make_prompt_key(question)
+
+    cached_response = get_cache(cache_key)
+    if cached_response:
+        return jsonify({"response": cached_response}), 200
+
     try:
         response = asyncio.run(chat(question))
+        set_cache(cache_key, response, ttl=3600)
         return jsonify({"response": response}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
