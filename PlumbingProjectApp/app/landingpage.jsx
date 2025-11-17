@@ -1,7 +1,43 @@
 import { Link } from "expo-router";
-import { View, Text, Pressable, Image, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, Image, ScrollView, Platform } from "react-native";
+import jsPDF from "jspdf";
 
 export default function LandingPage() {
+
+  const generateCertificate = () => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "pt",
+      format: "a4",
+    });
+
+    doc.setFontSize(28);
+    doc.text("Certificate of Volunteer Hours", 50, 100);
+
+    doc.setFontSize(20);
+    doc.text("This certifies that NAME", 50, 150);
+    doc.text("has completed 15 volunteer hours", 50, 180);
+
+    doc.setFontSize(18);
+    doc.text("Ridgewood Public Library", 50, 210);
+
+    if (Platform.OS === "web") {
+      doc.save("certificate.pdf");
+    } else {
+      doc.output("dataurlstring").then((pdfDataUri) => {
+        const base64 = pdfDataUri.split(",")[1];
+
+        import("expo-file-system").then(FileSystem => {
+          import("expo-sharing").then(Sharing => {
+            const fileUri = FileSystem.cacheDirectory + "certificate.pdf";
+            FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 })
+              .then(() => Sharing.shareAsync(fileUri));
+          });
+        });
+      });
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={{ alignItems: 'center' }}>
       <View className="container">
@@ -15,16 +51,22 @@ export default function LandingPage() {
           className="hero"
         />
 
-        <View className="ctaRow">
-          <Link href="/explorer" asChild>
-            <Pressable className="primaryBtn">
-              <Text className="primaryText">Read Our Reviews</Text>
-            </Pressable>
-          </Link>
-          <Pressable className="secondaryBtn" onPress={() => alert("Logging coming soon!")}>
-            <Text className="secondaryText">Start Logging</Text>
+      <View className="ctaRow">
+        <Link href="/explorer" asChild>
+          <Pressable className="primaryBtn">
+            <Text className="primaryText">Read Our Reviews</Text>
           </Pressable>
-        </View>
+        </Link>
+        <Pressable className="secondaryBtn" onPress={() => alert("Logging coming soon!")}>
+          <Text className="secondaryText">Start Logging</Text>
+        </Pressable>
+        <Pressable
+          className="primaryBtn"
+          onPress={generateCertificate}
+        >
+          <Text className="primaryText">Generate Certificate</Text>
+        </Pressable>
+      </View>
 
         <View className="features">
           {["Web-first", "Mobile ready", "JSX only"].map((f, i) => (

@@ -42,4 +42,9 @@ yarn-error.*
 
 /serviceKey.json
 /.env
+
+/Lib
+/Include
+/share
+/Scripts
 /__pycache__/
