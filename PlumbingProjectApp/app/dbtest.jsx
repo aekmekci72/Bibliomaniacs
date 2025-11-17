@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView, } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView } from "react-native";
 import axios from "axios";
+import { getAuth } from "firebase/auth";
 
 export default function App() {
   const [title, setTitle] = useState("");
@@ -13,15 +14,29 @@ export default function App() {
     }
 
     try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not logged in");
+
+      const idToken = await user.getIdToken(true);
+
       const res = await axios.post("http://127.0.0.1:5000/add_book", {
+        idToken,
         title,
       });
+
       console.log("Added book:", res.data);
       setTitle("");
       fetchBooks();
     } catch (err) {
       console.error(err);
-      alert("Failed to add book");
+      if (err.response?.status === 403) {
+        alert("Permission denied: You are not an admin");
+      } else if (err.response?.status === 401) {
+        alert("Unauthorized: Please log in again");
+      } else {
+        alert("Failed to add book: " + err.message);
+      }
     }
   };
 
@@ -40,12 +55,9 @@ export default function App() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={{ alignItems: "center" }}>
-      <View className="container">
-        <Text className="title">DB Test</Text>
-        <Text className="subtitle">
-          Add books and fetch below.
-        </Text>
+    <ScrollView contentContainerStyle={{ alignItems: 'center' }}>
+      <Text className="title">DB Test</Text>
+      <Text className="subtitle">Add books and fetch below.</Text>
 
         <View className="inputCard">
           <TextInput
@@ -65,21 +77,18 @@ export default function App() {
           </View>
         </View>
 
-        <View className="listContainer">
-          <Text className="sectionTitle">Books in Database</Text>
-          <FlatList
-            data={books}
-            keyExtractor={(item) => item.id?.toString()}
-            renderItem={({ item }) => (
-              <View className="bookCard">
-                <Text className="bookTitle">{item.title}</Text>
-              </View>
-            )}
-            ListEmptyComponent={
-              <Text className="emptyText">No books yet.</Text>
-            }
-          />
-        </View>
+      <View className="listContainer">
+        <Text className="sectionTitle">Books in Database</Text>
+        <FlatList
+          data={books}
+          keyExtractor={(item) => item.id?.toString()}
+          renderItem={({ item }) => (
+            <View className="bookCard">
+              <Text className="bookTitle">{item.title}</Text>
+            </View>
+          )}
+          ListEmptyComponent={<Text className="emptyText">No books yet.</Text>}
+        />
       </View>
     </ScrollView>
   );
