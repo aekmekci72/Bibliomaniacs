@@ -21,7 +21,8 @@ def verify_firebase_token(id_token):
         return decoded_token
     except Exception:
         return None
-
+    
+@app.route("/get_user_role", methods=["POST"])
 def get_user_role(uid, email=None):
     user_ref = db.collection("users").document(uid)
     doc = user_ref.get()
