@@ -20,7 +20,7 @@ export default function App() {
 
       const idToken = await user.getIdToken(true);
 
-      const res = await axios.post("http://127.0.0.1:5000/add_book", {
+      const res = await axios.post("http://localhost:5001/add_book", {
         idToken,
         title,
       });
@@ -42,7 +42,7 @@ export default function App() {
 
   const fetchBooks = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:5000/get_books");
+      const res = await axios.get("http://localhost:5001/get_books");
       setBooks(res.data);
     } catch (err) {
       console.error(err);
