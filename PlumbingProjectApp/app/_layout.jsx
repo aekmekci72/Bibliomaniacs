@@ -74,12 +74,12 @@ export default function Layout() {
           <Ionicons
             name={icon}
             size={18}
-            className={isActive ? "text-purple-600" : "text-gray-500"}
+            className={isActive ? "text-green-600" : "text-gray-500"}
           />
   
           <Text
             className={`text-sm
-              ${isActive ? "text-purple-600 font-semibold" : "text-gray-800"}
+              ${isActive ? "text-green-600 font-semibold" : "text-gray-800"}
             `}
           >
             {label}
