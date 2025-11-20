@@ -6,13 +6,24 @@ import asyncio
 from modelsetup import chat
 from cache import get_cache, set_cache, make_prompt_key
 from config import ADMIN_EMAILS
+from fireo import connection
+from fireo.models import Model
+from fireo.fields import TextField, IDField
+
 
 app = Flask(__name__)
 CORS(app)
 
 cred = credentials.Certificate("serviceKey.json")
 firebase_admin.initialize_app(cred)
+connection(from_file="serviceKey.json")
 db = firestore.client()
+
+class Book(Model):
+    id = IDField()
+    title = TextField()
+    added_by = TextField()
+
 
 def verify_firebase_token(id_token):
     """Verify Firebase ID token"""
@@ -81,12 +92,11 @@ def add_book():
     if not title:
         return jsonify({"error": "Missing title"}), 400
 
-    doc_ref = db.collection("books").document()
-    doc_ref.set({"title": title, "added_by": uid})
-
-    # Invalidate cache
+    book = Book(title=title, added_by=uid)
+    saved_book = book.save()
+    
     set_cache("books", None, ttl=1)
-    return jsonify({"message": "Book added", "id": doc_ref.id}), 200
+    return jsonify({"message": "Book added", "id": saved_book.id}), 200
 
 @app.route("/get_books", methods=["GET"])
 def get_books():
@@ -94,9 +104,15 @@ def get_books():
     if cached_books:
         return jsonify(cached_books), 200
 
-    books_ref = db.collection("books")
-    docs = books_ref.stream()
-    books = [{**doc.to_dict(), "id": doc.id} for doc in docs]
+    books_query = Book.collection.fetch()
+
+    books = []
+    for b in books_query:
+        books.append({
+            "id": b.id,
+            "title": b.title,
+            "added_by": b.added_by,
+        })
 
     set_cache("books", books, ttl=3600)
     return jsonify(books), 200
