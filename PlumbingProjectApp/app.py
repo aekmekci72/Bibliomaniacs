@@ -32,6 +32,23 @@ def verify_firebase_token(id_token):
         return decoded_token
     except Exception:
         return None
+    
+@app.route("/get_user_role", methods=["POST"])
+def get_user_role_route():
+    data = request.json
+    id_token = data.get("idToken")
+
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+
+    decoded = auth.verify_id_token(id_token)
+    uid = decoded["uid"]
+    email = decoded.get("email")
+
+    role = get_user_role(uid, email)
+
+    return role, 200
+
 
 def get_user_role(uid, email=None):
     user_ref = db.collection("users").document(uid)
@@ -50,6 +67,7 @@ def get_user_role(uid, email=None):
     role = "admin" if email in ADMIN_EMAILS else "user"
     user_ref.set({"email": email, "role": role})
     print("DEBUG: New user assigned role:", role)
+    print(role)
     return role
 
 @app.route("/verify_token", methods=["POST"])
