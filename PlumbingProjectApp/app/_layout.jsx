@@ -29,6 +29,31 @@ export default function Layout() {
   const slideAnim = useRef(new Animated.Value(-270)).current;
   const SCREEN_WIDTH = Dimensions.get("window").width;
 
+
+  const fetchRole = async () => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        setRole("no account"); // TEMP FIX
+        return;
+      }
+  
+      const idToken = await user.getIdToken(true);
+  
+      const res = await axios.post("http://localhost:5001/get_user_role", {
+        idToken,
+      });
+      const roleValue = typeof res.data === "string" ? res.data : res.data.role;
+
+      setRole(roleValue);      
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
   const toggleMenu = () => {
     const toValue = isOpen ? -270 : 0;
     setIsOpen(!isOpen);
@@ -38,26 +63,18 @@ export default function Layout() {
       duration: 250,
       useNativeDriver: true,
     }).start();
-  };
 
-  const fetchRole = async () => {
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) throw new Error("User not logged in");
+    const auth = getAuth();
   
-      const idToken = await user.getIdToken(true);
-  
-      const res = await axios.post("http://localhost:5001/get_user_role", {
-        idToken,
-      });
-      const roleValue = typeof res.data === "string" ? res.data : res.data.role;
-
-      setRole(roleValue);
-
-    } catch (err) {
-      console.error(err);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+    if (!user) {
+      setRole("no account");
+      return;
     }
+      fetchRole();
+    });
+  
+    return unsubscribe;
   };
 
 
