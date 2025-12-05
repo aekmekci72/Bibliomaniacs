@@ -4,7 +4,7 @@ import { Image, Animated, Dimensions, Pressable, Text, View, TextInput } from "r
 import { Link, Stack, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getAuth } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 import axios from "axios";
 import './global.css';
 
@@ -42,7 +42,6 @@ export default function Layout() {
 
   const fetchRole = async () => {
     try {
-      const auth = getAuth();
       const user = auth.currentUser;
       if (!user) throw new Error("User not logged in");
   
@@ -89,9 +88,7 @@ export default function Layout() {
     );
   }
 
-  useEffect(() => {  
-    const auth = getAuth();
-  
+  useEffect(() => {    
     const unsubscribe = auth.onAuthStateChanged((user) => {
   
       if (!user) {
