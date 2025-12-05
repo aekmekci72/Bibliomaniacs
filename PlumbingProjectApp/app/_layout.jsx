@@ -29,16 +29,6 @@ export default function Layout() {
   const slideAnim = useRef(new Animated.Value(-270)).current;
   const SCREEN_WIDTH = Dimensions.get("window").width;
 
-  const toggleMenu = () => {
-    const toValue = isOpen ? -270 : 0;
-    setIsOpen(!isOpen);
-
-    Animated.timing(slideAnim, {
-      toValue,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
-  };
 
   const fetchRole = async () => {
     try {
@@ -53,10 +43,25 @@ export default function Layout() {
       const roleValue = typeof res.data === "string" ? res.data : res.data.role;
 
       setRole(roleValue);
+      console.log(roleValue);
 
     } catch (err) {
       console.error(err);
     }
+  };
+
+
+  const toggleMenu = () => {
+    const toValue = isOpen ? -270 : 0;
+    setIsOpen(!isOpen);
+
+    fetchRole();
+
+    Animated.timing(slideAnim, {
+      toValue,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
   };
 
 

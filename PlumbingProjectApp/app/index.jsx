@@ -21,7 +21,7 @@ export default function Index() {
   if (!user) {
     return <Redirect href="/landingpage" />;
   }
-  return <Redirect href="/homepage" />;
+  return <Redirect href="/dbtest" />;
 }
 
 // default template
