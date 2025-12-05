@@ -33,7 +33,10 @@ export default function Layout() {
   const fetchRole = async () => {
     try {
       const user = auth.currentUser;
-      if (!user) throw new Error("User not logged in");
+      if (!user) {
+        setRole("no account"); // TEMP FIX
+        return;
+      }
   
       const idToken = await user.getIdToken(true);
   
@@ -43,25 +46,10 @@ export default function Layout() {
       const roleValue = typeof res.data === "string" ? res.data : res.data.role;
 
       setRole(roleValue);
-      console.log(roleValue);
 
     } catch (err) {
       console.error(err);
     }
-  };
-
-
-  const toggleMenu = () => {
-    const toValue = isOpen ? -270 : 0;
-    setIsOpen(!isOpen);
-
-    fetchRole();
-
-    Animated.timing(slideAnim, {
-      toValue,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
   };
 
 
