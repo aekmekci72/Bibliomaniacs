@@ -196,4 +196,31 @@
     }
   }
 
+  /* ==== Submit Review Page Styles ==== */
+
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 items-center justify-center px-4;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg;
+  }
+
+  .modalTitle {
+    @apply text-xl font-bold text-center mb-3;
+  }
+
+  .inputLabel {
+    @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+  }
+
+  .modalInput {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .modalTextarea {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+  }
+
+
 }
