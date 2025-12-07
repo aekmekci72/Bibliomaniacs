@@ -19,11 +19,11 @@
   /* === LandingPage Custom Styles === */
 
   .container {
-    @apply px-6 py-6 gap-4 items-center;
+    @apply w-full min-h-screen flex flex-col items-center justify-center px-6 py-8 gap-6 bg-[#f5f5f5];
   }
 
   .title {
-    @apply text-4xl font-extrabold text-center;
+    @apply text-4xl font-extrabold text-center pt-12;
   }
 
   .subtitle {
@@ -66,6 +66,139 @@
     @apply text-[#224c2f] font-bold;
   }
 
+
+  .landingTopSection {
+    @apply w-full bg-[#eef1ee] items-center;
+  }
+
+  /* This is the “container inside the band” */
+  .landingTopInner {
+    @apply w-full max-w-[1120px] px-6 pt-10 pb-12 flex-row gap-10 items-stretch;
+  }
+
+  /* Left column is a flex column that stretches full height */
+  .landingTopLeft {
+    @apply flex-1 flex-col pb-10;
+  }
+
+  .landingTopCopy {
+    @apply flex-1 gap-4;
+  }
+
+  .landingCtaRowBottom {
+    @apply mt-auto pt-6 flex-row gap-3 self-start;
+  }
+
+  .landingTitle {
+    @apply text-[40px] font-extrabold text-[#224c2f];
+  }
+
+  .landingTagline {
+    @apply text-base text-neutral-700 max-w-[560px] leading-relaxed;
+  }
+
+  .landingBullets {
+    @apply mt-1 gap-1.5;
+  }
+
+  .landingBullet {
+    @apply text-sm text-neutral-700;
+  }
+
+  .landingPrimaryBtn {
+    @apply primaryBtn px-5;
+  }
+
+  .landingPrimaryText {
+    @apply primaryText;
+  }
+
+  .landingSecondaryBtn {
+    @apply secondaryBtn px-5;
+  }
+
+  .landingSecondaryText {
+    @apply secondaryText;
+  }
+
+  .bookWeekCard {
+    @apply w-[340px] bg-white border border-[#e1ebe1] rounded-3xl p-5 shadow-sm;
+  }
+
+  .bookWeekLabel {
+    @apply text-xs font-semibold uppercase tracking-[0.15em] text-[#6b7c6b];
+  }
+
+  .bookWeekTitle {
+    @apply text-lg font-bold text-[#224c2f] mt-1.5;
+  }
+
+  .bookWeekCover {
+    @apply w-full h-[150px] rounded-2xl bg-neutral-200 mt-4;
+  }
+
+  .bookWeekMetaRow {
+    @apply flex-row items-center gap-2 mt-4;
+  }
+
+  .bookWeekTag {
+    @apply bg-[#eaf6ea] px-3 py-1 rounded-full;
+  }
+
+  .bookWeekTagText {
+    @apply text-xs font-semibold text-[#224c2f];
+  }
+
+  .bookWeekPages {
+    @apply text-[11px] text-neutral-500;
+  }
+
+  .bookWeekBlurb {
+    @apply mt-3 text-xs leading-relaxed text-neutral-600;
+  }
+
+  /* === Bottom recommendations band === */
+
+  .landingBottomSection {
+    @apply w-full bg-white items-center border-t border-[#dde5dd];
+  }
+
+  .landingBottomInner {
+    @apply w-full max-w-[1120px] px-6 pt-10 pb-16;
+  }
+
+  .recsHeaderRow {
+    @apply flex-row items-center justify-between mb-6;
+  }
+
+  .recsTitle {
+    @apply text-2xl font-bold text-[#224c2f];
+  }
+
+  .recsShowMore {
+    @apply text-sm font-semibold text-[#2b7a4b];
+  }
+
+  /* === NEW: 3 large cards that fill the row === */
+  .recsRowLarge {
+    @apply w-full flex-row justify-between gap-6;
+  }
+
+  .recCardLarge {
+    @apply flex-1 bg-[#f6faf6] border border-[#dde5dd] rounded-2xl p-5;
+  }
+
+  .recThumbLarge {
+    @apply w-full h-[160px] rounded-2xl bg-neutral-200;
+  }
+
+  .recTitleLarge {
+    @apply mt-4 text-lg font-semibold text-[#224c2f];
+  }
+
+  .recMetaLarge {
+    @apply mt-1 text-sm text-neutral-600;
+  }
 
 
   /* === DBTest Custom Styles === */
@@ -195,5 +328,6 @@
       @apply text-white font-bold;
     }
   }
+
 
 }
