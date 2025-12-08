@@ -12,7 +12,7 @@ import {
 export default function ProfilePage() {
     const [name, setName] = useState("John Doe");
     const [email] = useState("john.doe@example.com");
-    const [phone, setPhone] = useState("201-123-4567");
+    const [phone, setPhone] = useState("(201) 123-4567");
     const [grade, setGrade] = useState("11");
     const [school, setSchool] = useState("Ridgewood High School");
     const [genres, setGenres] = useState(["Fantasy", "Sci-Fi"]);
@@ -153,14 +153,36 @@ export default function ProfilePage() {
                             <TextInput
                                 className="modalInput"
                                 value={editPhone}
-                                onChangeText={setEditPhone}
+                                keyboardType="phone-pad"
+                                maxLength={14}
+                                onChangeText={(text) => {
+                                    const cleaned = text.replace(/\D/g, "");
+
+                                    let formatted = cleaned;
+
+                                    if (cleaned.length > 3 && cleaned.length <= 6) {
+                                        formatted = `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+                                    } else if (cleaned.length > 6) {
+                                        formatted = `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+                                    }
+
+                                    setEditPhone(formatted);
+                                }}
                             />
+
 
                             <Text className="inputLabel">Grade</Text>
                             <TextInput
                                 className="modalInput"
                                 value={editGrade}
-                                onChangeText={setEditGrade}
+                                keyboardType="numeric"
+                                onChangeText={(text) => {
+                                    const num = text.replace(/[^0-9]/g, "");
+
+                                    if (num === "" || Number(num) <= 13) {
+                                        setEditGrade(num);
+                                    }
+                                }}
                             />
 
                             <Text className="inputLabel">School</Text>
