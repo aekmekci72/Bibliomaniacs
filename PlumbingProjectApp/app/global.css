@@ -81,6 +81,10 @@
     @apply flex-1 flex-col pb-10;
   }
 
+  .homeTopLeft {
+    @apply flex-1 justify-center flex-col pb-10;
+  }
+
   .landingTopCopy {
     @apply flex-1 gap-4;
   }
