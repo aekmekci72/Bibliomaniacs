@@ -4,6 +4,7 @@ export default function MyReviews() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [userName] = useState("John Smith"); // Replace with actual user name
 
   const reviews = [
     {
@@ -34,6 +35,10 @@ export default function MyReviews() {
     Pending: "#cc9a06",
     Rejected: "#c0392b",
   };
+
+  // Calculate volunteer hours (30 mins = 0.5 hours per approved review)
+  const approvedReviews = reviews.filter(r => r.status === "Approved").length;
+  const volunteerHours = (approvedReviews * 0.5).toFixed(1);
 
   const filtered = reviews
     .filter((r) => {
@@ -71,6 +76,174 @@ export default function MyReviews() {
     window.URL.revokeObjectURL(url);
   };
 
+  const generateCertificate = () => {
+    // Create certificate HTML
+    const certificateHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          @page { size: landscape; margin: 0; }
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Georgia', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          }
+          .certificate {
+            width: 800px;
+            padding: 60px;
+            background: white;
+            border: 20px solid #2b7a4b;
+            box-shadow: 0 0 50px rgba(0,0,0,0.3);
+            text-align: center;
+            position: relative;
+          }
+          .certificate::before {
+            content: '';
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            right: 30px;
+            bottom: 30px;
+            border: 3px solid #d4af37;
+            pointer-events: none;
+          }
+          .header {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2b7a4b;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+          }
+          .subheader {
+            font-size: 24px;
+            color: #555;
+            margin-bottom: 40px;
+            font-style: italic;
+          }
+          .content {
+            font-size: 18px;
+            line-height: 2;
+            color: #333;
+            margin: 30px 0;
+          }
+          .name {
+            font-size: 36px;
+            font-weight: bold;
+            color: #1a4d2e;
+            text-decoration: underline;
+            text-decoration-color: #d4af37;
+            text-decoration-thickness: 2px;
+            margin: 20px 0;
+          }
+          .hours {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2b7a4b;
+            margin: 20px 0;
+          }
+          .date {
+            font-size: 16px;
+            color: #666;
+            margin-top: 40px;
+          }
+          .signature-section {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 60px;
+            padding-top: 20px;
+          }
+          .signature {
+            text-align: center;
+          }
+          .signature-line {
+            width: 200px;
+            height: 1px;
+            background: #333;
+            margin: 10px auto;
+          }
+          .seal {
+            position: absolute;
+            bottom: 40px;
+            right: 60px;
+            width: 80px;
+            height: 80px;
+            border: 3px solid #d4af37;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: #2b7a4b;
+            font-weight: bold;
+            font-size: 12px;
+            transform: rotate(-15deg);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="certificate">
+          <div class="header">Certificate of Appreciation</div>
+          <div class="subheader">Community Book Review Program</div>
+          
+          <div class="content">
+            This certificate is proudly presented to
+          </div>
+          
+          <div class="name">${userName}</div>
+          
+          <div class="content">
+            For their outstanding contribution and dedication to our community<br/>
+            through the thoughtful review of literature
+          </div>
+          
+          <div class="hours">${volunteerHours} Volunteer Hours</div>
+          
+          <div class="content">
+            Based on ${approvedReviews} approved book review${approvedReviews !== 1 ? 's' : ''}
+          </div>
+          
+          <div class="date">
+            Issued on ${new Date().toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </div>
+          
+          <div class="signature-section">
+            <div class="signature">
+              <div class="signature-line"></div>
+              <div>Program Director</div>
+            </div>
+            <div class="signature">
+              <div class="signature-line"></div>
+              <div>Administrator</div>
+            </div>
+          </div>
+          
+          <div class="seal">OFFICIAL<br/>SEAL</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create and download certificate
+    const blob = new Blob([certificateHTML], { type: "text/html" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `volunteer_certificate_${userName.replace(/\s+/g, '_')}.html`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
       <div className="w-full max-w-7xl py-6">
@@ -99,11 +272,11 @@ export default function MyReviews() {
             </div>
             <div className="text-sm text-gray-500 font-semibold">Pending</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-red-600">
-            <div className="text-3xl font-bold text-red-700">
-              {reviews.filter(r => r.status === "Rejected").length}
+          <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-600">
+            <div className="text-3xl font-bold text-blue-700">
+              {volunteerHours}
             </div>
-            <div className="text-sm text-gray-500 font-semibold">Rejected</div>
+            <div className="text-sm text-gray-500 font-semibold">Volunteer Hours</div>
           </div>
         </div>
 
@@ -181,12 +354,18 @@ export default function MyReviews() {
         </div>
 
         {/* Action Buttons at Bottom */}
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-8 flex justify-center gap-4 flex-wrap">
           <button
             onClick={exportCSV}
             className="bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
           >
             Export as CSV
+          </button>
+          <button
+            onClick={generateCertificate}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
+          >
+            📜 Generate Certificate
           </button>
           <button
             onClick={() => console.log("Add Review pressed")}
