@@ -21,6 +21,7 @@ export default function Layout() {
     if (pathname.startsWith("/filedownload")) return "filedownload";
     if (pathname.startsWith("/login")) return "login";
     if (pathname.startsWith("/adminonly")) return "adminonly";
+    if (pathname.startsWith("/myreviews")) return "myreviews";
 
     return "";
   }
@@ -180,6 +181,7 @@ export default function Layout() {
           <NavItem icon="calendar-outline" label="Explorer" page="explorer" href="/explorer" />
           <NavItem icon="document-text-outline" label="ChatBot" page="chatbot" href="/chatbot" />
           <NavItem icon="checkbox-outline" label="File Download" page="filedownload" href="/filedownload" />
+          <NavItem icon="list-outline" label="My Reviews" page="myreviews" href="/myreviews" />
         </View>
 
         {/* Divider */}
