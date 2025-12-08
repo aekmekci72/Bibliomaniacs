@@ -11,29 +11,29 @@ export default function AdminReviews() {
     {
       id: 1,
       bookTitle: "The Great Gatsby",
-      review: "A beautifully tragic novel.",
+      reviewerName: "Alice Johnson",
+      review: "A beautifully tragic novel that captures the essence of the American Dream.",
       rating: 5,
       status: "Approved",
-      createdAt: "2024-11-02",
-      submittedBy: "Alice",
+      submittedAt: "2024-11-02",
     },
     {
       id: 2,
       bookTitle: "1984",
-      review: "Haunting and thought-provoking.",
+      reviewerName: "Bob Smith",
+      review: "Haunting and thought-provoking dystopian masterpiece.",
       rating: 4,
       status: "Pending",
-      createdAt: "2024-10-12",
-      submittedBy: "Bob",
+      submittedAt: "2024-10-12",
     },
     {
       id: 3,
       bookTitle: "Sapiens",
-      review: "Insightful and deep!",
+      reviewerName: "Charlie Davis",
+      review: "Insightful and deep exploration of human history!",
       rating: 5,
       status: "Rejected",
-      createdAt: "2024-08-21",
-      submittedBy: "Charlie",
+      submittedAt: "2024-08-21",
     },
   ]);
 
@@ -47,9 +47,9 @@ export default function AdminReviews() {
     const matchStatus = statusFilter === "All" || r.status === statusFilter;
     const matchSearch =
       r.bookTitle.toLowerCase().includes(search.toLowerCase()) ||
-      r.submittedBy.toLowerCase().includes(search.toLowerCase());
-    const matchFrom = !fromDate || new Date(r.createdAt) >= new Date(fromDate);
-    const matchTo = !toDate || new Date(r.createdAt) <= new Date(toDate);
+      r.reviewerName.toLowerCase().includes(search.toLowerCase());
+    const matchFrom = !fromDate || new Date(r.submittedAt) >= new Date(fromDate);
+    const matchTo = !toDate || new Date(r.submittedAt) <= new Date(toDate);
     return matchStatus && matchSearch && matchFrom && matchTo;
   });
 
@@ -69,14 +69,14 @@ export default function AdminReviews() {
   };
 
   const exportCSV = () => {
-    const headers = ["Book Title", "Submitted By", "Review", "Rating", "Status", "Date"];
+    const headers = ["Book Title", "Reviewer Name", "Review", "Rating", "Status", "Submitted Date"];
     const rows = filtered.map(r => [
       r.bookTitle,
-      r.submittedBy,
+      r.reviewerName,
       r.review,
       r.rating,
       r.status,
-      r.createdAt
+      r.submittedAt
     ]);
     
     const csvContent = [
@@ -104,7 +104,7 @@ export default function AdminReviews() {
         <div className="flex flex-wrap gap-3 mb-6 justify-center bg-white p-6 rounded-lg shadow-sm">
           <input
             type="text"
-            placeholder="Search by book or user..."
+            placeholder="Search by book or reviewer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="border border-green-200 rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -146,28 +146,30 @@ export default function AdminReviews() {
           <table className="w-full min-w-max">
             <thead className="bg-green-50 border-b-2 border-green-200">
               <tr>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-48">Book</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-36">Submitted By</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-64">Review</th>
+                <th className="px-4 py-4 text-left font-bold text-gray-700 w-48">Book Title</th>
+                <th className="px-4 py-4 text-left font-bold text-gray-700 w-40">Reviewer Name</th>
+                <th className="px-4 py-4 text-left font-bold text-gray-700 w-80">Review</th>
                 <th className="px-4 py-4 text-left font-bold text-gray-700 w-24">Rating</th>
                 <th className="px-4 py-4 text-left font-bold text-gray-700 w-28">Status</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Date</th>
+                <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Submitted</th>
                 <th className="px-4 py-4 text-left font-bold text-gray-700 w-96">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-green-100 hover:bg-green-50 transition-colors">
-                  <td className="px-4 py-4">{r.bookTitle}</td>
-                  <td className="px-4 py-4">{r.submittedBy}</td>
-                  <td className="px-4 py-4">{r.review}</td>
-                  <td className="px-4 py-4">⭐ {r.rating}</td>
+                  <td className="px-4 py-4 font-semibold text-gray-800">{r.bookTitle}</td>
+                  <td className="px-4 py-4 text-gray-700">{r.reviewerName}</td>
+                  <td className="px-4 py-4 text-gray-600 text-sm">{r.review}</td>
+                  <td className="px-4 py-4">
+                    <span className="text-green-700 font-bold">★ {r.rating}</span>
+                  </td>
                   <td className="px-4 py-4">
                     <span className="font-bold" style={{ color: statusColor[r.status] }}>
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4">{r.createdAt}</td>
+                  <td className="px-4 py-4 text-gray-600 text-sm">{r.submittedAt}</td>
                   <td className="px-4 py-4">
                     <div className="flex gap-2">
                       <button
