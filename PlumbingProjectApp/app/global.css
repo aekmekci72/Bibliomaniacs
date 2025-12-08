@@ -329,4 +329,24 @@
   }
 
 
+  .gradeRow {
+    @apply flex-row gap-2 mb-3;
+  }
+
+  .gradeOption {
+    @apply px-3 py-1 rounded-lg border border-neutral-300 bg-white;
+  }
+
+  .gradeOptionActive {
+    @apply bg-[#2b7a4b] border-[#2b7a4b];
+  }
+
+  .gradeText {
+    @apply text-[#224c2f] font-semibold;
+  }
+
+  .gradeTextActive {
+    @apply text-white;
+  }
+
 }

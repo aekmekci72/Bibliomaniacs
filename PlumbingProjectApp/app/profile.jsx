@@ -39,6 +39,10 @@ export default function ProfilePage() {
     const [editSchool, setEditSchool] = useState(school);
     const [editGenres, setEditGenres] = useState(genres);
 
+    const gradeOptions = Array.from({ length: 13 }, (_, i) =>
+        i === 0 ? "K" : i.toString()
+    );
+
     const openModal = () => {
         setEditName(name);
         setEditPhone(phone);
@@ -170,20 +174,28 @@ export default function ProfilePage() {
                                 }}
                             />
 
-
-                            <Text className="inputLabel">Grade</Text>
-                            <TextInput
-                                className="modalInput"
-                                value={editGrade}
-                                keyboardType="numeric"
-                                onChangeText={(text) => {
-                                    const num = text.replace(/[^0-9]/g, "");
-
-                                    if (num === "" || Number(num) <= 13) {
-                                        setEditGrade(num);
-                                    }
-                                }}
-                            />
+                            <Text className="inputLabel">Grade Level</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                className="gradeRow"
+                            >
+                                {gradeOptions.map((level) => (
+                                    <Pressable
+                                        key={level}
+                                        className={`gradeOption ${grade === level ? "gradeOptionActive" : ""
+                                            }`}
+                                        onPress={() => setGrade(level)}
+                                    >
+                                        <Text
+                                            className={`gradeText ${grade === level ? "gradeTextActive" : ""
+                                                }`}
+                                        >
+                                            {level}
+                                        </Text>
+                                    </Pressable>
+                                ))}
+                            </ScrollView>
 
                             <Text className="inputLabel">School</Text>
                             <TextInput
