@@ -328,5 +328,115 @@
     @apply border-[#2b7a4b] bg-[#2b7a4b];
   }
 
+  /* ==== Submit Review Page Styles ==== */
 
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 items-center justify-center px-4;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg;
+  }
+
+  .modalTitle {
+    @apply text-xl font-bold text-center mb-3;
+  }
+
+  .inputLabel {
+    @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+  }
+
+  .modalInput {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .modalTextarea {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+  }
+
+
+  .radioOuter {
+    @apply w-5 h-5 rounded-full border-2 items-center justify-center;
+  }
+
+  .radioInner {
+    @apply w-3 h-3 rounded-full;
+  }
+
+
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 items-center justify-center px-4;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] max-h-[90%] bg-white rounded-xl p-0 border border-neutral-300 shadow-lg;
+  }
+
+  .modalScroll {
+    @apply px-5;
+  }
+
+  .modalTitle {
+    @apply text-xl font-bold text-center mb-3;
+  }
+
+  .inputLabel {
+    @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+  }
+
+  .modalInput {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .modalTextarea {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+  }
+
+  .gradeRow {
+    @apply flex-row gap-2 mb-3;
+  }
+
+  .gradeOption {
+    @apply px-3 py-1 rounded-lg border border-neutral-300 bg-white;
+  }
+
+  .gradeOptionActive {
+    @apply bg-[#2b7a4b] border-[#2b7a4b];
+  }
+
+  .gradeText {
+    @apply text-[#224c2f] font-semibold;
+  }
+
+  .gradeTextActive {
+    @apply text-white;
+  }
+
+  .radioRow {
+    @apply flex-row gap-4 mt-2 mb-3 flex-wrap;
+  }
+
+  .radioOption {
+    @apply flex-row items-center gap-2 px-3 py-2 rounded-lg border border-neutral-300 bg-white;
+  }
+
+  .radioOptionActive {
+    @apply border-[#2b7a4b] bg-[#eaf6ea];
+  }
+
+  .radioCircle {
+    @apply w-4 h-4 rounded-full border border-neutral-400;
+  }
+
+  .radioCircleActive {
+    @apply border-[#2b7a4b] bg-[#2b7a4b];
+  }
+
+  .radioText {
+    @apply text-[#224c2f] font-medium;
+  }
+
+  .radioTextActive {
+    @apply text-[#2b7a4b] font-bold;
+  }
 }
