@@ -32,14 +32,14 @@ export default function LandingPage() {
             <View className="landingCtaRowBottom">
               <Pressable
                 className="landingPrimaryBtn"
-                onPress={() => navigation?.navigate?.("SignUp")}
+                onPress={() => navigation?.navigate?.("login")}
               >
                 <Text className="landingPrimaryText">Sign Up</Text>
               </Pressable>
 
               <Pressable
                 className="landingSecondaryBtn"
-                onPress={() => navigation?.navigate?.("Login")}
+                onPress={() => navigation?.navigate?.("login")}
               >
                 <Text className="landingSecondaryText">Log In</Text>
               </Pressable>

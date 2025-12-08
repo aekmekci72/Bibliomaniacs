@@ -98,10 +98,6 @@ export default function Layout() {
   useEffect(() => {    
     const unsubscribe = auth.onAuthStateChanged((user) => {
   
-      if (!user) {
-        return;
-      }
-  
       fetchRole();
     });
   
@@ -162,7 +158,9 @@ export default function Layout() {
 
         {/* Navigation Group */}
         <View className="mt-4 space-y-1">
-          <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
+          {role === "no account" && (
+            <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
+          )}
           <NavItem icon="trending-up-outline" label="DB Test" page="dbtest" href="/dbtest" />
           <NavItem icon="calendar-outline" label="Explorer" page="explorer" href="/explorer" />
           <NavItem icon="document-text-outline" label="ChatBot" page="chatbot" href="/chatbot" />
