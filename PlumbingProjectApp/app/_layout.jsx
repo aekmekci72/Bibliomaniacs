@@ -4,7 +4,7 @@ import { Image, Animated, Dimensions, Pressable, Text, View, TextInput } from "r
 import { Link, Stack, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getAuth } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 import axios from "axios";
 import './global.css';
 
@@ -21,6 +21,7 @@ export default function Layout() {
     if (pathname.startsWith("/filedownload")) return "filedownload";
     if (pathname.startsWith("/login")) return "login";
     if (pathname.startsWith("/adminonly")) return "adminonly";
+    if (pathname.startsWith("/myreviews")) return "myreviews";
 
     return "";
   }
@@ -32,7 +33,6 @@ export default function Layout() {
 
   const fetchRole = async () => {
     try {
-      const auth = getAuth();
       const user = auth.currentUser;
       if (!user) {
         setRole("no account"); // TEMP FIX
@@ -46,7 +46,7 @@ export default function Layout() {
       });
       const roleValue = typeof res.data === "string" ? res.data : res.data.role;
 
-      setRole(roleValue);      
+      setRole(roleValue);
 
     } catch (err) {
       console.error(err);
@@ -58,23 +58,13 @@ export default function Layout() {
     const toValue = isOpen ? -270 : 0;
     setIsOpen(!isOpen);
 
+    fetchRole();
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 250,
       useNativeDriver: true,
     }).start();
-
-    const auth = getAuth();
-  
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-    if (!user) {
-      setRole("no account");
-      return;
-    }
-      fetchRole();
-    });
-  
-    return unsubscribe;
   };
 
 
@@ -106,14 +96,8 @@ export default function Layout() {
     );
   }
 
-  useEffect(() => {  
-    const auth = getAuth();
-  
+  useEffect(() => {    
     const unsubscribe = auth.onAuthStateChanged((user) => {
-  
-      if (!user) {
-        return;
-      }
   
       fetchRole();
     });
@@ -175,11 +159,14 @@ export default function Layout() {
 
         {/* Navigation Group */}
         <View className="mt-4 space-y-1">
-          <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
+          {role === "no account" && (
+            <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
+          )}
           <NavItem icon="trending-up-outline" label="DB Test" page="dbtest" href="/dbtest" />
           <NavItem icon="calendar-outline" label="Explorer" page="explorer" href="/explorer" />
           <NavItem icon="document-text-outline" label="ChatBot" page="chatbot" href="/chatbot" />
           <NavItem icon="checkbox-outline" label="File Download" page="filedownload" href="/filedownload" />
+          <NavItem icon="list-outline" label="My Reviews" page="myreviews" href="/myreviews" />
         </View>
 
         {/* Divider */}
@@ -188,18 +175,36 @@ export default function Layout() {
         {/* Section Header */}
         <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>Section Divider</Text>
         
-        <View style={{ gap: 6 }}>
-          {role === "admin" && (
-            <NavItem icon="briefcase-outline" label="Admin Only" page="adminonly" href="/adminonly" />
-          )}
+      <View style={{ gap: 6 }}>
 
-          <NavItem icon="albums-outline" label="Accounts" href="/" />
+    {role === "admin" && (
+      <>
+        <NavItem
+          icon="grid-outline"
+          label="Admin Dashboard"
+          page="admin-dashboard"
+          href="/admindashboard"
+        />
 
-          <NavItem icon="people-outline" label="Contacts" href="/" />
+        <NavItem
+          icon="list-outline"
+          label="Submitted Reviews"
+          page="admin-reviews"
+          href="/admin-reviews"
+        />
+        
+        <NavItem
+          icon="briefcase-outline"
+          label="Admin Only"
+          page="adminonly"
+          href="/adminonly"
+        />
+      </>
+    )}        <NavItem icon="albums-outline" label="Accounts" href="/" />
+        <NavItem icon="people-outline" label="Contacts" href="/" />
+        <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" />
 
-          <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" />
-
-        </View>
+      </View>
       </Animated.View>
     </SafeAreaView>
   );
