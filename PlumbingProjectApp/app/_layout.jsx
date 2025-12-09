@@ -190,18 +190,31 @@ export default function Layout() {
         {/* Section Header */}
         <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>Section Divider</Text>
         
-        <View style={{ gap: 6 }}>
-          {role === "admin" && (
-            <NavItem icon="briefcase-outline" label="Admin Only" page="adminonly" href="/adminonly" />
-          )}
+      <View style={{ gap: 6 }}>
 
-          <NavItem icon="albums-outline" label="Accounts" href="/" />
+        {role === "admin" && (
+          <>
+            <NavItem
+              icon="briefcase-outline"
+              label="Admin Only"
+              page="adminonly"
+              href="/adminonly"
+            />
 
-          <NavItem icon="people-outline" label="Contacts" href="/" />
+            <NavItem
+              icon="list-outline"
+              label="Submitted Reviews"
+              page="admin-reviews"
+              href="/admin-reviews"
+            />
+          </>
+        )}
 
-          <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" />
+        <NavItem icon="albums-outline" label="Accounts" href="/" />
+        <NavItem icon="people-outline" label="Contacts" href="/" />
+        <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" />
 
-        </View>
+      </View>
       </Animated.View>
     </SafeAreaView>
   );
