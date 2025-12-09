@@ -4,7 +4,7 @@ import { Image, Animated, Dimensions, Pressable, Text, View, TextInput } from "r
 import { Link, Stack, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getAuth } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 import axios from "axios";
 import './global.css';
 
@@ -33,7 +33,6 @@ export default function Layout() {
 
   const fetchRole = async () => {
     try {
-      const auth = getAuth();
       const user = auth.currentUser;
       if (!user) {
         setRole("no account"); // TEMP FIX
@@ -47,7 +46,7 @@ export default function Layout() {
       });
       const roleValue = typeof res.data === "string" ? res.data : res.data.role;
 
-      setRole(roleValue);      
+      setRole(roleValue);
 
     } catch (err) {
       console.error(err);
@@ -59,23 +58,13 @@ export default function Layout() {
     const toValue = isOpen ? -270 : 0;
     setIsOpen(!isOpen);
 
+    fetchRole();
+
     Animated.timing(slideAnim, {
       toValue,
       duration: 250,
       useNativeDriver: true,
     }).start();
-
-    const auth = getAuth();
-  
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-    if (!user) {
-      setRole("no account");
-      return;
-    }
-      fetchRole();
-    });
-  
-    return unsubscribe;
   };
 
 
@@ -107,14 +96,8 @@ export default function Layout() {
     );
   }
 
-  useEffect(() => {  
-    const auth = getAuth();
-  
+  useEffect(() => {    
     const unsubscribe = auth.onAuthStateChanged((user) => {
-  
-      if (!user) {
-        return;
-      }
   
       fetchRole();
     });
@@ -176,7 +159,9 @@ export default function Layout() {
 
         {/* Navigation Group */}
         <View className="mt-4 space-y-1">
-          <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
+          {role === "no account" && (
+            <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
+          )}
           <NavItem icon="trending-up-outline" label="DB Test" page="dbtest" href="/dbtest" />
           <NavItem icon="calendar-outline" label="Explorer" page="explorer" href="/explorer" />
           <NavItem icon="document-text-outline" label="ChatBot" page="chatbot" href="/chatbot" />
