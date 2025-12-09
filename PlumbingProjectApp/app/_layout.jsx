@@ -192,25 +192,30 @@ export default function Layout() {
         
       <View style={{ gap: 6 }}>
 
-        {role === "admin" && (
-          <>
-            <NavItem
-              icon="briefcase-outline"
-              label="Admin Only"
-              page="adminonly"
-              href="/adminonly"
-            />
+    {role === "admin" && (
+      <>
+        <NavItem
+          icon="grid-outline"
+          label="Admin Dashboard"
+          page="admin-dashboard"
+          href="/admindashboard"
+        />
 
-            <NavItem
-              icon="list-outline"
-              label="Submitted Reviews"
-              page="admin-reviews"
-              href="/admin-reviews"
-            />
-          </>
-        )}
-
-        <NavItem icon="albums-outline" label="Accounts" href="/" />
+        <NavItem
+          icon="list-outline"
+          label="Submitted Reviews"
+          page="admin-reviews"
+          href="/admin-reviews"
+        />
+        
+        <NavItem
+          icon="briefcase-outline"
+          label="Admin Only"
+          page="adminonly"
+          href="/adminonly"
+        />
+      </>
+    )}        <NavItem icon="albums-outline" label="Accounts" href="/" />
         <NavItem icon="people-outline" label="Contacts" href="/" />
         <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" />
 
