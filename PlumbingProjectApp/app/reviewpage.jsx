@@ -6,11 +6,14 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Platform,
 } from "react-native";
 import { Star } from "lucide-react-native";
 
 export default function SubmitReviewPage() {
   const [modalVisible, setModalVisible] = useState(false);
+  const [bookTitle, setBookTitle] = useState("");
+  const [titleFlagged, setTitleFlagged] = useState(false);
   const [rating, setRating] = useState(0);
   const [gradeLevel, setGradeLevel] = useState("");
   const [anonPref, setAnonPref] = useState("");
@@ -22,11 +25,37 @@ export default function SubmitReviewPage() {
 
   const anonOptions = ["Yes", "No", "First Name Only"];
 
+  const overReviewedBooks = [
+    "Harry Potter",
+    "Percy Jackson",
+    "Jane Eyre",
+    "The Great Gatsby",
+    "To Kill a Mockingbird",
+  ];
+
   const toggleRecommendedGrade = (level) => {
-    if (recommendedGrades.includes(level)) {
-      setRecommendedGrades(recommendedGrades.filter((g) => g !== level));
-    } else {
-      setRecommendedGrades([...recommendedGrades, level]);
+    setRecommendedGrades((prev) =>
+      prev.includes(level)
+        ? prev.filter((g) => g !== level)
+        : [...prev, level]
+    );
+  };
+
+  const handleTitleChange = (text) => {
+    setBookTitle(text);
+
+    const normalized = text.trim().toLowerCase();
+
+    const isOverReviewed = overReviewedBooks.some(
+      (book) => book.toLowerCase() === normalized
+    );
+
+    if (isOverReviewed && !titleFlagged) {
+      setTitleFlagged(true);
+    }
+
+    if (!isOverReviewed && titleFlagged) {
+      setTitleFlagged(false);
     }
   };
 
@@ -58,7 +87,25 @@ export default function SubmitReviewPage() {
               <Text className="modalTitle">New Book Review</Text>
 
               <Text className="inputLabel">Book Title</Text>
-              <TextInput className="modalInput" placeholder="Book title" />
+              <TextInput
+                className="modalInput"
+                placeholder="Book title"
+                value={bookTitle}
+                onChangeText={handleTitleChange}
+              />
+
+              {titleFlagged && (
+                <View className="warningBox">
+                  <View className="flex-1">
+                    <Text className="warningTitle">Already popular title</Text>
+                    <Text className="warningText">
+                      This book has already been reviewed many times.
+                      Consider reviewing a different book.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
 
               <Text className="inputLabel">Author Name</Text>
               <TextInput className="modalInput" placeholder="Author name" />
@@ -82,15 +129,13 @@ export default function SubmitReviewPage() {
                 {gradeOptions.map((level) => (
                   <Pressable
                     key={level}
-                    className={`gradeOption ${
-                      gradeLevel === level ? "gradeOptionActive" : ""
-                    }`}
+                    className={`gradeOption ${gradeLevel === level ? "gradeOptionActive" : ""
+                      }`}
                     onPress={() => setGradeLevel(level)}
                   >
                     <Text
-                      className={`gradeText ${
-                        gradeLevel === level ? "gradeTextActive" : ""
-                      }`}
+                      className={`gradeText ${gradeLevel === level ? "gradeTextActive" : ""
+                        }`}
                     >
                       {level}
                     </Text>
@@ -103,19 +148,17 @@ export default function SubmitReviewPage() {
                 {gradeOptions.map((level) => (
                   <Pressable
                     key={level}
-                    className={`gradeOption ${
-                      recommendedGrades.includes(level)
+                    className={`gradeOption ${recommendedGrades.includes(level)
                         ? "gradeOptionActive"
                         : ""
-                    }`}
+                      }`}
                     onPress={() => toggleRecommendedGrade(level)}
                   >
                     <Text
-                      className={`gradeText ${
-                        recommendedGrades.includes(level)
+                      className={`gradeText ${recommendedGrades.includes(level)
                           ? "gradeTextActive"
                           : ""
-                      }`}
+                        }`}
                     >
                       {level}
                     </Text>
@@ -128,20 +171,17 @@ export default function SubmitReviewPage() {
                 {anonOptions.map((opt) => (
                   <Pressable
                     key={opt}
-                    className={`radioOption ${
-                      anonPref === opt ? "radioOptionActive" : ""
-                    }`}
+                    className={`radioOption ${anonPref === opt ? "radioOptionActive" : ""
+                      }`}
                     onPress={() => setAnonPref(opt)}
                   >
                     <View
-                      className={`radioCircle ${
-                        anonPref === opt ? "radioCircleActive" : ""
-                      }`}
+                      className={`radioCircle ${anonPref === opt ? "radioCircleActive" : ""
+                        }`}
                     />
                     <Text
-                      className={`radioText ${
-                        anonPref === opt ? "radioTextActive" : ""
-                      }`}
+                      className={`radioText ${anonPref === opt ? "radioTextActive" : ""
+                        }`}
                     >
                       {opt}
                     </Text>
@@ -165,7 +205,9 @@ export default function SubmitReviewPage() {
 
               <View className="buttonRow mt-1">
                 <Pressable
-                  className="primaryBtn flex-1"
+                  className={`primaryBtn flex-1 ${titleFlagged ? "opacity-50" : ""
+                    }`}
+                  disabled={titleFlagged}
                   onPress={() => setModalVisible(false)}
                 >
                   <Text className="primaryText">Submit</Text>
