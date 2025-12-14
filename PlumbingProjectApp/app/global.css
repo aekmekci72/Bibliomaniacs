@@ -331,7 +331,137 @@
     .chatbotSendText {
       @apply text-white font-bold;
     }
+
+    /* FOOTER BASE CONTAINER */
+    .footer {
+      @apply w-full bg-[#2F5F3A] py-10 mt-16;
+    }
+
+    /* INNER WRAPPER (centers content + limits width) */
+    .footerInner {
+      @apply max-w-6xl mx-auto px-6;
+    }
+
+    /* FOOTER SECTION TITLE */
+    .footerTitle {
+      @apply text-white text-lg font-semibold mb-3;
+    }
+
+    /* FOOTER BODY TEXT */
+    .footerText {
+      @apply text-white/80 text-sm leading-5;
+    }
+
+    /* BRAND TITLE (larger than section titles) */
+    .footerBrand {
+      @apply text-white text-xl font-semibold mb-3;
+    }
+
+    /* HORIZONTAL DIVIDER */
+    .footerDivider {
+      @apply w-full h-px bg-white/20 my-8;
+    }
+
+    /* COPYRIGHT TEXT */
+    .footerCopyright {
+      @apply text-center text-white/60 text-xs;
+    }
+
+    /* Full-page background & centering */
+    .adminHomeRoot {
+      @apply flex-1 bg-[#eef1ec];
+    }
+  
+    /* FULL HEIGHT HERO SECTION */
+    .adminHomeHeroSection {
+      @apply w-full min-h-screen flex items-center;
+    }
+  
+    .adminHomeHeroInner {
+      @apply max-w-6xl mx-auto px-10 flex-row items-center justify-between gap-16;
+    }
+  
+    /* LEFT COLUMN */
+    .adminHomeLeft {
+      @apply flex-1;
+    }
+  
+    .adminHomeTitle {
+      @apply text-5xl font-semibold text-[#245632];
+    }
+  
+    .adminHomeTagline {
+      @apply mt-4 text-base leading-relaxed text-[#37453a] max-w-xl;
+    }
+  
+    .adminHomeBullets {
+      @apply mt-4 space-y-1;
+    }
+  
+    .adminHomeBullet {
+      @apply text-base text-[#3f4b40];
+    }
+  
+    .adminHomeCtas {
+      @apply mt-8 flex-row gap-4;
+    }
+  
+    .adminHomePrimaryBtn {
+      @apply px-8 py-3 rounded-full bg-[#2f7a3b] justify-center items-center;
+    }
+  
+    .adminHomePrimaryText {
+      @apply text-white font-semibold text-base;
+    }
+  
+    .adminHomeSecondaryBtn {
+      @apply px-8 py-3 rounded-full border border-[#2f7a3b] bg-transparent justify-center items-center;
+    }
+  
+    .adminHomeSecondaryText {
+      @apply text-[#2f7a3b] font-semibold text-base;
+    }
+  
+    /* RIGHT COLUMN */
+    .adminHomeRight {
+      @apply w-[420px];
+    }
+  
+    /* BOOK CARD */
+    .adminHomeBookCard {
+      @apply bg-white rounded-3xl shadow-md px-8 py-7;
+    }
+  
+    .adminHomeBookLabel {
+      @apply text-xs font-semibold tracking-[0.25em] uppercase text-[#7a8a7c];
+    }
+  
+    .adminHomeBookTitle {
+      @apply mt-2 text-2xl font-semibold text-[#245632];
+    }
+  
+    .adminHomeBookCover {
+      @apply mt-5 mb-4 h-40 rounded-2xl bg-[#e5e8e2];
+    }
+  
+    .adminHomeBookMetaRow {
+      @apply flex-row items-center justify-between mb-3;
+    }
+  
+    .adminHomeBookTag {
+      @apply px-3 py-1 rounded-full bg-[#e6f4ea];
+    }
+  
+    .adminHomeBookTagText {
+      @apply text-xs font-semibold text-[#2f7a3b];
+    }
+  
+    .adminHomeBookPages {
+      @apply text-xs text-[#6b776f];
+    }
+  
+    .adminHomeBookBlurb {
+      @apply text-sm leading-5 text-[#37453a];
+    }
   }
-
-
 }

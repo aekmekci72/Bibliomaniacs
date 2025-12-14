@@ -108,6 +108,55 @@ export default function LandingPage() {
     </View>
   </View>
 </View>
+
+
+<View className="footer">
+        <View className="footerInner">
+
+          <View className="flex flex-row flex-wrap justify-between gap-10">
+
+            {/* Brand */}
+            <View className="w-40">
+              <Text className="footerBrand">Bibliomaniacs</Text>
+              <Text className="footerText">
+                Building better reading habits for the Ridgewood community.
+              </Text>
+            </View>
+
+            {/* Contact */}
+            <View className="w-40">
+              <Text className="footerTitle">Contact Us</Text>
+              <Text className="footerText">Email: support@bibliomaniacs.fake</Text>
+              <Text className="footerText">Phone: (555) 123-4567</Text>
+              <Text className="footerText">123 Library Lane, Ridgewood, NJ</Text>
+            </View>
+
+            {/* Links */}
+            <View className="w-40">
+              <Text className="footerTitle">Quick Links</Text>
+              <Text className="footerText">About Us</Text>
+              <Text className="footerText">FAQ</Text>
+              <Text className="footerText">Privacy Policy</Text>
+            </View>
+
+            {/* Socials */}
+            <View className="w-40">
+              <Text className="footerTitle">Follow Us</Text>
+              <Text className="footerText">Instagram</Text>
+              <Text className="footerText">Twitter</Text>
+              <Text className="footerText">Facebook</Text>
+            </View>
+
+          </View>
+
+          <View className="footerDivider" />
+
+          <Text className="footerCopyright">
+            © {new Date().getFullYear()} Bibliomaniacs. All rights reserved.
+          </Text>
+
+        </View>
+      </View>
     </ScrollView>
   );
 }
