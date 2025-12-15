@@ -5,12 +5,12 @@ import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView } fr
 
 export default function LandingPage() {
   const bookOfTheWeek = {
-    "title": "An Emo and a Quant",
-    "genre": "Non-Fiction",
-    "stars": "4.8",
-    "pages": "320",
+    "title": "To Kill a Mockingbird",
+    "genre": "Bildungsroman",
+    "stars": "4.3",
+    "pages": "285",
     "descr": "Quick Read", 
-    "blurb": "Follow two comp sci kids on their journey towards redemption. After deleting a precious Canva textbox, these nerds face the wrath of a very awesome god."
+    "blurb": "The conscience of a town steeped in prejudice, violence and hypocrisy is pricked by the stamina of one man's struggle for justice. But the weight of history will only tolerate so much."
   }
   return (
     <ScrollView className="landingPageRoot landingScroll">
