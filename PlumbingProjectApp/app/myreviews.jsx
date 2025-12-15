@@ -1,4 +1,13 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  TextInput,
+  Modal,
+  ScrollView,
+} from "react-native";
+import { Star } from "lucide-react-native";
 
 export default function MyReviews() {
   const [search, setSearch] = useState("");
@@ -61,12 +70,12 @@ export default function MyReviews() {
       r.status,
       r.createdAt
     ]);
-    
+
     const csvContent = [
       headers.join(","),
       ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
     ].join("\n");
-    
+
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -74,6 +83,26 @@ export default function MyReviews() {
     a.download = "my_reviews.csv";
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [anonPref, setAnonPref] = useState("");
+  const [recommendedGrades, setRecommendedGrades] = useState([]);
+
+  const gradeOptions = Array.from({ length: 13 }, (_, i) =>
+    i === 0 ? "K" : i.toString()
+  );
+
+  const anonOptions = ["Yes", "No", "First Name Only"];
+
+  const toggleRecommendedGrade = (level) => {
+    if (recommendedGrades.includes(level)) {
+      setRecommendedGrades(recommendedGrades.filter((g) => g !== level));
+    } else {
+      setRecommendedGrades([...recommendedGrades, level]);
+    }
   };
 
   const generateCertificate = () => {
@@ -210,11 +239,11 @@ export default function MyReviews() {
           </div>
           
           <div class="date">
-            Issued on ${new Date().toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+            Issued on ${new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })}
           </div>
           
           <div class="signature-section">
@@ -245,136 +274,270 @@ export default function MyReviews() {
   };
 
   return (
-    <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
-      <div className="w-full max-w-7xl py-6">
-        <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">
-          My Submitted Reviews
-        </h1>
-        <p className="text-center text-gray-600 mb-6">
-          View the status of your submitted reviews
-        </p>
+    <ScrollView>
+      <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400">
-            <div className="text-3xl font-bold text-gray-700">{reviews.length}</div>
-            <div className="text-sm text-gray-500 font-semibold">Total Reviews</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-green-600">
-            <div className="text-3xl font-bold text-green-700">
-              {reviews.filter(r => r.status === "Approved").length}
+        <div className="w-full max-w-7xl py-6">
+          <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">
+            My Submitted Reviews
+          </h1>
+          <p className="text-center text-gray-600 mb-6">
+            View the status of your submitted reviews
+          </p>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400">
+              <div className="text-3xl font-bold text-gray-700">{reviews.length}</div>
+              <div className="text-sm text-gray-500 font-semibold">Total Reviews</div>
             </div>
-            <div className="text-sm text-gray-500 font-semibold">Approved</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-yellow-600">
-            <div className="text-3xl font-bold text-yellow-700">
-              {reviews.filter(r => r.status === "Pending").length}
+            <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-green-600">
+              <div className="text-3xl font-bold text-green-700">
+                {reviews.filter(r => r.status === "Approved").length}
+              </div>
+              <div className="text-sm text-gray-500 font-semibold">Approved</div>
             </div>
-            <div className="text-sm text-gray-500 font-semibold">Pending</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-600">
-            <div className="text-3xl font-bold text-blue-700">
-              {volunteerHours}
+            <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-yellow-600">
+              <div className="text-3xl font-bold text-yellow-700">
+                {reviews.filter(r => r.status === "Pending").length}
+              </div>
+              <div className="text-sm text-gray-500 font-semibold">Pending</div>
             </div>
-            <div className="text-sm text-gray-500 font-semibold">Volunteer Hours</div>
+            <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-600">
+              <div className="text-3xl font-bold text-blue-700">
+                {volunteerHours}
+              </div>
+              <div className="text-sm text-gray-500 font-semibold">Volunteer Hours</div>
+            </div>
           </div>
-        </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6 justify-center bg-white p-6 rounded-lg shadow-sm">
-          <input
-            type="text"
-            placeholder="Search by book title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-green-200 rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 mb-6 justify-center bg-white p-6 rounded-lg shadow-sm">
+            <input
+              type="text"
+              placeholder="Search by book title..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border border-green-200 rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
 
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="border border-green-200 rounded-lg px-4 py-2 w-44 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white cursor-pointer"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="border border-green-200 rounded-lg px-4 py-2 w-44 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
 
-          {["All", "Approved", "Pending", "Rejected"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-5 py-2 rounded-lg font-bold border-2 transition-colors ${
-                statusFilter === s
+            {["All", "Approved", "Pending", "Rejected"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-5 py-2 rounded-lg font-bold border-2 transition-colors ${statusFilter === s
                   ? "bg-green-700 text-white border-green-700"
                   : "bg-white text-green-700 border-green-700 hover:bg-green-50"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+                  }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-          <table className="w-full min-w-max">
-            <thead className="bg-green-50 border-b-2 border-green-200">
-              <tr>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-64">Book</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-96">Review</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Rating</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Status</th>
-                <th className="px-4 py-4 text-left font-bold text-gray-700 w-40">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, i) => (
-                <tr key={i} className="border-b border-green-100 hover:bg-green-50 transition-colors">
-                  <td className="px-4 py-4 font-medium">{r.bookTitle}</td>
-                  <td className="px-4 py-4 text-gray-700">{r.review}</td>
-                  <td className="px-4 py-4">⭐ {r.rating}</td>
-                  <td className="px-4 py-4">
-                    <span className="font-bold" style={{ color: statusColor[r.status] }}>
-                      {r.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-gray-600">
-                    {new Date(r.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
+          {/* Table */}
+          <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+            <table className="w-full min-w-max">
+              <thead className="bg-green-50 border-b-2 border-green-200">
                 <tr>
-                  <td colSpan="5" className="text-center py-12 text-gray-500">
-                    No reviews match your filters.
-                  </td>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-64">Book</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-96">Review</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Rating</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Status</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-40">Date</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((r, i) => (
+                  <tr key={i} className="border-b border-green-100 hover:bg-green-50 transition-colors">
+                    <td className="px-4 py-4 font-medium">{r.bookTitle}</td>
+                    <td className="px-4 py-4 text-gray-700">{r.review}</td>
+                    <td className="px-4 py-4">⭐ {r.rating}</td>
+                    <td className="px-4 py-4">
+                      <span className="font-bold" style={{ color: statusColor[r.status] }}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-gray-600">
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="text-center py-12 text-gray-500">
+                      No reviews match your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Action Buttons at Bottom */}
-        <div className="mt-8 flex justify-center gap-4 flex-wrap">
-          <button
-            onClick={exportCSV}
-            className="bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
-          >
-            Export as CSV
-          </button>
-          <button
-            onClick={generateCertificate}
-            className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
-          >
-            📜 Generate Certificate
-          </button>
-          <button
-            onClick={() => console.log("Add Review pressed")}
-            className="bg-green-700 hover:bg-green-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
-          >
-            + Add New Review
-          </button>
+          {/* Action Buttons at Bottom */}
+          <div className="mt-8 flex justify-center gap-4 flex-wrap">
+            <button
+              onClick={exportCSV}
+              className="bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
+            >
+              Export as CSV
+            </button>
+            <button
+              onClick={generateCertificate}
+              className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
+            >
+              📜 Generate Certificate
+            </button>
+            <button
+              onClick={() => setModalVisible(true)}
+              className="bg-green-700 hover:bg-green-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
+            >
+              + Add New Review
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      <Modal
+        transparent
+        animationType="slide"
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View className="modalBackdrop">
+          <View className="modalCard">
+            <ScrollView
+              className="modalScroll"
+              contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
+            >
+              <Text className="modalTitle">New Book Review</Text>
+
+              <Text className="inputLabel">Book Title</Text>
+              <TextInput className="modalInput" placeholder="Book title" />
+
+              <Text className="inputLabel">Author Name</Text>
+              <TextInput className="modalInput" placeholder="Author name" />
+
+              <Text className="inputLabel">Reviewer Name</Text>
+              <TextInput className="modalInput" placeholder="Name" />
+
+              <Text className="inputLabel">Review</Text>
+              <TextInput
+                className="modalTextarea"
+                placeholder="Write your review..."
+                multiline
+              />
+
+              <Text className="inputLabel">Grade Level</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="gradeRow"
+              >
+                {gradeOptions.map((level) => (
+                  <Pressable
+                    key={level}
+                    className={`gradeOption ${gradeLevel === level ? "gradeOptionActive" : ""
+                      }`}
+                    onPress={() => setGradeLevel(level)}
+                  >
+                    <Text
+                      className={`gradeText ${gradeLevel === level ? "gradeTextActive" : ""
+                        }`}
+                    >
+                      {level}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+
+              <Text className="inputLabel">Recommended Grade Levels</Text>
+              <View className="flex-row flex-wrap mb-3">
+                {gradeOptions.map((level) => (
+                  <Pressable
+                    key={level}
+                    className={`gradeOption ${recommendedGrades.includes(level)
+                        ? "gradeOptionActive"
+                        : ""
+                      }`}
+                    onPress={() => toggleRecommendedGrade(level)}
+                  >
+                    <Text
+                      className={`gradeText ${recommendedGrades.includes(level)
+                          ? "gradeTextActive"
+                          : ""
+                        }`}
+                    >
+                      {level}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text className="inputLabel">Anonymous Preference</Text>
+              <View className="radioRow">
+                {anonOptions.map((opt) => (
+                  <Pressable
+                    key={opt}
+                    className={`radioOption ${anonPref === opt ? "radioOptionActive" : ""
+                      }`}
+                    onPress={() => setAnonPref(opt)}
+                  >
+                    <View
+                      className={`radioCircle ${anonPref === opt ? "radioCircleActive" : ""
+                        }`}
+                    />
+                    <Text
+                      className={`radioText ${anonPref === opt ? "radioTextActive" : ""
+                        }`}
+                    >
+                      {opt}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text className="inputLabel">Rating</Text>
+              <View className="flex-row mb-3">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <Pressable key={num} onPress={() => setRating(num)}>
+                    <Star
+                      size={28}
+                      color={num <= rating ? "#2b7a4b" : "#b6d5b6"}
+                      fill={num <= rating ? "#2b7a4b" : "none"}
+                      style={{ marginRight: 6 }}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+
+              <View className="buttonRow mt-1">
+                <Pressable
+                  className="primaryBtn flex-1"
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text className="primaryText">Submit</Text>
+                </Pressable>
+
+                <Pressable
+                  className="secondaryBtn flex-1"
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text className="secondaryText">Cancel</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
   );
 }

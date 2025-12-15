@@ -127,13 +127,11 @@ export default function ProfilePage() {
                 onRequestClose={() => setModalVisible(false)}
             >
                 <View className="modalBackdrop">
-
-                    <ScrollView
-                        className="modalScrollContainer"
-                        contentContainerStyle={{ paddingVertical: 30 }}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        <View className="modalCard">
+                    <View className="modalCard">
+                        <ScrollView
+                            className="modalScroll"
+                            contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
+                        >
                             <Text className="modalTitle">Edit Profile</Text>
 
                             <Text className="inputLabel">Name</Text>
@@ -249,8 +247,8 @@ export default function ProfilePage() {
                                 </Pressable>
                             </View>
 
-                        </View>
-                    </ScrollView>
+                        </ScrollView>
+                    </View>
                 </View>
             </Modal>
 
