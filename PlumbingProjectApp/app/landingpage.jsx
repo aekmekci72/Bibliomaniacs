@@ -1,15 +1,48 @@
-import React from "react";
-import { Link } from "expo-router";
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView } from "react-native";
-
+import React, { useEffect, useState } from "react";
+import { Link, useRouter } from "expo-router";
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView, Alert } from "react-native";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import axios from "axios";
+import { auth, app } from "../firebaseConfig";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const db = getFirestore(app);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      let isNewUser = false;
+      if (!userSnap.exists()) {
+        isNewUser = true;
+        await setDoc(userRef, { email: user.email, role: "user" });
+      }
+
+      Alert.alert("Login Success", `Welcome ${user.displayName}!`);
+
+      if (isNewUser) {
+        router.replace("/profilesetup");
+      } else {
+        router.replace("/homepage");
+      }
+
+    } catch (error) {
+      console.error("LandingPage Google Login Error:", error);
+      Alert.alert("Login Failed", error.message || "Unknown error");
+    }
+  };
   const bookOfTheWeek = {
     "title": "An Emo and a Quant",
     "genre": "Non-Fiction",
     "stars": "4.8",
     "pages": "320",
-    "descr": "Quick Read", 
+    "descr": "Quick Read",
     "blurb": "Follow two comp sci kids on their journey towards redemption. After deleting a precious Canva textbox, these nerds face the wrath of a very awesome god."
   }
   return (
@@ -24,8 +57,8 @@ export default function LandingPage() {
               <Text className="landingTitle">Bibliomaniacs</Text>
 
               <Text className="landingTagline">
-                Book review website that enhances Ridgewood Public Library’s volunteer review 
-                service by streamlining personal information entry, organizing hours, and 
+                Book review website that enhances Ridgewood Public Library’s volunteer review
+                service by streamlining personal information entry, organizing hours, and
                 providing recommendations.
               </Text>
 
@@ -40,19 +73,20 @@ export default function LandingPage() {
             <View className="landingCtaRowBottom">
               <Pressable
                 className="landingPrimaryBtn"
-                onPress={() => navigation?.navigate?.("login")}
+                onPress={handleGoogleSignIn}
               >
                 <Text className="landingPrimaryText">Sign Up</Text>
               </Pressable>
 
               <Pressable
                 className="landingSecondaryBtn"
-                onPress={() => navigation?.navigate?.("login")}
+                onPress={handleGoogleSignIn}
               >
                 <Text className="landingSecondaryText">Log In</Text>
               </Pressable>
             </View>
           </View>
+
 
           {/* RIGHT COLUMN – Book of the Week */}
           <View className="bookWeekCard">
@@ -75,39 +109,39 @@ export default function LandingPage() {
 
       {/* === BOTTOM BAND === */}
       <View className="landingBottomSection">
-  <View className="landingBottomInner">
-    <View className="recsHeaderRow">
-      <Text className="recsTitle">Top Books</Text>
-      <Pressable>
-        <Link href="explorer" className="recsShowMore">Show more</Link>
-      </Pressable>
-    </View>
+        <View className="landingBottomInner">
+          <View className="recsHeaderRow">
+            <Text className="recsTitle">Top Books</Text>
+            <Pressable>
+              <Link href="explorer" className="recsShowMore">Show more</Link>
+            </Pressable>
+          </View>
 
-    {/* Three large cards that fill the entire width */}
-    <View className="recsRowLarge">
-      {/* Card 1 */}
-      <View className="recCardLarge">
-        <View className="recThumbLarge" />
-        <Text className="recTitleLarge">T'es stupide</Text>
-        <Text className="recMetaLarge">Fantasy · 4.7 ★</Text>
-      </View>
+          {/* Three large cards that fill the entire width */}
+          <View className="recsRowLarge">
+            {/* Card 1 */}
+            <View className="recCardLarge">
+              <View className="recThumbLarge" />
+              <Text className="recTitleLarge">T'es stupide</Text>
+              <Text className="recMetaLarge">Fantasy · 4.7 ★</Text>
+            </View>
 
-      {/* Card 2 */}
-      <View className="recCardLarge">
-        <View className="recThumbLarge" />
-        <Text className="recTitleLarge">Hon Hon Hon</Text>
-        <Text className="recMetaLarge">Non-fiction · 4.6 ★</Text>
-      </View>
+            {/* Card 2 */}
+            <View className="recCardLarge">
+              <View className="recThumbLarge" />
+              <Text className="recTitleLarge">Hon Hon Hon</Text>
+              <Text className="recMetaLarge">Non-fiction · 4.6 ★</Text>
+            </View>
 
-      {/* Card 3 */}
-      <View className="recCardLarge">
-        <View className="recThumbLarge" />
-        <Text className="recTitleLarge">Feed Me Baguette</Text>
-        <Text className="recMetaLarge">Sci-fi · 4.9 ★</Text>
+            {/* Card 3 */}
+            <View className="recCardLarge">
+              <View className="recThumbLarge" />
+              <Text className="recTitleLarge">Feed Me Baguette</Text>
+              <Text className="recMetaLarge">Sci-fi · 4.9 ★</Text>
+            </View>
+          </View>
+        </View>
       </View>
-    </View>
-  </View>
-</View>
     </ScrollView>
   );
 }
