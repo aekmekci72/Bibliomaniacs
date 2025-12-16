@@ -463,5 +463,264 @@
     .adminHomeBookBlurb {
       @apply text-sm leading-5 text-[#37453a];
     }
+  /* ==== Submit Review Page Styles ==== */
+
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 items-center justify-center px-4;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg;
+  }
+
+  .modalTitle {
+    @apply text-xl font-bold text-center mb-3;
+  }
+
+  .inputLabel {
+    @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+  }
+
+  .modalInput {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .modalTextarea {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+  }
+
+  /* ==== Profile Page Custom Styles ==== */
+
+  .profileH1 {
+    @apply text-3xl font-extrabold text-center mb-5;
+  }
+
+  .profileCard {
+    @apply flex-row items-center gap-4 bg-white border border-[#d8e8d8] rounded-2xl p-4 mb-5 shadow-sm;
+  }
+
+  .profileName {
+    @apply text-xl font-bold text-[#224c2f];
+  }
+
+  .profileEmail {
+    @apply text-base text-neutral-600;
+  }
+
+  .profileRole {
+    @apply text-sm text-[#2b7a4b] font-semibold mt-1;
+  }
+
+  .profileInfoCard {
+    @apply w-full bg-white border border-neutral-200 rounded-xl p-4;
+  }
+
+  .infoRow {
+    @apply mb-3;
+  }
+
+  .infoLabel {
+    @apply text-sm font-semibold text-neutral-600;
+  }
+
+  .infoValue {
+    @apply text-base text-[#224c2f] mt-0.5;
+  }
+
+  .genresContainer {
+    @apply flex-row flex-wrap;
+  }
+
+  .genreChip {
+    @apply bg-[#eaf6ea] border border-[#cfe8cf] rounded-full px-3 py-1 mr-2 mt-2;
+  }
+
+  .genreChipText {
+    @apply text-[#224c2f] text-sm font-semibold;
+  }
+
+  .editBtn {
+    @apply mt-5 self-center w-[200px];
+  }
+
+  .modalScrollContainer {
+    @apply w-full px-4;
+  }
+
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 justify-center;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg self-center;
+  }
+
+  .modalInputDisabled {
+    @apply bg-neutral-100 text-neutral-500 border-neutral-300;
+  }
+
+  .dropdownBtn {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .dropdownBtnText {
+    @apply text-base text-neutral-800;
+  }
+
+  .dropdownList {
+    @apply bg-white border border-neutral-300 rounded-lg mt-2 p-1;
+  }
+
+  .dropdownScroll {
+    @apply max-h-[180px];
+  }
+
+  .dropdownItem {
+    @apply flex-row justify-between items-center px-2 py-2 border-b border-neutral-200;
+  }
+
+  .dropdownItemText {
+    @apply text-base text-neutral-800;
+  }
+
+  .checkbox {
+    @apply w-5 h-5 rounded border;
+  }
+
+  .checkboxUnchecked {
+    @apply border-neutral-400 bg-white;
+  }
+
+  .checkboxChecked {
+    @apply border-[#2b7a4b] bg-[#2b7a4b];
+  }
+
+  /* ==== Submit Review Page Styles ==== */
+
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 items-center justify-center px-4;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg;
+  }
+
+  .modalTitle {
+    @apply text-xl font-bold text-center mb-3;
+  }
+
+  .inputLabel {
+    @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+  }
+
+  .modalInput {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .modalTextarea {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+  }
+
+
+  .radioOuter {
+    @apply w-5 h-5 rounded-full border-2 items-center justify-center;
+  }
+
+  .radioInner {
+    @apply w-3 h-3 rounded-full;
+  }
+
+
+  .modalBackdrop {
+    @apply flex-1 bg-black/40 items-center justify-center px-4;
+  }
+
+  .modalCard {
+    @apply w-full max-w-[720px] max-h-[90%] bg-white rounded-xl p-0 border border-neutral-300 shadow-lg;
+  }
+
+  .modalScroll {
+    @apply px-5;
+  }
+
+  .modalTitle {
+    @apply text-xl font-bold text-center mb-3;
+  }
+
+  .inputLabel {
+    @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+  }
+
+  .modalInput {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+  }
+
+  .modalTextarea {
+    @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+  }
+
+  .gradeRow {
+    @apply flex-row gap-2 mb-3;
+  }
+
+  .gradeOption {
+    @apply px-3 py-1 rounded-lg border border-neutral-300 bg-white;
+  }
+
+  .gradeOptionActive {
+    @apply bg-[#2b7a4b] border-[#2b7a4b];
+  }
+
+  .gradeText {
+    @apply text-[#224c2f] font-semibold;
+  }
+
+  .gradeTextActive {
+    @apply text-white;
+  }
+
+  .radioRow {
+    @apply flex-row gap-4 mt-2 mb-3 flex-wrap;
+  }
+
+  .radioOption {
+    @apply flex-row items-center gap-2 px-3 py-2 rounded-lg border border-neutral-300 bg-white;
+  }
+
+  .radioOptionActive {
+    @apply border-[#2b7a4b] bg-[#eaf6ea];
+  }
+
+  .radioCircle {
+    @apply w-4 h-4 rounded-full border border-neutral-400;
+  }
+
+  .radioCircleActive {
+    @apply border-[#2b7a4b] bg-[#2b7a4b];
+  }
+
+  .radioText {
+    @apply text-[#224c2f] font-medium;
+  }
+
+  .radioTextActive {
+    @apply text-[#2b7a4b] font-bold;
+  }
+
+  .warningBox {
+    @apply mt-2 flex-row gap-2 rounded-xl border px-3 py-2;
+    @apply bg-[#fff6e5] border-[#f1d8a8];
+  }
+
+  .warningIcon {
+    @apply mt-0.5;
+  }
+
+  .warningTitle {
+    @apply text-sm font-bold text-[#8a5a00];
+  }
+
+  .warningText {
+    @apply text-sm text-[#8a5a00] leading-snug;
   }
 }
