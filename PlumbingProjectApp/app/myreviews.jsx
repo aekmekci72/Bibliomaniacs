@@ -14,6 +14,8 @@ export default function MyReviews() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("newest");
   const [userName] = useState("John Smith"); // Replace with actual user name
+  const [bookTitle, setBookTitle] = useState("");
+  const [titleFlagged, setTitleFlagged] = useState(false);
 
   const reviews = [
     {
@@ -83,6 +85,33 @@ export default function MyReviews() {
     a.download = "my_reviews.csv";
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const overReviewedBooks = [
+    "Harry Potter",
+    "Percy Jackson",
+    "Jane Eyre",
+    "The Great Gatsby",
+    "To Kill a Mockingbird",
+  ];
+
+
+  const handleTitleChange = (text) => {
+    setBookTitle(text);
+
+    const normalized = text.trim().toLowerCase();
+
+    const isOverReviewed = overReviewedBooks.some(
+      (book) => book.toLowerCase() === normalized
+    );
+
+    if (isOverReviewed && !titleFlagged) {
+      setTitleFlagged(true);
+    }
+
+    if (!isOverReviewed && titleFlagged) {
+      setTitleFlagged(false);
+    }
   };
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -421,7 +450,25 @@ export default function MyReviews() {
               <Text className="modalTitle">New Book Review</Text>
 
               <Text className="inputLabel">Book Title</Text>
-              <TextInput className="modalInput" placeholder="Book title" />
+              <TextInput
+                className="modalInput"
+                placeholder="Book title"
+                value={bookTitle}
+                onChangeText={handleTitleChange}
+              />
+
+              {titleFlagged && (
+                <View className="warningBox">
+                  <View className="flex-1">
+                    <Text className="warningTitle">Already popular title</Text>
+                    <Text className="warningText">
+                      This book has already been reviewed many times.
+                      Consider reviewing a different book.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
 
               <Text className="inputLabel">Author Name</Text>
               <TextInput className="modalInput" placeholder="Author name" />
@@ -465,15 +512,15 @@ export default function MyReviews() {
                   <Pressable
                     key={level}
                     className={`gradeOption ${recommendedGrades.includes(level)
-                        ? "gradeOptionActive"
-                        : ""
+                      ? "gradeOptionActive"
+                      : ""
                       }`}
                     onPress={() => toggleRecommendedGrade(level)}
                   >
                     <Text
                       className={`gradeText ${recommendedGrades.includes(level)
-                          ? "gradeTextActive"
-                          : ""
+                        ? "gradeTextActive"
+                        : ""
                         }`}
                     >
                       {level}
