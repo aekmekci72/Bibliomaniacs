@@ -1,35 +1,66 @@
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import axios from "axios";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 
 export default function Index() {
-  const [user, setUser] = useState(undefined);
+  const [user, setUser] = useState(undefined);   // undefined = still checking
+  const [role, setRole] = useState(undefined);   // undefined = still loading role
+  const [loading, setLoading] = useState(true);  // overall loading flag
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser || null);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      try {
+        if (!firebaseUser) {
+          // not logged in
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+          return;
+        }
+
+        setUser(firebaseUser);
+
+        // === this is your fetchRole logic inlined ===
+        const idToken = await firebaseUser.getIdToken(true);
+
+        const res = await axios.post("http://localhost:5001/get_user_role", {
+          idToken,
+        });
+
+        const roleValue =
+          typeof res.data === "string" ? res.data : res.data.role;
+
+        setRole(roleValue);
+      } catch (err) {
+        console.error("Error fetching role:", err);
+        setRole(null); // fallback
+      } finally {
+        setLoading(false);
+      }
     });
 
     return unsubscribe;
   }, []);
 
-  if (user === undefined) {
+  // Still checking auth/role → render nothing (or a splash screen)
+  if (loading || user === undefined || role === undefined) {
     return null;
   }
 
+  // Not logged in
   if (!user) {
     return <Redirect href="/landingpage" />;
   }
-  return <Redirect href="/homepage" />;
+
+  // Logged in – route by role
+  if (role === "admin") {
+    return <Redirect href="/adminhomepage" />;
+  }
+
+  if (role === "user") {
+    return <Redirect href="/homepage" />;
+  }
+
 }
-
-// default template
-// import { registerRootComponent } from 'expo';
-
-// import App from '../App';
-
-// // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// // It also ensures that whether you load the app in Expo Go or in a native build,
-// // the environment is set up appropriately
-// registerRootComponent(App);

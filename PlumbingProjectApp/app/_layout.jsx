@@ -207,6 +207,8 @@ export default function Layout() {
       </View>
       </Animated.View>
     </SafeAreaView>
+
+    
   );
 }
 
