@@ -576,4 +576,21 @@
   .radioTextActive {
     @apply text-[#2b7a4b] font-bold;
   }
+
+  .warningBox {
+    @apply mt-2 flex-row gap-2 rounded-xl border px-3 py-2;
+    @apply bg-[#fff6e5] border-[#f1d8a8];
+  }
+
+  .warningIcon {
+    @apply mt-0.5;
+  }
+
+  .warningTitle {
+    @apply text-sm font-bold text-[#8a5a00];
+  }
+
+  .warningText {
+    @apply text-sm text-[#8a5a00] leading-snug;
+  }
 }
