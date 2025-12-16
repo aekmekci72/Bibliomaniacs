@@ -142,9 +142,6 @@ export default function LandingPage() {
           </View>
         </View>
       </View>
-    </View>
-  </View>
-</View>
 
 
 <View className="footer">
