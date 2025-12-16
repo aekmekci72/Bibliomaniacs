@@ -38,12 +38,12 @@ export default function LandingPage() {
     }
   };
   const bookOfTheWeek = {
-    "title": "An Emo and a Quant",
-    "genre": "Non-Fiction",
-    "stars": "4.8",
-    "pages": "320",
-    "descr": "Quick Read",
-    "blurb": "Follow two comp sci kids on their journey towards redemption. After deleting a precious Canva textbox, these nerds face the wrath of a very awesome god."
+    "title": "To Kill a Mockingbird",
+    "genre": "Bildungsroman",
+    "stars": "4.3",
+    "pages": "285",
+    "descr": "Quick Read", 
+    "blurb": "The conscience of a town steeped in prejudice, violence and hypocrisy is pricked by the stamina of one man's struggle for justice. But the weight of history will only tolerate so much."
   }
   return (
     <ScrollView className="landingPageRoot landingScroll">
@@ -140,6 +140,55 @@ export default function LandingPage() {
               <Text className="recMetaLarge">Sci-fi · 4.9 ★</Text>
             </View>
           </View>
+        </View>
+      </View>
+
+
+<View className="footer">
+        <View className="footerInner">
+
+          <View className="flex flex-row flex-wrap justify-between gap-10">
+
+            {/* Brand */}
+            <View className="w-40">
+              <Text className="footerBrand">Bibliomaniacs</Text>
+              <Text className="footerText">
+                Building better reading habits for the Ridgewood community.
+              </Text>
+            </View>
+
+            {/* Contact */}
+            <View className="w-40">
+              <Text className="footerTitle">Contact Us</Text>
+              <Text className="footerText">Email: support@bibliomaniacs.fake</Text>
+              <Text className="footerText">Phone: (555) 123-4567</Text>
+              <Text className="footerText">123 Library Lane, Ridgewood, NJ</Text>
+            </View>
+
+            {/* Links */}
+            <View className="w-40">
+              <Text className="footerTitle">Quick Links</Text>
+              <Text className="footerText">About Us</Text>
+              <Text className="footerText">FAQ</Text>
+              <Text className="footerText">Privacy Policy</Text>
+            </View>
+
+            {/* Socials */}
+            <View className="w-40">
+              <Text className="footerTitle">Follow Us</Text>
+              <Text className="footerText">Instagram</Text>
+              <Text className="footerText">Twitter</Text>
+              <Text className="footerText">Facebook</Text>
+            </View>
+
+          </View>
+
+          <View className="footerDivider" />
+
+          <Text className="footerCopyright">
+            © {new Date().getFullYear()} Bibliomaniacs. All rights reserved.
+          </Text>
+
         </View>
       </View>
     </ScrollView>
