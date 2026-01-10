@@ -2,20 +2,23 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  Pressable,
   TextInput,
-  Modal,
   ScrollView,
 } from "react-native";
-import { Star } from "lucide-react-native";
+import ReviewModal from "./reviewmodal";
 
 export default function MyReviews() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("newest");
-  const [userName] = useState("John Smith"); // Replace with actual user name
+  const [userName] = useState("John Smith");
   const [bookTitle, setBookTitle] = useState("");
   const [titleFlagged, setTitleFlagged] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [gradeLevel, setGradeLevel] = useState("");
+  const [anonPref, setAnonPref] = useState("");
+  const [recommendedGrades, setRecommendedGrades] = useState([]);
 
   const reviews = [
     {
@@ -47,7 +50,6 @@ export default function MyReviews() {
     Rejected: "#c0392b",
   };
 
-  // Calculate volunteer hours (30 mins = 0.5 hours per approved review)
   const approvedReviews = reviews.filter(r => r.status === "Approved").length;
   const volunteerHours = (approvedReviews * 0.5).toFixed(1);
 
@@ -65,19 +67,8 @@ export default function MyReviews() {
 
   const exportCSV = () => {
     const headers = ["Book Title", "Review", "Rating", "Status", "Date"];
-    const rows = filtered.map(r => [
-      r.bookTitle,
-      r.review,
-      r.rating,
-      r.status,
-      r.createdAt
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-
+    const rows = filtered.map(r => [r.bookTitle, r.review, r.rating, r.status, r.createdAt]);
+    const csvContent = [headers.join(","), ...rows.map(row => row.map(cell => `"${cell}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -87,43 +78,16 @@ export default function MyReviews() {
     window.URL.revokeObjectURL(url);
   };
 
-  const overReviewedBooks = [
-    "Harry Potter",
-    "Percy Jackson",
-    "Jane Eyre",
-    "The Great Gatsby",
-    "To Kill a Mockingbird",
-  ];
-
+  const overReviewedBooks = ["Harry Potter", "Percy Jackson", "Jane Eyre", "The Great Gatsby", "To Kill a Mockingbird"];
 
   const handleTitleChange = (text) => {
     setBookTitle(text);
-
     const normalized = text.trim().toLowerCase();
-
-    const isOverReviewed = overReviewedBooks.some(
-      (book) => book.toLowerCase() === normalized
-    );
-
-    if (isOverReviewed && !titleFlagged) {
-      setTitleFlagged(true);
-    }
-
-    if (!isOverReviewed && titleFlagged) {
-      setTitleFlagged(false);
-    }
+    const isOverReviewed = overReviewedBooks.some((book) => book.toLowerCase() === normalized);
+    setTitleFlagged(isOverReviewed);
   };
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [gradeLevel, setGradeLevel] = useState("");
-  const [anonPref, setAnonPref] = useState("");
-  const [recommendedGrades, setRecommendedGrades] = useState([]);
-
-  const gradeOptions = Array.from({ length: 13 }, (_, i) =>
-    i === 0 ? "K" : i.toString()
-  );
-
+  const gradeOptions = Array.from({ length: 13 }, (_, i) => i === 0 ? "K" : i.toString());
   const anonOptions = ["Yes", "No", "First Name Only"];
 
   const toggleRecommendedGrade = (level) => {
@@ -135,164 +99,29 @@ export default function MyReviews() {
   };
 
   const generateCertificate = () => {
-    // Create certificate HTML
     const certificateHTML = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
           @page { size: landscape; margin: 0; }
-          body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Georgia', serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-          }
-          .certificate {
-            width: 800px;
-            padding: 60px;
-            background: white;
-            border: 20px solid #2b7a4b;
-            box-shadow: 0 0 50px rgba(0,0,0,0.3);
-            text-align: center;
-            position: relative;
-          }
-          .certificate::before {
-            content: '';
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            right: 30px;
-            bottom: 30px;
-            border: 3px solid #d4af37;
-            pointer-events: none;
-          }
-          .header {
-            font-size: 48px;
-            font-weight: bold;
-            color: #2b7a4b;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-          }
-          .subheader {
-            font-size: 24px;
-            color: #555;
-            margin-bottom: 40px;
-            font-style: italic;
-          }
-          .content {
-            font-size: 18px;
-            line-height: 2;
-            color: #333;
-            margin: 30px 0;
-          }
-          .name {
-            font-size: 36px;
-            font-weight: bold;
-            color: #1a4d2e;
-            text-decoration: underline;
-            text-decoration-color: #d4af37;
-            text-decoration-thickness: 2px;
-            margin: 20px 0;
-          }
-          .hours {
-            font-size: 32px;
-            font-weight: bold;
-            color: #2b7a4b;
-            margin: 20px 0;
-          }
-          .date {
-            font-size: 16px;
-            color: #666;
-            margin-top: 40px;
-          }
-          .signature-section {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 60px;
-            padding-top: 20px;
-          }
-          .signature {
-            text-align: center;
-          }
-          .signature-line {
-            width: 200px;
-            height: 1px;
-            background: #333;
-            margin: 10px auto;
-          }
-          .seal {
-            position: absolute;
-            bottom: 40px;
-            right: 60px;
-            width: 80px;
-            height: 80px;
-            border: 3px solid #d4af37;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            color: #2b7a4b;
-            font-weight: bold;
-            font-size: 12px;
-            transform: rotate(-15deg);
-          }
+          body { margin: 0; padding: 0; font-family: 'Georgia', serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+          .certificate { width: 800px; padding: 60px; background: white; border: 20px solid #2b7a4b; box-shadow: 0 0 50px rgba(0,0,0,0.3); text-align: center; position: relative; }
+          .header { font-size: 48px; font-weight: bold; color: #2b7a4b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 4px; }
+          .name { font-size: 36px; font-weight: bold; color: #1a4d2e; text-decoration: underline; margin: 20px 0; }
+          .hours { font-size: 32px; font-weight: bold; color: #2b7a4b; margin: 20px 0; }
         </style>
       </head>
       <body>
         <div class="certificate">
           <div class="header">Certificate of Appreciation</div>
-          <div class="subheader">Community Book Review Program</div>
-          
-          <div class="content">
-            This certificate is proudly presented to
-          </div>
-          
           <div class="name">${userName}</div>
-          
-          <div class="content">
-            For their outstanding contribution and dedication to our community<br/>
-            through the thoughtful review of literature
-          </div>
-          
           <div class="hours">${volunteerHours} Volunteer Hours</div>
-          
-          <div class="content">
-            Based on ${approvedReviews} approved book review${approvedReviews !== 1 ? 's' : ''}
-          </div>
-          
-          <div class="date">
-            Issued on ${new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })}
-          </div>
-          
-          <div class="signature-section">
-            <div class="signature">
-              <div class="signature-line"></div>
-              <div>Program Director</div>
-            </div>
-            <div class="signature">
-              <div class="signature-line"></div>
-              <div>Administrator</div>
-            </div>
-          </div>
-          
-          <div class="seal">OFFICIAL<br/>SEAL</div>
+          <div class="date">Issued on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
       </body>
       </html>
     `;
-
-    // Create and download certificate
     const blob = new Blob([certificateHTML], { type: "text/html" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -305,14 +134,9 @@ export default function MyReviews() {
   return (
     <ScrollView>
       <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
-
         <div className="w-full max-w-7xl py-6">
-          <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">
-            My Submitted Reviews
-          </h1>
-          <p className="text-center text-gray-600 mb-6">
-            View the status of your submitted reviews
-          </p>
+          <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">My Submitted Reviews</h1>
+          <p className="text-center text-gray-600 mb-6">View the status of your submitted reviews</p>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -321,21 +145,15 @@ export default function MyReviews() {
               <div className="text-sm text-gray-500 font-semibold">Total Reviews</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-green-600">
-              <div className="text-3xl font-bold text-green-700">
-                {reviews.filter(r => r.status === "Approved").length}
-              </div>
+              <div className="text-3xl font-bold text-green-700">{approvedReviews}</div>
               <div className="text-sm text-gray-500 font-semibold">Approved</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-yellow-600">
-              <div className="text-3xl font-bold text-yellow-700">
-                {reviews.filter(r => r.status === "Pending").length}
-              </div>
+              <div className="text-3xl font-bold text-yellow-700">{reviews.filter(r => r.status === "Pending").length}</div>
               <div className="text-sm text-gray-500 font-semibold">Pending</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-600">
-              <div className="text-3xl font-bold text-blue-700">
-                {volunteerHours}
-              </div>
+              <div className="text-3xl font-bold text-blue-700">{volunteerHours}</div>
               <div className="text-sm text-gray-500 font-semibold">Volunteer Hours</div>
             </div>
           </div>
@@ -349,24 +167,13 @@ export default function MyReviews() {
               onChange={(e) => setSearch(e.target.value)}
               className="border border-green-200 rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="border border-green-200 rounded-lg px-4 py-2 w-44 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white cursor-pointer"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-
             {["All", "Approved", "Pending", "Rejected"].map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-5 py-2 rounded-lg font-bold border-2 transition-colors ${statusFilter === s
-                  ? "bg-green-700 text-white border-green-700"
-                  : "bg-white text-green-700 border-green-700 hover:bg-green-50"
-                  }`}
+                className={`px-5 py-2 rounded-lg font-bold border-2 transition-colors ${
+                  statusFilter === s ? "bg-green-700 text-white" : "bg-white text-green-700 border-green-700"
+                }`}
               >
                 {s}
               </button>
@@ -378,213 +185,55 @@ export default function MyReviews() {
             <table className="w-full min-w-max">
               <thead className="bg-green-50 border-b-2 border-green-200">
                 <tr>
-                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-64">Book</th>
-                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-96">Review</th>
-                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Rating</th>
-                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-32">Status</th>
-                  <th className="px-4 py-4 text-left font-bold text-gray-700 w-40">Date</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700">Book</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700">Review</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700">Rating</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700">Status</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r, i) => (
-                  <tr key={i} className="border-b border-green-100 hover:bg-green-50 transition-colors">
+                  <tr key={i} className="border-b border-green-100 hover:bg-green-50">
                     <td className="px-4 py-4 font-medium">{r.bookTitle}</td>
                     <td className="px-4 py-4 text-gray-700">{r.review}</td>
                     <td className="px-4 py-4">⭐ {r.rating}</td>
                     <td className="px-4 py-4">
-                      <span className="font-bold" style={{ color: statusColor[r.status] }}>
-                        {r.status}
-                      </span>
+                      <span className="font-bold" style={{ color: statusColor[r.status] }}>{r.status}</span>
                     </td>
-                    <td className="px-4 py-4 text-gray-600">
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </td>
+                    <td className="px-4 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center py-12 text-gray-500">
-                      No reviews match your filters.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
 
-          {/* Action Buttons at Bottom */}
+          {/* Action Buttons */}
           <div className="mt-8 flex justify-center gap-4 flex-wrap">
-            <button
-              onClick={exportCSV}
-              className="bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
-            >
-              Export as CSV
-            </button>
-            <button
-              onClick={generateCertificate}
-              className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
-            >
-              📜 Generate Certificate
-            </button>
-            <button
-              onClick={() => setModalVisible(true)}
-              className="bg-green-700 hover:bg-green-800 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
-            >
-              + Add New Review
-            </button>
+            <button onClick={exportCSV} className="bg-green-900 text-white font-bold py-4 px-8 rounded-lg">Export CSV</button>
+            <button onClick={generateCertificate} className="bg-blue-700 text-white font-bold py-4 px-8 rounded-lg">📜 Certificate</button>
+            <button onClick={() => setModalVisible(true)} className="bg-green-700 text-white font-bold py-4 px-8 rounded-lg">+ Add New Review</button>
           </div>
         </div>
       </div>
-      <Modal
-        transparent
-        animationType="slide"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View className="modalBackdrop">
-          <View className="modalCard">
-            <ScrollView
-              className="modalScroll"
-              contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
-            >
-              <Text className="modalTitle">New Book Review</Text>
 
-              <Text className="inputLabel">Book Title</Text>
-              <TextInput
-                className="modalInput"
-                placeholder="Book title"
-                value={bookTitle}
-                onChangeText={handleTitleChange}
-              />
-
-              {titleFlagged && (
-                <View className="warningBox">
-                  <View className="flex-1">
-                    <Text className="warningTitle">Already popular title</Text>
-                    <Text className="warningText">
-                      This book has already been reviewed many times.
-                      Consider reviewing a different book.
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-
-              <Text className="inputLabel">Author Name</Text>
-              <TextInput className="modalInput" placeholder="Author name" />
-
-              <Text className="inputLabel">Reviewer Name</Text>
-              <TextInput className="modalInput" placeholder="Name" />
-
-              <Text className="inputLabel">Review</Text>
-              <TextInput
-                className="modalTextarea"
-                placeholder="Write your review..."
-                multiline
-              />
-
-              <Text className="inputLabel">Grade Level</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="gradeRow"
-              >
-                {gradeOptions.map((level) => (
-                  <Pressable
-                    key={level}
-                    className={`gradeOption ${gradeLevel === level ? "gradeOptionActive" : ""
-                      }`}
-                    onPress={() => setGradeLevel(level)}
-                  >
-                    <Text
-                      className={`gradeText ${gradeLevel === level ? "gradeTextActive" : ""
-                        }`}
-                    >
-                      {level}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-
-              <Text className="inputLabel">Recommended Grade Levels</Text>
-              <View className="flex-row flex-wrap mb-3">
-                {gradeOptions.map((level) => (
-                  <Pressable
-                    key={level}
-                    className={`gradeOption ${recommendedGrades.includes(level)
-                      ? "gradeOptionActive"
-                      : ""
-                      }`}
-                    onPress={() => toggleRecommendedGrade(level)}
-                  >
-                    <Text
-                      className={`gradeText ${recommendedGrades.includes(level)
-                        ? "gradeTextActive"
-                        : ""
-                        }`}
-                    >
-                      {level}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text className="inputLabel">Anonymous Preference</Text>
-              <View className="radioRow">
-                {anonOptions.map((opt) => (
-                  <Pressable
-                    key={opt}
-                    className={`radioOption ${anonPref === opt ? "radioOptionActive" : ""
-                      }`}
-                    onPress={() => setAnonPref(opt)}
-                  >
-                    <View
-                      className={`radioCircle ${anonPref === opt ? "radioCircleActive" : ""
-                        }`}
-                    />
-                    <Text
-                      className={`radioText ${anonPref === opt ? "radioTextActive" : ""
-                        }`}
-                    >
-                      {opt}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text className="inputLabel">Rating</Text>
-              <View className="flex-row mb-3">
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <Pressable key={num} onPress={() => setRating(num)}>
-                    <Star
-                      size={28}
-                      color={num <= rating ? "#2b7a4b" : "#b6d5b6"}
-                      fill={num <= rating ? "#2b7a4b" : "none"}
-                      style={{ marginRight: 6 }}
-                    />
-                  </Pressable>
-                ))}
-              </View>
-
-              <View className="buttonRow mt-1">
-                <Pressable
-                  className="primaryBtn flex-1"
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text className="primaryText">Submit</Text>
-                </Pressable>
-
-                <Pressable
-                  className="secondaryBtn flex-1"
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text className="secondaryText">Cancel</Text>
-                </Pressable>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      <ReviewModal 
+        modalVisible={modalVisible}
+        setModalVisible={setModalVisible}
+        bookTitle={bookTitle}
+        handleTitleChange={handleTitleChange}
+        titleFlagged={titleFlagged}
+        gradeLevel={gradeLevel}
+        setGradeLevel={setGradeLevel}
+        recommendedGrades={recommendedGrades}
+        toggleRecommendedGrade={toggleRecommendedGrade}
+        anonPref={anonPref}
+        setAnonPref={setAnonPref}
+        rating={rating}
+        setRating={setRating}
+        gradeOptions={gradeOptions}
+        anonOptions={anonOptions}
+      />
     </ScrollView>
   );
 }
