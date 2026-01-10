@@ -76,9 +76,6 @@ def process_review(review_id, approved, admin_comment=None):
 
 
 def calculate_user_hours(email):
-    """
-    Calculate total volunteer hours for a user based on approved reviews
-    """
     reviews = Review.collection.filter('email', '==', email).filter('approved', '==', True).fetch()
     total_hours = sum(r.time_earned for r in reviews)
     

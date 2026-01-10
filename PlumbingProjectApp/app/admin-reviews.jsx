@@ -177,16 +177,10 @@ export default function AdminReviews() {
   return (
     <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
       <div className="w-full max-w-[1600px] py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-center mb-6">
           <h1 className="text-4xl font-bold text-gray-800">
             Manage Submitted Reviews
           </h1>
-          <button
-            onClick={clearCacheAndRefresh}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-          >
-            🔄 Refresh Data
-          </button>
         </div>
 
         {/* Stats Cards */}

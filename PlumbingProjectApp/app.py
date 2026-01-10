@@ -401,12 +401,12 @@ def update_review(review_id):
         
         if "approved" in data:
             review.date_processed = datetime.now()
-            
             calculate_user_hours(review.email)
         
         review.update()
         
         set_cache("all_reviews", None, ttl=1)
+        set_cache("review_stats", None, ttl=1)
         
         return jsonify({"message": "Review updated successfully"}), 200
     except Exception as e:
@@ -486,7 +486,7 @@ def get_review_stats():
 def clear_cache():
     """Clear all review caches"""
     set_cache("all_reviews", None, ttl=1)
-    import re
+    set_cache("review_stats", None, ttl=1)  # ADD THIS LINE
     return jsonify({"message": "Cache cleared"}), 200
 
 if __name__ == "__main__":

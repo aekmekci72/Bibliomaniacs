@@ -14,6 +14,7 @@ export default function AllReviews() {
     fetch('http://localhost:5001/clear_cache', { method: 'POST' })
     fetchReviews();
   }, []);
+  
 
   const fetchReviews = async () => {
     setLoading(true);
