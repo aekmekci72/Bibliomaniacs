@@ -1,71 +1,42 @@
-import React, { useState } from "react";
-import { Search, Star, Calendar, TrendingUp, TrendingDown, Filter, X, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Star, Calendar, TrendingUp, TrendingDown, Filter, ArrowLeft } from "lucide-react";
 
 export default function AllReviews() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [selectedReview, setSelectedReview] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const reviews = [
-    {
-      id: 1,
-      title: "The Great Gatsby",
-      author: "F. Scott Fitzgerald",
-      rating: 5,
-      review: "A beautifully tragic novel that captures the essence of the American Dream and its inevitable demise. The prose is poetic and the characters are unforgettable.",
-      fullReview: "F. Scott Fitzgerald's masterpiece continues to resonate nearly a century after its publication. The story of Jay Gatsby's doomed pursuit of Daisy Buchanan is both a tragic love story and a searing critique of the American Dream. Fitzgerald's prose is nothing short of poetic, with descriptions that shimmer with beauty and melancholy. The green light at the end of Daisy's dock has become one of the most iconic symbols in American literature, representing the unreachable dreams we all chase. Nick Carraway serves as the perfect narrator - involved yet detached, allowing us to witness the decadence and destruction of the Jazz Age. The novel's themes of wealth, class, and the corruption of idealism remain startlingly relevant today. Each re-read reveals new layers of meaning and beauty in Fitzgerald's carefully crafted sentences.",
-      cover: "https://placehold.co/400x600/1e293b/white?text=The+Great+Gatsby",
-      date: "2024-11-02",
-      genre: "Classic Fiction",
-      pages: 180,
-      readingTime: "3 hours"
-    },
-    {
-      id: 2,
-      title: "1984",
-      author: "George Orwell",
-      rating: 4,
-      review: "Haunting and thought-provoking dystopian masterpiece. More relevant today than ever before.",
-      fullReview: "George Orwell's dystopian vision has only grown more prescient with time. The world of Big Brother, thoughtcrime, and Newspeak feels uncomfortably close to aspects of our modern reality. Winston Smith's struggle for individuality and truth in a totalitarian state is deeply moving and ultimately heartbreaking. Orwell's genius lies in creating a world that feels both impossibly oppressive and disturbingly plausible. The concepts introduced here - doublethink, memory holes, the Two Minutes Hate - have become part of our cultural lexicon for good reason. While the pacing can feel slow at times, particularly in the middle section detailing Goldstein's book, the payoff is worth it. The final third of the novel is devastating and unforgettable. This is essential reading for understanding the dangers of authoritarianism and the fragility of truth.",
-      cover: "https://placehold.co/400x600/dc2626/white?text=1984",
-      date: "2024-10-12",
-      genre: "Dystopian",
-      pages: 328,
-      readingTime: "6 hours"
-    },
-    {
-      id: 3,
-      title: "Sapiens",
-      author: "Yuval Noah Harari",
-      rating: 5,
-      review: "Insightful and deep exploration of human history. Changes the way you think about humanity.",
-      fullReview: "Yuval Noah Harari manages to condense 70,000 years of human history into a thoroughly engaging and thought-provoking narrative. His ability to zoom out and see the big patterns in human development is remarkable. The concept of 'imagined realities' - shared myths that allow large groups of humans to cooperate - is brilliantly explored. From the Cognitive Revolution to the Agricultural Revolution to the Scientific Revolution, Harari challenges many assumptions we hold about progress and happiness. His discussions on the role of wheat in domesticating humans (rather than vice versa) and the potential futures facing humanity are fascinating. While some historians have criticized certain generalizations, the book succeeds in making you question fundamental assumptions about human nature and society. It's accessible without being simplistic, and educational without being dry.",
-      cover: "https://placehold.co/400x600/059669/white?text=Sapiens",
-      date: "2024-08-21",
-      genre: "Non-Fiction",
-      pages: 443,
-      readingTime: "10 hours"
-    },
-    {
-      id: 4,
-      title: "To Kill a Mockingbird",
-      author: "Harper Lee",
-      rating: 5,
-      review: "A timeless tale of justice, morality, and growing up. Scout's perspective is both innocent and wise.",
-      fullReview: "Harper Lee's only novel remains a powerful exploration of racial injustice, moral courage, and childhood innocence. Told through the eyes of young Scout Finch, the story of her father Atticus defending a Black man falsely accused of rape in 1930s Alabama is both heartbreaking and hopeful. Lee's genius is in balancing the serious themes with the authentic voice of a child discovering the complexities of the adult world. Atticus Finch stands as one of literature's great moral exemplars, teaching his children (and readers) about empathy, courage, and standing up for what's right even when you know you'll lose. The supporting characters - Boo Radley, Calpurnia, Miss Maudie - are all richly drawn and memorable. The novel's exploration of how prejudice is taught and how it can be challenged remains urgently relevant. Lee's prose is both beautiful and accessible, making this a book that rewards readers of all ages.",
-      cover: "https://placehold.co/400x600/7c3aed/white?text=To+Kill+a+Mockingbird",
-      date: "2024-09-15",
-      genre: "Classic Fiction",
-      pages: 324,
-      readingTime: "6 hours"
-    },
-  ];
+  // Fetch approved reviews from backend
+  useEffect(() => {
+    fetch('http://localhost:5001/clear_cache', { method: 'POST' })
+    fetchReviews();
+  }, []);
+
+  const fetchReviews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("http://localhost:5001/get_reviews?status=approved");
+      if (!res.ok) throw new Error("Failed to fetch reviews");
+      const data = await res.json();
+      setReviews(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter + search logic
   let filtered = reviews.filter(
     (r) =>
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      r.author.toLowerCase().includes(search.toLowerCase())
+      r.book_title.toLowerCase().includes(search.toLowerCase()) ||
+      r.author.toLowerCase().includes(search.toLowerCase()) ||
+      (r.first_name + " " + r.last_name).toLowerCase().includes(search.toLowerCase())
   );
 
   if (filter === "Top Rated") {
@@ -73,9 +44,9 @@ export default function AllReviews() {
   } else if (filter === "Lowest Rated") {
     filtered.sort((a, b) => a.rating - b.rating);
   } else if (filter === "Newest") {
-    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    filtered.sort((a, b) => new Date(b.date_received) - new Date(a.date_received));
   } else if (filter === "Oldest") {
-    filtered.sort((a, b) => new Date(a.date) - b.date);
+    filtered.sort((a, b) => new Date(a.date_received) - new Date(b.date_received));
   }
 
   const filterOptions = [
@@ -86,8 +57,45 @@ export default function AllReviews() {
     { label: "Oldest", icon: Calendar },
   ];
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-emerald-700 font-semibold">Loading reviews...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Reviews</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchReviews}
+            className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Expanded Review Modal
   if (selectedReview) {
+    const reviewerName = selectedReview.anonymous === "anonymous" 
+      ? "Anonymous" 
+      : selectedReview.anonymous === "first name only"
+      ? selectedReview.first_name
+      : `${selectedReview.first_name} ${selectedReview.last_name}`;
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -101,19 +109,27 @@ export default function AllReviews() {
             Back to all reviews
           </button>
 
-{/* Expanded Review Card */}
+          {/* Expanded Review Card */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-emerald-100">
             {/* Compact Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-5">
-              <h1 className="text-2xl font-bold text-white mb-1">{selectedReview.title}</h1>
+              <h1 className="text-2xl font-bold text-white mb-1">{selectedReview.book_title}</h1>
               <p className="text-emerald-50 mb-3">by {selectedReview.author}</p>
               
               <div className="flex flex-wrap items-center gap-2 text-sm text-white/90 mb-2">
-                <span className="font-semibold">{selectedReview.genre}</span>
-                <span>•</span>
-                <span>{selectedReview.pages} pages</span>
-                <span>•</span>
-                <span>{selectedReview.readingTime}</span>
+                <span className="font-semibold">Reviewed by {reviewerName}</span>
+                {selectedReview.grade && (
+                  <>
+                    <span>•</span>
+                    <span>Grade {selectedReview.grade}</span>
+                  </>
+                )}
+                {selectedReview.school && (
+                  <>
+                    <span>•</span>
+                    <span>{selectedReview.school}</span>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-4 text-sm text-white">
@@ -122,30 +138,45 @@ export default function AllReviews() {
                     <Star
                       key={i}
                       className={`w-4 h-4 ${
-                        i < selectedReview.rating
+                        i < Math.floor(selectedReview.rating)
                           ? "fill-amber-300 text-amber-300"
+                          : i < selectedReview.rating
+                          ? "fill-amber-300/50 text-amber-300"
                           : "fill-white/30 text-white/30"
                       }`}
                     />
                   ))}
-                  <span className="ml-1 font-bold">{selectedReview.rating}/5</span>
+                  <span className="ml-1 font-bold">{Number(selectedReview.rating).toFixed(1)}/5</span>
                 </div>
                 
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
-                  {new Date(selectedReview.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {new Date(selectedReview.date_received).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
                 </span>
               </div>
             </div>
             
             {/* Full Review Content */}
             <div className="p-8 md:p-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">My Review</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Review</h2>
               <div className="prose prose-lg max-w-none">
                 <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {selectedReview.fullReview}
+                  {selectedReview.review}
                 </p>
               </div>
+
+              {/* Additional Info */}
+              {selectedReview.call_number && (
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Call Number:</span> {selectedReview.call_number}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -162,6 +193,9 @@ export default function AllReviews() {
           <h1 className="text-5xl font-bold text-gray-900 mb-3">
             All Reviews
           </h1>
+          <p className="text-gray-600">
+            Discover what our community is reading
+          </p>
         </div>
 
         {/* Search Bar */}
@@ -170,7 +204,7 @@ export default function AllReviews() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by book title or author..."
+              placeholder="Search by book title, author, or reviewer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-4 text-lg border-2 border-emerald-200 rounded-2xl 
@@ -209,46 +243,61 @@ export default function AllReviews() {
 
         {/* Review Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
-          {filtered.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setSelectedReview(r)}
-              className="bg-white rounded-xl shadow-md hover:shadow-xl 
-                       transition-all duration-300 transform hover:-translate-y-1
-                       border border-emerald-100 p-4 text-left cursor-pointer group"
-            >
-              <div className="space-y-2">
-                {/* Title and Author */}
-                <div>
-                  <h3 className="text-base font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition-colors">
-                    {r.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1">by {r.author}</p>
-                </div>
+          {filtered.map((r) => {
+            const reviewerName = r.anonymous === "anonymous" 
+              ? "Anonymous" 
+              : r.anonymous === "first name only"
+              ? r.first_name
+              : `${r.first_name} ${r.last_name}`;
 
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-sm font-bold text-gray-900">{r.rating}</span>
+            return (
+              <button
+                key={r.id}
+                onClick={() => setSelectedReview(r)}
+                className="bg-white rounded-xl shadow-md hover:shadow-xl 
+                         transition-all duration-300 transform hover:-translate-y-1
+                         border border-emerald-100 p-4 text-left cursor-pointer group"
+              >
+                <div className="space-y-2">
+                  {/* Title and Author */}
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 line-clamp-2 group-hover:text-emerald-600 transition-colors">
+                      {r.book_title}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">by {r.author}</p>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
-                    {r.genre}
-                  </span>
-                </div>
 
-                {/* Review Preview */}
-                <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
-                  {r.review}
-                </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span className="text-sm font-bold text-gray-900">
+                        {Number(r.rating).toFixed(1)}
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+                      {reviewerName}
+                    </span>
+                  </div>
 
-                {/* Date */}
-                <div className="flex items-center gap-1 text-xs text-gray-400 pt-1 border-t border-gray-100">
-                  <Calendar className="w-3 h-3" />
-                  <span>{new Date(r.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                  {/* Review Preview */}
+                  <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                    {r.review}
+                  </p>
+
+                  {/* Date */}
+                  <div className="flex items-center gap-1 text-xs text-gray-400 pt-1 border-t border-gray-100">
+                    <Calendar className="w-3 h-3" />
+                    <span>
+                      {new Date(r.date_received).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        year: 'numeric' 
+                      })}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         {/* No Results */}
