@@ -6,6 +6,7 @@ import {
   ScrollView,
 } from "react-native";
 import ReviewModal from "./reviewmodal";
+import { getAuth } from "firebase/auth";
 
 export default function MyReviews() {
   const [search, setSearch] = useState("");
@@ -13,6 +14,8 @@ export default function MyReviews() {
   const [sortOrder, setSortOrder] = useState("newest");
   const [userName] = useState("John Smith");
   const [bookTitle, setBookTitle] = useState("");
+  const [authorName, setAuthorName] = useState("");
+  const [review, setReview] = useState("");
   const [titleFlagged, setTitleFlagged] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [rating, setRating] = useState(0);
@@ -98,6 +101,49 @@ export default function MyReviews() {
     }
   };
 
+  const handleSubmitReview = async () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not logged in");
+
+    const idToken = await user.getIdToken(true);
+
+    const reviewData = {
+      idToken: idToken,
+      bookTitle: bookTitle,
+      authorName: authorName,
+      reviewerName: userName,
+      review: review,
+      rating: rating,
+      gradeLevel: gradeLevel,
+      recommendedGrades: recommendedGrades,
+      anonPref: anonPref,
+    };
+
+    try {
+      const response = await fetch("http://localhost:5001/submitreview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reviewData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Success:", result);
+
+        setModalVisible(false);
+        alert("Review submitted successfully!");
+      } else {
+        alert("Submission failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      alert("An error occurred while connecting to the server.");
+    }
+  };
+
   const generateCertificate = () => {
     const certificateHTML = `
       <!DOCTYPE html>
@@ -171,9 +217,8 @@ export default function MyReviews() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-5 py-2 rounded-lg font-bold border-2 transition-colors ${
-                  statusFilter === s ? "bg-green-700 text-white" : "bg-white text-green-700 border-green-700"
-                }`}
+                className={`px-5 py-2 rounded-lg font-bold border-2 transition-colors ${statusFilter === s ? "bg-green-700 text-white" : "bg-white text-green-700 border-green-700"
+                  }`}
               >
                 {s}
               </button>
@@ -217,11 +262,15 @@ export default function MyReviews() {
         </div>
       </div>
 
-      <ReviewModal 
+      <ReviewModal
         modalVisible={modalVisible}
         setModalVisible={setModalVisible}
         bookTitle={bookTitle}
         handleTitleChange={handleTitleChange}
+        authorName={authorName}
+        setAuthorName={setAuthorName}
+        review={review}
+        setReview={setReview}
         titleFlagged={titleFlagged}
         gradeLevel={gradeLevel}
         setGradeLevel={setGradeLevel}
@@ -233,6 +282,7 @@ export default function MyReviews() {
         setRating={setRating}
         gradeOptions={gradeOptions}
         anonOptions={anonOptions}
+        onSubmit={handleSubmitReview}
       />
     </ScrollView>
   );

@@ -8,8 +8,8 @@ from cache import get_cache, set_cache, make_prompt_key
 from config import ADMIN_EMAILS
 from fireo import connection
 from fireo.models import Model
-from fireo.fields import TextField, IDField
-
+from fireo.fields import TextField, IDField, NumberField, ListField
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -24,6 +24,19 @@ class Book(Model):
     title = TextField()
     added_by = TextField()
 
+class Review(Model):
+    id = IDField()
+    book_title = TextField()
+    author_name = TextField()
+    reviewer_name = TextField()
+    review_text = TextField()
+    rating = NumberField()
+    grade_level = TextField()
+    recommended_grades = ListField()
+    anon_preference = TextField()
+    status = TextField(default="Pending")
+    user_id = TextField() 
+    created_at = TextField()
 
 def verify_firebase_token(id_token):
     """Verify Firebase ID token"""
@@ -153,6 +166,41 @@ def ask_question():
         return jsonify({"response": response}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/submitreview", methods=["POST"])
+def submitreview():
+    data = request.json
+    id_token = data.get("idToken")
+
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+
+    decoded_token = verify_firebase_token(id_token)
+    if not decoded_token:
+        return jsonify({"error": "Invalid or expired ID token"}), 401
+
+    uid = decoded_token["uid"]
+
+    review = Review()
+    review.book_title = data.get("bookTitle")
+    review.author_name = data.get("authorName")
+    review.reviewer_name = data.get("reviewerName")
+    review.review_text = data.get("review")
+    review.rating = data.get("rating")
+    review.grade_level = data.get("gradeLevel")
+    review.recommended_grades = data.get("recommendedGrades")
+    review.anon_preference = data.get("anonPref")
+    review.created_at = datetime.utcnow().isoformat()
+    review.user_id = uid 
+    
+    saved_review = review.save()
+
+    return jsonify({
+        "message": "Review submitted successfully", 
+        "id": saved_review.id
+    }), 200
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
