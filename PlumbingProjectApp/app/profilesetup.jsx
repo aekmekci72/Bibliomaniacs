@@ -47,12 +47,20 @@ export default function ProfileSetup() {
         const user = auth.currentUser;
         if (!user) return;
 
-        try {
-            const userRef = doc(db, "users", user.uid);
+        const userRef = doc(db, "users", user.uid);
 
+        const updates = {};
+
+        if (name.trim()) updates.name = name.trim();
+        if (phone.trim()) updates.phone = phone.trim();
+        if (grade) updates.grade = grade;
+        if (school.trim()) updates.school = school.trim();
+        if (genres.length > 0) updates.favoriteGenres = genres;
+
+        try {
+            await updateDoc(userRef, updates);
             Alert.alert("Profile Saved", "Your profile is now complete!");
             router.replace("/homepage");
-
         } catch (err) {
             console.log("Profile Setup Error:", err);
             Alert.alert("Error", "Could not save profile.");
