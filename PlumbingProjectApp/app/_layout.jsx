@@ -14,14 +14,14 @@ export default function Layout() {
 
   // Map a route to a simple page name  
   function getPage() {
-    if (pathname === "/landingpage") return "landingpage";
-    if (pathname.startsWith("/dbtest")) return "dbtest";
+    if (pathname === "/homepage") return "homepage";
     if (pathname.startsWith("/explorer")) return "explorer";
-    if (pathname.startsWith("/chatbot")) return "chatbot";
-    if (pathname.startsWith("/filedownload")) return "filedownload";
-    if (pathname.startsWith("/login")) return "login";
-    if (pathname.startsWith("/adminonly")) return "adminonly";
     if (pathname.startsWith("/myreviews")) return "myreviews";
+    if (pathname.startsWith("/reviewpage")) return "reviewpage";
+    if (pathname.startsWith("/profile")) return "profile";
+    if (pathname.startsWith("/admin-reviews")) return "admin-reviews";
+    if (pathname.startsWith("/admindashboard")) return "admindashboard";
+    if (pathname.startsWith("/adminhomepage")) return "adminhomepage";
 
     return "";
   }
@@ -158,22 +158,51 @@ export default function Layout() {
         </View>
 
         {/* Navigation Group */}
+        {/* homepage, explorer, myreviews, reviewpage, profile, admin-reviews, admindashboard, adminhomepage */}
         <View className="mt-4 space-y-1">
           {role === "no account" && (
             <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
           )}
-          <NavItem icon="trending-up-outline" label="DB Test" page="dbtest" href="/dbtest" />
-          <NavItem icon="calendar-outline" label="Explorer" page="explorer" href="/explorer" />
-          <NavItem icon="document-text-outline" label="ChatBot" page="chatbot" href="/chatbot" />
-          <NavItem icon="checkbox-outline" label="File Download" page="filedownload" href="/filedownload" />
-          <NavItem icon="list-outline" label="My Reviews" page="myreviews" href="/myreviews" />
+          <NavItem icon="trending-up-outline" label="Explorer" page="explorer" href="/explorer" />
+          {role === "user" && (
+            <>
+            <NavItem icon="document-text-outline" label="My Reviews" page="myreviews" href="/myreviews" />
+
+            <NavItem icon="calendar-outline" label="Review Page" page="reviewpage" href="/reviewpage" />
+
+            <NavItem icon="checkbox-outline" label="Profile" page="profile" href="/profile" />
+            </>
+          )}
+
+          {role === "user" && (
+            <>
+            <NavItem icon="document-text-outline" label="My Reviews" page="myreviews" href="/myreviews" />
+
+            <NavItem icon="calendar-outline" label="Review Page" page="reviewpage" href="/reviewpage" />
+
+            <NavItem icon="checkbox-outline" label="Profile" page="profile" href="/profile" />
+            </>
+          )}
+
+          {role === "admin" && (
+            <>
+            <NavItem icon="document-text-outline" label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
+          
+            <NavItem icon="calendar-outline" label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
+
+            <NavItem icon="checkbox-outline" label="Admin Homepage" page="adminhomepage" href="/adminhomepage" />
+
+            </>
+          )}
+          
+          
         </View>
 
         {/* Divider */}
-        <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
+        {/* <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} /> */}
 
         {/* Section Header */}
-        <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>Section Divider</Text>
+        {/* <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>Section Divider</Text>
         
       <View style={{ gap: 6 }}>
 
@@ -202,9 +231,9 @@ export default function Layout() {
       </>
     )}        <NavItem icon="albums-outline" label="Accounts" href="/" />
         <NavItem icon="people-outline" label="Contacts" href="/" />
-        <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" />
+        <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" /> */}
 
-      </View>
+      {/* </View> */}
       </Animated.View>
     </SafeAreaView>
 
