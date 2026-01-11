@@ -98,7 +98,6 @@ export default function Layout() {
 
   useEffect(() => {    
     const unsubscribe = auth.onAuthStateChanged((user) => {
-  
       fetchRole();
     });
   
