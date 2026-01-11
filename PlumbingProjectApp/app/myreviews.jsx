@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -24,30 +24,11 @@ export default function MyReviews() {
   const [gradeLevel, setGradeLevel] = useState("");
   const [anonPref, setAnonPref] = useState("");
   const [recommendedGrades, setRecommendedGrades] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const reviews = [
-    {
-      bookTitle: "The Great Gatsby",
-      review: "A beautifully tragic novel.",
-      rating: 5,
-      status: "Approved",
-      createdAt: "2024-11-02",
-    },
-    {
-      bookTitle: "1984",
-      review: "Haunting and thought-provoking.",
-      rating: 4,
-      status: "Pending",
-      createdAt: "2024-10-12",
-    },
-    {
-      bookTitle: "Sapiens",
-      review: "Insightful and deep!",
-      rating: 5,
-      status: "Rejected",
-      createdAt: "2024-08-21",
-    },
-  ];
+
+
 
   const statusColor = {
     Approved: "#2b7a4b",
@@ -92,7 +73,7 @@ export default function MyReviews() {
     setTitleFlagged(isOverReviewed);
   };
 
-  const gradeOptions = Array.from({ length: 13 }, (_, i) => i === 0 ? "K" : i.toString());
+  const gradeOptions = ["6", "7", "8", "9", "10", "11", "12"];
   const anonOptions = ["Yes", "No", "First Name Only"];
 
   const toggleRecommendedGrade = (level) => {
@@ -102,6 +83,63 @@ export default function MyReviews() {
       setRecommendedGrades([...recommendedGrades, level]);
     }
   };
+
+
+  const fetchUserReviews = async (user) => {
+    try {
+      if (!user) return;
+
+      const idToken = await user.getIdToken(true);
+
+      const res = await fetch("http://localhost:5001/get_user_reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Backend error:", data);
+        return;
+      }
+
+      setReviews(
+        data.reviews.map(r => ({
+          bookTitle: r.book_title,
+          review: r.review,
+          rating: r.rating,
+          status: r.status,
+          createdAt: r.date_received,
+          comment: r.comment_to_user,
+          timeEarned: r.time_earned,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to load reviews:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      fetchUserReviews(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
 
   const handleSubmitReview = async () => {
     const auth = getAuth();
@@ -142,6 +180,7 @@ export default function MyReviews() {
 
         setModalVisible(false);
         alert("Review submitted successfully!");
+        await fetchUserReviews();
       } else {
         alert("Submission failed. Please try again.");
       }
