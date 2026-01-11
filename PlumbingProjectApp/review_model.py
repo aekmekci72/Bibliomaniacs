@@ -1,5 +1,5 @@
 from fireo.models import Model
-from fireo.fields import TextField, IDField, NumberField, BooleanField, DateTime
+from fireo.fields import TextField, IDField, NumberField, BooleanField, DateTime, ListField
 from datetime import datetime
 
 class Review(Model):
@@ -20,7 +20,7 @@ class Review(Model):
     # Book Information
     book_title = TextField()
     author = TextField()
-    recommended_audience_grade = NumberField()
+    recommended_audience_grade = ListField()
     
     # Review Content
     rating = NumberField()
@@ -32,8 +32,8 @@ class Review(Model):
     added_to_reviewed_book_list = BooleanField(default=False)
     
     # Volunteer Tracking
-    time_earned = NumberField(default=0.5)
-    total_hours = NumberField(default=0)
+    # time_earned = NumberField(default=0.5)
+    # total_hours = NumberField(default=0)
     on_volgistics = BooleanField(default=False)
     
     # Library Management
@@ -77,10 +77,10 @@ def process_review(review_id, approved, admin_comment=None):
 
 def calculate_user_hours(email):
     reviews = Review.collection.filter('email', '==', email).filter('approved', '==', True).fetch()
-    total_hours = sum(r.time_earned for r in reviews)
+    total_hours = sum(0.5 for r in reviews)
     
-    for review in reviews:
-        review.total_hours = total_hours
-        review.update()
+    # for review in reviews:
+    #     review.total_hours = total_hours
+    #     review.update()
     
     return total_hours

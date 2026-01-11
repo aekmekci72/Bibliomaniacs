@@ -27,19 +27,19 @@ class Book(Model):
     title = TextField()
     added_by = TextField()
 
-class Review(Model):
-    id = IDField()
-    book_title = TextField()
-    author_name = TextField()
-    reviewer_name = TextField()
-    review_text = TextField()
-    rating = NumberField()
-    grade_level = TextField()
-    recommended_grades = ListField()
-    anon_preference = TextField()
-    status = TextField(default="Pending")
-    user_id = TextField() 
-    created_at = TextField()
+# class Review(Model):
+#     id = IDField()
+#     book_title = TextField()
+#     author_name = TextField()
+#     reviewer_name = TextField()
+#     review_text = TextField()
+#     rating = NumberField()
+#     grade_level = TextField()
+#     recommended_grades = ListField()
+#     anon_preference = TextField()
+#     status = TextField(default="Pending")
+#     user_id = TextField() 
+#     created_at = TextField()
 
 def verify_firebase_token(id_token):
     """Verify Firebase ID token"""
@@ -182,11 +182,15 @@ def submit_review():
         return jsonify({"error": "Invalid ID token"}), 401
     
     required = ["first_name", "last_name", "email", "book_title", 
-                "author", "rating", "review", "grade"]
+                "author", "rating", "review", "grade", "recommended_audience_grade", "anonymous"]
     for field in required:
         if not data.get(field):
             return jsonify({"error": f"Missing required field: {field}"}), 400
     
+    if "recommended_audience_grade" in data:
+        if not isinstance(data["recommended_audience_grade"], list):
+            data["recommended_audience_grade"] = [data["recommended_audience_grade"]]
+
     entry_id = f"{int(datetime.now().timestamp())}_{hashlib.md5(data['email'].encode()).hexdigest()[:8]}"
     data['entry_id'] = entry_id
     
@@ -249,7 +253,6 @@ def bulk_import_reviews():
                 review_data['entry_id'] = f"{int(review_data['date_received'].timestamp())}_{email_hash}"
             
             review_data.setdefault('approved', True)
-            review_data.setdefault('time_earned', 0.5)
             review_data.setdefault('added_to_reviewed_book_list', False)
             review_data.setdefault('on_volgistics', False)
             review_data.setdefault('label_created', False)
@@ -337,14 +340,12 @@ def get_reviews():
             "phone_number": r.phone_number,
             "book_title": r.book_title,
             "author": r.author,
-            "recommended_audience_grade": r.recommended_audience_grade,
+            "recommended_audience_grade": r.recommended_audience_grade or [],
             "rating": r.rating,
             "review": r.review,
             "anonymous": r.anonymous,
             "approved": r.approved,
             "added_to_reviewed_book_list": r.added_to_reviewed_book_list,
-            "time_earned": r.time_earned,
-            "total_hours": r.total_hours,
             "on_volgistics": r.on_volgistics,
             "call_number": r.call_number,
             "qr_code": r.qr_code,
@@ -454,10 +455,9 @@ def get_user_reviews():
                 "status": "Approved" if r.approved else ("Rejected" if r.date_processed else "Pending"),
                 "date_received": r.date_received.isoformat() if r.date_received else None,
                 "comment_to_user": r.comment_to_user,
-                "time_earned": r.time_earned if r.approved else 0,
             })
         
-        total_hours = sum(r["time_earned"] for r in results)
+        total_hours = sum(0.5 for r in results)
         
         return jsonify({
             "reviews": results,
@@ -482,7 +482,7 @@ def get_review_stats():
             "approved_reviews": len([r for r in all_reviews if r.approved]),
             "pending_reviews": len([r for r in all_reviews if not r.approved and not r.date_processed]),
             "rejected_reviews": len([r for r in all_reviews if not r.approved and r.date_processed]),
-            "total_volunteer_hours": sum(r.time_earned for r in all_reviews if r.approved),
+            "total_volunteer_hours": sum(0.5 for r in all_reviews if r.approved),
             "unique_reviewers": len(set(r.email for r in all_reviews)),
             "books_reviewed": len(set(r.book_title for r in all_reviews)),
             "average_rating": sum(r.rating for r in all_reviews) / len(all_reviews) if all_reviews else 0,
@@ -503,73 +503,38 @@ def clear_cache():
     return jsonify({"message": "Cache cleared"}), 200
 
 
-@app.route("/submitreview", methods=["POST"])
-def submitreview():
-    data = request.json
-    id_token = data.get("idToken")
+# @app.route("/submitreview", methods=["POST"])
+# def submitreview():
+#     data = request.json
+#     id_token = data.get("idToken")
 
-    if not id_token:
-        return jsonify({"error": "Missing ID token"}), 401
+#     if not id_token:
+#         return jsonify({"error": "Missing ID token"}), 401
 
-    decoded_token = verify_firebase_token(id_token)
-    if not decoded_token:
-        return jsonify({"error": "Invalid or expired ID token"}), 401
+#     decoded_token = verify_firebase_token(id_token)
+#     if not decoded_token:
+#         return jsonify({"error": "Invalid or expired ID token"}), 401
 
-    uid = decoded_token["uid"]
+#     uid = decoded_token["uid"]
 
-    review = Review()
-    review.book_title = data.get("bookTitle")
-    review.author_name = data.get("authorName")
-    review.reviewer_name = data.get("reviewerName")
-    review.review_text = data.get("review")
-    review.rating = data.get("rating")
-    review.grade_level = data.get("gradeLevel")
-    review.recommended_grades = data.get("recommendedGrades")
-    review.anon_preference = data.get("anonPref")
-    review.created_at = datetime.utcnow().isoformat()
-    review.user_id = uid 
+#     review = Review()
+#     review.book_title = data.get("bookTitle")
+#     review.author_name = data.get("authorName")
+#     review.reviewer_name = data.get("reviewerName")
+#     review.review_text = data.get("review")
+#     review.rating = data.get("rating")
+#     review.grade_level = data.get("gradeLevel")
+#     review.recommended_grades = data.get("recommendedGrades")
+#     review.anon_preference = data.get("anonPref")
+#     review.created_at = datetime.utcnow().isoformat()
+#     review.user_id = uid 
     
-    saved_review = review.save()
+#     saved_review = review.save()
 
-    return jsonify({
-        "message": "Review submitted successfully", 
-        "id": saved_review.id
-    }), 200
-
-
-
-@app.route("/submitreview", methods=["POST"])
-def submitreview():
-    data = request.json
-    id_token = data.get("idToken")
-
-    if not id_token:
-        return jsonify({"error": "Missing ID token"}), 401
-
-    decoded_token = verify_firebase_token(id_token)
-    if not decoded_token:
-        return jsonify({"error": "Invalid or expired ID token"}), 401
-
-    uid = decoded_token["uid"]
-
-    review = Review()
-    review.book_title = data.get("bookTitle")
-    review.author_name = data.get("authorName")
-    review.reviewer_name = data.get("reviewerName")
-    review.review_text = data.get("review")
-    review.rating = data.get("rating")
-    review.grade_level = data.get("gradeLevel")
-    review.recommended_grades = data.get("recommendedGrades")
-    review.anon_preference = data.get("anonPref")
-    review.created_at = datetime.utcnow().isoformat()
-    review.user_id = uid 
-    
-    saved_review = review.save()
-
-    return jsonify({
-        "message": "Review submitted successfully", 
-        "id": saved_review.id
-    }), 200
+#     return jsonify({
+#         "message": "Review submitted successfully", 
+#         "id": saved_review.id
+#     }), 200
 
 
 if __name__ == "__main__":

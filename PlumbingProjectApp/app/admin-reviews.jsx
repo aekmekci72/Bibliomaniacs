@@ -147,9 +147,8 @@ export default function AdminReviews() {
     
     const rows = filtered.map(r => [
       r.entry_id, r.date_received, r.date_processed, r.first_name, r.last_name,
-      r.grade, r.school, r.email, r.phone_number, r.book_title, r.author,
-      r.recommended_audience_grade, r.rating, r.review, r.anonymous,
-      r.approved ? "Yes" : "No", r.time_earned, r.call_number, r.notes_to_admin
+      r.grade, r.school, r.email, r.phone_number, r.book_title, r.author, r.rating, r.review, r.anonymous,
+      r.approved ? "Yes" : "No", r.call_number, r.notes_to_admin
     ]);
     
     const csvContent = [
@@ -199,7 +198,7 @@ export default function AdminReviews() {
               <div className="text-xs text-gray-500 font-semibold">Pending</div>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-600">
-              <div className="text-2xl font-bold text-blue-700">{stats.total_volunteer_hours.toFixed(1)}</div>
+              <div className="text-2xl font-bold text-blue-700">{stats.total_volunteer_hours}</div>
               <div className="text-xs text-gray-500 font-semibold">Volunteer Hours</div>
             </div>
           </div>
@@ -416,7 +415,7 @@ export default function AdminReviews() {
                 </div>
                 <div>
                   <p className="text-gray-500 font-semibold">Time Earned</p>
-                  <p className="text-gray-800">{selectedReview.time_earned} hrs</p>
+                  <p className="text-gray-800">{0.5} hrs</p>
                 </div>
                 <div>
                   <p className="text-gray-500 font-semibold">Label Created</p>

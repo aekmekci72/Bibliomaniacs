@@ -16,6 +16,8 @@ export default function MyReviews() {
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [review, setReview] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [titleFlagged, setTitleFlagged] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [rating, setRating] = useState(0);
@@ -104,24 +106,29 @@ export default function MyReviews() {
   const handleSubmitReview = async () => {
     const auth = getAuth();
     const user = auth.currentUser;
-    if (!user) throw new Error("User not logged in");
+    if (!user) {
+      alert("You must be logged in");
+      return;
+    }
 
     const idToken = await user.getIdToken(true);
 
     const reviewData = {
       idToken: idToken,
-      bookTitle: bookTitle,
-      authorName: authorName,
-      reviewerName: userName,
-      review: review,
+      first_name: firstName,
+      last_name: lastName,
+      email: user.email,
+      book_title: bookTitle,
+      author: authorName,
       rating: rating,
-      gradeLevel: gradeLevel,
-      recommendedGrades: recommendedGrades,
-      anonPref: anonPref,
+      review: review,
+      grade: gradeLevel,
+      recommended_audience_grade: recommendedGrades,
+      anonymous: anonPref,
     };
 
     try {
-      const response = await fetch("http://localhost:5001/submitreview", {
+      const response = await fetch("http://localhost:5001/submit_review", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -274,6 +281,10 @@ export default function MyReviews() {
         titleFlagged={titleFlagged}
         gradeLevel={gradeLevel}
         setGradeLevel={setGradeLevel}
+        firstName={firstName}
+        setFirstName={setFirstName}
+        lastName={lastName}
+        setLastName={setLastName}
         recommendedGrades={recommendedGrades}
         toggleRecommendedGrade={toggleRecommendedGrade}
         anonPref={anonPref}

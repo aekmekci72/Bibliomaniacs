@@ -21,6 +21,10 @@ export default function ReviewModal({
     titleFlagged,
     gradeLevel,
     setGradeLevel,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
     recommendedGrades,
     toggleRecommendedGrade,
     anonPref,
@@ -75,7 +79,22 @@ export default function ReviewModal({
                         />
 
                         <Text className="inputLabel">Reviewer Name</Text>
-                        <TextInput className="modalInput" placeholder="Name" />
+
+                        <View className="flex-row gap-3 mb-2">
+                            <TextInput
+                                className="modalInput flex-1"
+                                placeholder="First name"
+                                value={firstName}
+                                onChangeText={setFirstName}
+                            />
+
+                            <TextInput
+                                className="modalInput flex-1"
+                                placeholder="Last name"
+                                value={lastName}
+                                onChangeText={setLastName}
+                            />
+                        </View>
 
                         <Text className="inputLabel">Review</Text>
                         <TextInput
