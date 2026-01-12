@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, TextInput, Modal, ScrollView, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
 import { auth, app } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
@@ -14,7 +15,8 @@ export default function ProfilePage() {
 
     const [role, setRole] = useState(null);
 
-    const [name, setName] = useState("");
+    const [first_name, setFirstName] = useState("");
+    const [last_name, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [grade, setGrade] = useState("");
@@ -37,7 +39,8 @@ export default function ProfilePage() {
     const [modalVisible, setModalVisible] = useState(false);
     const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
-    const [editName, setEditName] = useState("");
+    const [editFirstName, setEditFirstName] = useState("");
+    const [editLastName, setEditLastName] = useState("");
     const [editPhone, setEditPhone] = useState("");
     const [editGrade, setEditGrade] = useState("");
     const [editSchool, setEditSchool] = useState("");
@@ -48,7 +51,8 @@ export default function ProfilePage() {
     );
 
     const openModal = () => {
-        setEditName(name);
+        setEditFirstName(first_name);
+        setEditLastName(last_name);
         setEditPhone(phone);
         setEditGrade(grade);
         setEditSchool(school);
@@ -74,14 +78,16 @@ export default function ProfilePage() {
             const data = snap.data();
     
             // Missing fields stay as empty strings / empty arrays in UI state
-            setName(data.name ?? "");
+            setFirstName(data.first_name ?? "");
+            setLastName(data.last_name ?? "");
             setPhone(data.phone ?? "");
             setGrade(data.grade ?? "");
             setSchool(data.school ?? "");
             setGenres(Array.isArray(data.favoriteGenres) ? data.favoriteGenres : []);
           } else {
             // If doc doesn't exist for some reason, just show blanks
-            setName("");
+            setFirstName("");
+            setLastName("");
             setPhone("");
             setGrade("");
             setSchool("");
@@ -97,12 +103,15 @@ export default function ProfilePage() {
 
         const userRef = doc(db, "users", userUid);
 
-        // Build updates so blanks become MISSING (deleteField), not empty strings.
         const updates = {};
 
-        const n = editName.trim();
-        if (n) updates.name = n;
-        else updates.name = deleteField();
+        const fn = editFirstName.trim();
+        if (fn) updates.first_name = fn;
+        else updates.first_name = deleteField();
+
+        const ln = editLastName.trim();
+        if (ln) updates.last_name = ln;
+        else updates.last_name = deleteField();
 
         const p = editPhone.trim();
         if (p) updates.phone = p;
@@ -120,8 +129,8 @@ export default function ProfilePage() {
 
         await updateDoc(userRef, updates);
 
-        // Update local display state to match what we saved
-        setName(n);
+        setFirstName(fn);
+        setLastName(ln);
         setPhone(p);
         setGrade(editGrade);
         setSchool(s);
@@ -155,7 +164,7 @@ export default function ProfilePage() {
 
             <View className="profileCard">
                 <View className="flex-1">
-                    <Text className="profileName">{name || "Unnamed User"}</Text>
+                    <Text className="profileName">{`${first_name} ${last_name}`.trim()|| "Unnamed User"}</Text>
                     <Text className="profileEmail">{email || "--"}</Text>
                     <Text className="profileRole">Bibliomaniacs Reviewer</Text>
                 </View>
@@ -215,11 +224,21 @@ export default function ProfilePage() {
                             <Text className="modalTitle">Edit Profile</Text>
 
                             <Text className="inputLabel">Name</Text>
-                            <TextInput
-                                className="modalInput"
-                                value={editName}
-                                onChangeText={setEditName}
-                            />
+                            <View className="flex-row gap-3 mb-2">
+                                <TextInput
+                                    className="modalInput flex-1"
+                                    placeholder="First name"
+                                    value={editFirstName}
+                                    onChangeText={setEditFirstName}
+                                />
+
+                                <TextInput
+                                    className="modalInput flex-1"
+                                    placeholder="Last name"
+                                    value={editLastName}
+                                    onChangeText={setEditLastName}
+                                />
+                            </View>
 
                             <Text className="inputLabel">Email</Text>
                             <View pointerEvents="none">
@@ -259,19 +278,15 @@ export default function ProfilePage() {
                                 className="gradeRow"
                             >
                                 {gradeOptions.map((level) => (
-                                    <Pressable
-                                        key={level}
-                                        className={`gradeOption ${grade === level ? "gradeOptionActive" : ""
-                                            }`}
-                                        onPress={() => setGrade(level)}
-                                    >
-                                        <Text
-                                            className={`gradeText ${grade === level ? "gradeTextActive" : ""
-                                                }`}
-                                        >
-                                            {level}
-                                        </Text>
-                                    </Pressable>
+                                <Pressable
+                                    key={level}
+                                    className={`gradeOption ${editGrade === level ? "gradeOptionActive" : ""}`}
+                                    onPress={() => setEditGrade(level)}
+                                >
+                                    <Text className={`gradeText ${editGrade === level ? "gradeTextActive" : ""}`}>
+                                    {level}
+                                    </Text>
+                                </Pressable>
                                 ))}
                             </ScrollView>
 

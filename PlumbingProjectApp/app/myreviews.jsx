@@ -7,6 +7,8 @@ import {
 } from "react-native";
 import ReviewModal from "./reviewmodal";
 import { getAuth } from "firebase/auth";
+import { auth, app } from "../firebaseConfig";
+import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 
 export default function MyReviews() {
   const [search, setSearch] = useState("");
@@ -35,6 +37,8 @@ export default function MyReviews() {
     Pending: "#cc9a06",
     Rejected: "#c0392b",
   };
+
+  const db = getFirestore(app);
 
   const approvedReviews = reviews.filter(r => r.status === "Approved").length;
   const volunteerHours = (approvedReviews * 0.5).toFixed(1);
@@ -124,6 +128,34 @@ export default function MyReviews() {
     }
   };
 
+  const fetchUserProfile = async (user) => {
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const data = snap.data();
+
+        setFirstName(data.first_name ?? "");
+        setLastName(data.last_name ?? "");
+        // setPhone(data.phone ?? "");
+        setGradeLevel(data.grade ?? "");
+        // setSchool(data.school ?? "");
+      } else {
+        setFirstName("");
+        setLastName("");
+        // setPhone("");
+        setGradeLevel("");
+        // setSchool("");
+      }
+
+    } catch (err) {
+      console.error("Failed to load profile:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const auth = getAuth();
 
@@ -134,6 +166,7 @@ export default function MyReviews() {
       }
 
       fetchUserReviews(user);
+      fetchUserProfile(user);
     });
 
     return () => unsubscribe();

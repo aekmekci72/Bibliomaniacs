@@ -9,7 +9,8 @@ export default function ProfileSetup() {
     const router = useRouter();
     const db = getFirestore(app);
 
-    const [name, setName] = useState("");
+    const [first_name, setFirstName] = useState("");
+    const [last_name, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [grade, setGrade] = useState("");
@@ -51,7 +52,8 @@ export default function ProfileSetup() {
 
         const updates = {};
 
-        if (name.trim()) updates.name = name.trim();
+        if (first_name.trim()) updates.first_name = first_name.trim();
+        if (last_name.trim()) updates.last_name = last_name.trim();
         if (phone.trim()) updates.phone = phone.trim();
         if (grade) updates.grade = grade;
         if (school.trim()) updates.school = school.trim();
@@ -87,12 +89,21 @@ export default function ProfileSetup() {
 
             <View className="w-full max-w-[720px] self-center bg-white border border-neutral-200 rounded-xl p-5 shadow-sm">
                 <Text className="inputLabel">Name</Text>
-                <TextInput
-                    className="modalInput"
-                    value={name}
-                    placeholder="Enter your full name"
-                    onChangeText={setName}
-                />
+                <View className="flex-row gap-3 mb-2">
+                    <TextInput
+                        className="modalInput flex-1"
+                        placeholder="Enter your first name"
+                        value={first_name}
+                        onChangeText={setFirstName}
+                    />
+
+                    <TextInput
+                        className="modalInput flex-1"
+                        placeholder="Enter your last name"
+                        value={last_name}
+                        onChangeText={setLastName}
+                    />
+                </View>
 
                 <Text className="inputLabel">Email</Text>
                 <View pointerEvents="none">

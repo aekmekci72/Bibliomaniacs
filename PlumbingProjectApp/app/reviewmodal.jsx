@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -8,6 +8,9 @@ import {
     ScrollView,
 } from "react-native";
 import { Star } from "lucide-react-native";
+import { auth, app } from "../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 
 export default function ReviewModal({
     modalVisible,
@@ -111,21 +114,18 @@ export default function ReviewModal({
                             showsHorizontalScrollIndicator={false}
                             className="gradeRow"
                         >
+
                             {gradeOptions.map((level) => (
                                 <Pressable
                                     key={level}
-                                    className={`gradeOption ${gradeLevel === level ? "gradeOptionActive" : ""
-                                        }`}
+                                    className={`gradeOption ${gradeLevel === String(level) ? "gradeOptionActive" : ""}`}
                                     onPress={() => setGradeLevel(level)}
                                 >
-                                    <Text
-                                        className={`gradeText ${gradeLevel === level ? "gradeTextActive" : ""
-                                            }`}
-                                    >
-                                        {level}
+                                    <Text className={`gradeText ${gradeLevel === level ? "gradeTextActive" : ""}`}>
+                                    {level}
                                     </Text>
                                 </Pressable>
-                            ))}
+                                ))}
                         </ScrollView>
 
                         <Text className="inputLabel">Recommended Grade Levels</Text>
