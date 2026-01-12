@@ -1,7 +1,7 @@
 import "./login";
 import { useState, useRef, useEffect } from "react";
 import { Image, Animated, Dimensions, Pressable, Text, View, TextInput } from "react-native";
-import { Link, Stack, usePathname } from "expo-router";
+import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { auth } from "../firebaseConfig";
@@ -10,6 +10,7 @@ import './global.css';
 
 export default function Layout() {
   const pathname = usePathname();
+  const router = useRouter();
   const [role, setRole] = useState(null);
 
   // Map a route to a simple page name  
@@ -22,6 +23,7 @@ export default function Layout() {
     if (pathname.startsWith("/admin-reviews")) return "admin-reviews";
     if (pathname.startsWith("/admindashboard")) return "admindashboard";
     if (pathname.startsWith("/adminhomepage")) return "adminhomepage";
+    if (pathname.startsWith("/profile")) return "profile";
 
     return "";
   }
@@ -114,7 +116,9 @@ export default function Layout() {
           <Ionicons name="search" size={14} />
           <TextInput placeholder="Search" style={{ flex: 1, marginLeft: 6 }} />
         </View>
-        <Pressable className="iconBtn"><Ionicons name="person-circle-outline" size={20} /></Pressable>
+        <Pressable className="iconBtn" onPress={() => router.push("/profile")}>
+          <Ionicons name="person-circle-outline" size={20} />
+        </Pressable>
       </View>
       <Stack screenOptions={{ headerShown: false }} />
 
