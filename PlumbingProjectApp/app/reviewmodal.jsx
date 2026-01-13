@@ -34,6 +34,7 @@ export default function ReviewModal({
     gradeOptions,
     anonOptions,
     onSubmit,
+    isEditMode,
 }) {
     return (
         <Modal
@@ -48,7 +49,10 @@ export default function ReviewModal({
                         className="modalScroll"
                         contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
                     >
-                        <Text className="modalTitle">New Book Review</Text>
+                        <Text className="modalTitle">
+                            {isEditMode ? "Edit Review" : "New Book Review"}
+                        </Text>
+
 
                         <Text className="inputLabel">Book Title</Text>
                         <TextInput
@@ -189,7 +193,10 @@ export default function ReviewModal({
                                 className="primaryBtn flex-1"
                                 onPress={onSubmit}
                             >
-                                <Text className="primaryText">Submit</Text>
+                                <Text className="primaryText">
+                                    {isEditMode ? "Update Review" : "Submit"}
+                                </Text>
+
                             </Pressable>
 
                             <Pressable
