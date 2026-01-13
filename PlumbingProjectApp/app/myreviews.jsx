@@ -264,7 +264,11 @@ export default function MyReviews() {
     setAuthorName(review.author || "");
     setReview(review.review);
     setRating(review.rating);
-    setGradeLevel(review.grade || "");
+    setGradeLevel(
+      review.grade !== undefined && review.grade !== null
+        ? String(review.grade)
+        : ""
+    );
     setRecommendedGrades(review.recommended_audience_grade || []);
     setAnonPref(review.anonymous || "");
     setFirstName(review.first_name || "");
@@ -315,9 +319,9 @@ export default function MyReviews() {
   };
 
   return (
-    <ScrollView>
-      <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
-        <div className="w-full max-w-7xl py-6">
+    <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
+      <div className="w-full max-w-7xl py-6">
+        <div>
           <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">My Submitted Reviews</h1>
           <p className="text-center text-gray-600 mb-6">View the status of your submitted reviews</p>
 
@@ -459,75 +463,75 @@ export default function MyReviews() {
         isEditMode={isEditMode}
       />
 
-      {showViewModal && selectedReview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Review Details</h2>
+      {
+        showViewModal && selectedReview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Review Details</h2>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Date Received</p>
-                <p className="text-gray-800">{new Date(selectedReview.date_received).toLocaleString()}</p>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Date Received</p>
+                  <p className="text-gray-800">{new Date(selectedReview.date_received).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Reviewer</p>
+                  <p className="text-gray-800">{selectedReview.first_name} {selectedReview.last_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Grade</p>
+                  <p className="text-gray-800">{selectedReview.grade}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">School</p>
+                  <p className="text-gray-800">{selectedReview.school}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Email</p>
+                  <p className="text-gray-800 text-sm">{selectedReview.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Phone</p>
+                  <p className="text-gray-800">{selectedReview.phone_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Anonymous</p>
+                  <p className="text-gray-800">{selectedReview.anonymous}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Reviewer</p>
-                <p className="text-gray-800">{selectedReview.first_name} {selectedReview.last_name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Grade</p>
-                <p className="text-gray-800">{selectedReview.grade}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">School</p>
-                <p className="text-gray-800">{selectedReview.school}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Email</p>
-                <p className="text-gray-800 text-sm">{selectedReview.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Phone</p>
-                <p className="text-gray-800">{selectedReview.phone_number}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 font-semibold">Anonymous</p>
-                <p className="text-gray-800">{selectedReview.anonymous}</p>
-              </div>
-            </div>
 
-            <div className="border-t pt-4 mb-4">
-              <h3 className="font-bold text-lg mb-2 text-gray-800">Book Information</h3>
-              <p className="text-sm text-gray-500 font-semibold">Title</p>
-              <p className="text-gray-800 mb-2">{selectedReview.bookTitle}</p>
-              <p className="text-sm text-gray-500 font-semibold">Author</p>
-              <p className="text-gray-800 mb-2">{selectedReview.author}</p>
-              <p className="text-sm text-gray-500 font-semibold">Rating</p>
-              <p className="text-gray-800 mb-2">★ {Number(selectedReview.rating).toFixed(1)} / 5</p>
-              <p className="text-sm text-gray-500 font-semibold">Recommended Grade</p>
-              <p className="text-gray-800">{Array.isArray(selectedReview.recommended_audience_grade)
-                ? selectedReview.recommended_audience_grade.join(", ")
-                : selectedReview.recommended_audience_grade || "N/A"}</p>
-            </div>
+              <div className="border-t pt-4 mb-4">
+                <h3 className="font-bold text-lg mb-2 text-gray-800">Book Information</h3>
+                <p className="text-sm text-gray-500 font-semibold">Title</p>
+                <p className="text-gray-800 mb-2">{selectedReview.bookTitle}</p>
+                <p className="text-sm text-gray-500 font-semibold">Author</p>
+                <p className="text-gray-800 mb-2">{selectedReview.author}</p>
+                <p className="text-sm text-gray-500 font-semibold">Rating</p>
+                <p className="text-gray-800 mb-2">★ {Number(selectedReview.rating).toFixed(1)} / 5</p>
+                <p className="text-sm text-gray-500 font-semibold">Recommended Grade</p>
+                <p className="text-gray-800">{Array.isArray(selectedReview.recommended_audience_grade)
+                  ? selectedReview.recommended_audience_grade.join(", ")
+                  : selectedReview.recommended_audience_grade || "N/A"}</p>
+              </div>
 
-            <div className="border-t pt-4 mb-4">
-              <p className="text-sm text-gray-500 font-semibold mb-2">Review</p>
-              <p className="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-line">{selectedReview.review}</p>
-            </div>
+              <div className="border-t pt-4 mb-4">
+                <p className="text-sm text-gray-500 font-semibold mb-2">Review</p>
+                <p className="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-line">{selectedReview.review}</p>
+              </div>
 
-            <div className="flex gap-3 justify-end mt-6">
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors"
-              >
-                Close
-              </button>
+              <div className="flex gap-3 justify-end mt-6">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-    </ScrollView>
-
-
+    </div>
   );
 }
