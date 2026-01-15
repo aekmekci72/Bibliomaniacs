@@ -6,6 +6,7 @@ import {
   ScrollView,
 } from "react-native";
 import ReviewModal from "./reviewmodal";
+
 import { getAuth } from "firebase/auth";
 import { auth, app } from "../firebaseConfig";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
@@ -28,7 +29,10 @@ export default function MyReviews() {
   const [recommendedGrades, setRecommendedGrades] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
 
 
 
@@ -112,13 +116,22 @@ export default function MyReviews() {
 
       setReviews(
         data.reviews.map(r => ({
+          id: r.id,
           bookTitle: r.book_title,
+          author: r.author,
           review: r.review,
           rating: r.rating,
           status: r.status,
           createdAt: r.date_received,
           comment: r.comment_to_user,
           timeEarned: r.time_earned,
+          first_name: r.first_name,
+          last_name: r.last_name,
+          email: user.email,
+          grade: r.grade,
+          recommended_audience_grade: r.recommended_audience_grade,
+          anonymous: r.anonymous,
+          date_received: r.date_received,
         }))
       );
     } catch (err) {
@@ -127,6 +140,51 @@ export default function MyReviews() {
       setLoading(false);
     }
   };
+
+  const handleDeleteReview = async (reviewId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this pending review? This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        alert("You must be logged in");
+        return;
+      }
+
+      const idToken = await user.getIdToken(true);
+
+      const res = await fetch(
+        `http://localhost:5001/delete_user_review/${reviewId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to delete review");
+        return;
+      }
+
+      alert("Review deleted successfully");
+      setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Error deleting review");
+    }
+  };
+
 
   const fetchUserProfile = async (user) => {
     try {
@@ -176,6 +234,7 @@ export default function MyReviews() {
 
   const handleSubmitReview = async () => {
     const auth = getAuth();
+    console.log(editingReviewId)
     const user = auth.currentUser;
     if (!user) {
       alert("You must be logged in");
@@ -185,6 +244,7 @@ export default function MyReviews() {
     const idToken = await user.getIdToken(true);
 
     const reviewData = {
+      id: editingReviewId,
       idToken: idToken,
       first_name: firstName,
       last_name: lastName,
@@ -199,20 +259,26 @@ export default function MyReviews() {
     };
 
     try {
-      const response = await fetch("http://localhost:5001/submit_review", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+
+      const url = isEditMode
+        ? `http://localhost:5001/update_user_review/${editingReviewId}`
+        : "http://localhost:5001/submit_review";
+
+      const method = isEditMode ? "PUT" : "POST";
+
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reviewData),
       });
 
       if (response.ok) {
         const result = await response.json();
         console.log("Success:", result);
-
         setModalVisible(false);
-        alert("Review submitted successfully!");
+        setIsEditMode(false);
+        setEditingReviewId(null); alert(isEditMode ? "Review updated!" : "Review submitted!");
         await fetchUserReviews();
       } else {
         alert("Submission failed. Please try again.");
@@ -222,6 +288,35 @@ export default function MyReviews() {
       alert("An error occurred while connecting to the server.");
     }
   };
+
+  const openEditModal = (review) => {
+    setEditingReviewId(review.id);
+    setIsEditMode(true);
+
+    setBookTitle(review.bookTitle);
+    setAuthorName(review.author || "");
+    setReview(review.review);
+    setRating(review.rating);
+    setGradeLevel(
+      review.grade !== undefined && review.grade !== null
+        ? String(review.grade)
+        : ""
+    );
+    setRecommendedGrades(review.recommended_audience_grade || []);
+    setAnonPref(review.anonymous || "");
+    setFirstName(review.first_name || "");
+    setLastName(review.last_name || "");
+
+    setModalVisible(true);
+  };
+
+  const viewReview = (review) => {
+    setSelectedReview(review);
+    setShowViewModal(true);
+  };
+
+
+
 
   const generateCertificate = () => {
     const certificateHTML = `
@@ -257,9 +352,9 @@ export default function MyReviews() {
   };
 
   return (
-    <ScrollView>
-      <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
-        <div className="w-full max-w-7xl py-6">
+    <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
+      <div className="w-full max-w-7xl py-6">
+        <div>
           <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">My Submitted Reviews</h1>
           <p className="text-center text-gray-600 mb-6">View the status of your submitted reviews</p>
 
@@ -314,18 +409,50 @@ export default function MyReviews() {
                   <th className="px-4 py-4 text-left font-bold text-gray-700">Rating</th>
                   <th className="px-4 py-4 text-left font-bold text-gray-700">Status</th>
                   <th className="px-4 py-4 text-left font-bold text-gray-700">Date</th>
+                  <th className="px-4 py-4 text-left font-bold text-gray-700">Actions</th>
+
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r, i) => (
                   <tr key={i} className="border-b border-green-100 hover:bg-green-50">
-                    <td className="px-4 py-4 font-medium">{r.bookTitle}</td>
+                    <td className="px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
                     <td className="px-4 py-4 text-gray-700">{r.review}</td>
                     <td className="px-4 py-4">⭐ {r.rating}</td>
                     <td className="px-4 py-4">
                       <span className="font-bold" style={{ color: statusColor[r.status] }}>{r.status}</span>
                     </td>
                     <td className="px-4 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => viewReview(r)}
+                          className="text-blue-600 font-bold hover:underline"
+                        >
+                          View
+                        </button>
+
+                        {r.status === "Pending" && (
+                          <>
+                            <button
+                              onClick={() => openEditModal(r)}
+                              className="text-green-700 font-bold hover:underline"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteReview(r.id)}
+                              className="text-red-600 font-bold hover:underline"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+
+
                   </tr>
                 ))}
               </tbody>
@@ -366,7 +493,78 @@ export default function MyReviews() {
         gradeOptions={gradeOptions}
         anonOptions={anonOptions}
         onSubmit={handleSubmitReview}
+        isEditMode={isEditMode}
       />
-    </ScrollView>
+
+      {
+        showViewModal && selectedReview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">Review Details</h2>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Date Received</p>
+                  <p className="text-gray-800">{new Date(selectedReview.date_received).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Reviewer</p>
+                  <p className="text-gray-800">{selectedReview.first_name} {selectedReview.last_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Grade</p>
+                  <p className="text-gray-800">{selectedReview.grade}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">School</p>
+                  <p className="text-gray-800">{selectedReview.school}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Email</p>
+                  <p className="text-gray-800 text-sm">{selectedReview.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Phone</p>
+                  <p className="text-gray-800">{selectedReview.phone_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 font-semibold">Anonymous</p>
+                  <p className="text-gray-800">{selectedReview.anonymous}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mb-4">
+                <h3 className="font-bold text-lg mb-2 text-gray-800">Book Information</h3>
+                <p className="text-sm text-gray-500 font-semibold">Title</p>
+                <p className="text-gray-800 mb-2">{selectedReview.bookTitle}</p>
+                <p className="text-sm text-gray-500 font-semibold">Author</p>
+                <p className="text-gray-800 mb-2">{selectedReview.author}</p>
+                <p className="text-sm text-gray-500 font-semibold">Rating</p>
+                <p className="text-gray-800 mb-2">★ {Number(selectedReview.rating).toFixed(1)} / 5</p>
+                <p className="text-sm text-gray-500 font-semibold">Recommended Grade</p>
+                <p className="text-gray-800">{Array.isArray(selectedReview.recommended_audience_grade)
+                  ? selectedReview.recommended_audience_grade.join(", ")
+                  : selectedReview.recommended_audience_grade || "N/A"}</p>
+              </div>
+
+              <div className="border-t pt-4 mb-4">
+                <p className="text-sm text-gray-500 font-semibold mb-2">Review</p>
+                <p className="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-line">{selectedReview.review}</p>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+    </div>
   );
 }

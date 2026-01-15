@@ -378,6 +378,53 @@ def get_reviews():
     
     return jsonify(results), 200
 
+@app.route("/update_user_review/<review_id>", methods=["PUT"])
+def update_user_review(review_id):
+    data = request.json
+    id_token = data.get("idToken")
+
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+
+    decoded = verify_firebase_token(id_token)
+    if not decoded:
+        return jsonify({"error": "Invalid ID token"}), 401
+
+    email = decoded.get("email")
+
+    try:
+        review = Review.collection.get(review_id)
+
+        if review.email != email:
+            return jsonify({"error": "Not authorized"}), 403
+
+        if review.approved or review.date_processed:
+            return jsonify({"error": "Review can no longer be edited"}), 400
+
+        editable_fields = [
+            "book_title",
+            "author",
+            "review",
+            "rating",
+            "grade",
+            "recommended_audience_grade",
+            "anonymous",
+            "first_name",
+            "last_name",
+        ]
+
+        for field in editable_fields:
+            if field in data:
+                setattr(review, field, data[field])
+
+        review.update()
+
+        return jsonify({"message": "Review updated"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 @app.route("/update_review/<review_id>", methods=["PUT"])
 def update_review(review_id):
@@ -426,6 +473,39 @@ def update_review(review_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/delete_user_review/<review_id>", methods=["DELETE"])
+def delete_user_review(review_id):
+    data = request.json
+    id_token = data.get("idToken")
+
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+
+    decoded = verify_firebase_token(id_token)
+    if not decoded:
+        return jsonify({"error": "Invalid ID token"}), 401
+
+    email = decoded.get("email")
+
+    try:
+        review = Review.collection.get(review_id)
+
+        if review.email != email:
+            return jsonify({"error": "Not authorized"}), 403
+
+        if review.approved or review.date_processed:
+            return jsonify({"error": "Only pending reviews can be deleted"}), 400
+
+        Review.collection.delete(review_id)
+
+        set_cache("all_reviews", None, ttl=1)
+        set_cache("review_stats", None, ttl=1)
+
+        return jsonify({"message": "Review deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/get_user_reviews", methods=["POST"])
 def get_user_reviews():
@@ -450,8 +530,13 @@ def get_user_reviews():
                 "id": r.id,
                 "book_title": r.book_title,
                 "author": r.author,
+                "first_name": r.first_name,
+                "last_name": r.last_name,
                 "review": r.review,
                 "rating": r.rating,
+                "grade": r.grade,
+                "recommended_audience_grade": r.recommended_audience_grade or [],
+                "anonymous": r.anonymous,
                 "status": "Approved" if r.approved else ("Rejected" if r.date_processed else "Pending"),
                 "date_received": r.date_received.isoformat() if r.date_received else None,
                 "comment_to_user": r.comment_to_user,
