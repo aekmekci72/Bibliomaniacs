@@ -353,7 +353,7 @@ export default function MyReviews() {
 
   return (
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
-      <div className="w-full max-w-7xl py-6">
+      <div className="w-full max-w-7xl py-6 mx-auto">
         <div>
           <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">My Submitted Reviews</h1>
           <p className="text-center text-gray-600 mb-6">View the status of your submitted reviews</p>
