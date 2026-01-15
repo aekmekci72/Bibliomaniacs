@@ -108,18 +108,18 @@ export default function Layout() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fbf7" }}>
-      <View className="topbar">
-        <Pressable className="iconBtn" onPress={toggleMenu}>
-          <Ionicons name="menu" size={18} />
-        </Pressable>
-        <View className="searchBar">
-          <Ionicons name="search" size={14} />
-          <TextInput placeholder="Search" style={{ flex: 1, marginLeft: 6 }} />
-        </View>
-        <Pressable className="iconBtn" onPress={() => router.push("/profile")}>
-          <Ionicons name="person-circle-outline" size={20} />
-        </Pressable>
-      </View>
+    <View className="topbar flex-row items-center px-4">
+      <Pressable className="iconBtn" onPress={toggleMenu}>
+        <Ionicons name="menu" size={18} />
+      </Pressable>
+
+      <Pressable
+        className="iconBtn ml-auto"
+        onPress={() => router.push("/profile")}
+      >
+        <Ionicons name="person-circle-outline" size={20} />
+      </Pressable>
+    </View>
       <Stack screenOptions={{ headerShown: false }} />
 
       {/* Drawer Backdrop */}
