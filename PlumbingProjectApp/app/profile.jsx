@@ -1,21 +1,27 @@
-import React, { useState } from "react";
-import {
-    View,
-    Text,
-    Pressable,
-    Image,
-    TextInput,
-    Modal,
-    ScrollView,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Pressable, TextInput, Modal, ScrollView, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { auth, app } from "../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
+  
 
 export default function ProfilePage() {
-    const [name, setName] = useState("John Doe");
-    const [email] = useState("john.doe@example.com");
-    const [phone, setPhone] = useState("(201) 123-4567");
-    const [grade, setGrade] = useState("11");
-    const [school, setSchool] = useState("Ridgewood High School");
-    const [genres, setGenres] = useState(["Fantasy", "Sci-Fi"]);
+    const router = useRouter();
+    const db = getFirestore(app);
+
+    const [loading, setLoading] = useState(true);
+    const [userUid, setUserUid] = useState(null);
+
+    const [role, setRole] = useState(null);
+
+    const [first_name, setFirstName] = useState("");
+    const [last_name, setLastName] = useState("");
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
+    const [grade, setGrade] = useState("");
+    const [school, setSchool] = useState("");
+    const [genres, setGenres] = useState([]);
 
     const GENRE_OPTIONS = [
         "Fantasy",
@@ -33,18 +39,20 @@ export default function ProfilePage() {
     const [modalVisible, setModalVisible] = useState(false);
     const [genreDropdownOpen, setGenreDropdownOpen] = useState(false);
 
-    const [editName, setEditName] = useState(name);
-    const [editPhone, setEditPhone] = useState(phone);
-    const [editGrade, setEditGrade] = useState(grade);
-    const [editSchool, setEditSchool] = useState(school);
-    const [editGenres, setEditGenres] = useState(genres);
+    const [editFirstName, setEditFirstName] = useState("");
+    const [editLastName, setEditLastName] = useState("");
+    const [editPhone, setEditPhone] = useState("");
+    const [editGrade, setEditGrade] = useState("");
+    const [editSchool, setEditSchool] = useState("");
+    const [editGenres, setEditGenres] = useState([]);
 
     const gradeOptions = Array.from({ length: 13 }, (_, i) =>
         i === 0 ? "K" : i.toString()
     );
 
     const openModal = () => {
-        setEditName(name);
+        setEditFirstName(first_name);
+        setEditLastName(last_name);
         setEditPhone(phone);
         setEditGrade(grade);
         setEditSchool(school);
@@ -60,14 +68,95 @@ export default function ProfilePage() {
         }
     };
 
-    const saveProfile = () => {
-        setName(editName);
-        setPhone(editPhone);
+    const loadProfile = async (uid) => {
+        setLoading(true);
+        try {
+          const userRef = doc(db, "users", uid);
+          const snap = await getDoc(userRef);
+    
+          if (snap.exists()) {
+            const data = snap.data();
+    
+            // Missing fields stay as empty strings / empty arrays in UI state
+            setFirstName(data.first_name ?? "");
+            setLastName(data.last_name ?? "");
+            setPhone(data.phone ?? "");
+            setGrade(data.grade ?? "");
+            setSchool(data.school ?? "");
+            setGenres(Array.isArray(data.favoriteGenres) ? data.favoriteGenres : []);
+          } else {
+            // If doc doesn't exist for some reason, just show blanks
+            setFirstName("");
+            setLastName("");
+            setPhone("");
+            setGrade("");
+            setSchool("");
+            setGenres([]);
+          }
+        } finally {
+          setLoading(false);
+        }
+    };
+
+    const saveProfile = async () => {
+        if (!userUid) return;
+
+        const userRef = doc(db, "users", userUid);
+
+        const updates = {};
+
+        const fn = editFirstName.trim();
+        if (fn) updates.first_name = fn;
+        else updates.first_name = deleteField();
+
+        const ln = editLastName.trim();
+        if (ln) updates.last_name = ln;
+        else updates.last_name = deleteField();
+
+        const p = editPhone.trim();
+        if (p) updates.phone = p;
+        else updates.phone = deleteField();
+
+        if (editGrade) updates.grade = editGrade;
+        else updates.grade = deleteField();
+
+        const s = editSchool.trim();
+        if (s) updates.school = s;
+        else updates.school = deleteField();
+
+        if (editGenres.length > 0) updates.favoriteGenres = editGenres;
+        else updates.favoriteGenres = deleteField();
+
+        await updateDoc(userRef, updates);
+
+        setFirstName(fn);
+        setLastName(ln);
+        setPhone(p);
         setGrade(editGrade);
-        setSchool(editSchool);
+        setSchool(s);
         setGenres(editGenres);
+
         setModalVisible(false);
     };
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                setUserUid(null);
+                setEmail("");
+                setLoading(false);
+                setRole("no account"); // TEMP FIX
+                return;
+            }
+
+            setUserUid(user.uid);
+            setRole(user.role);
+            setEmail(user.email ?? "");
+            await loadProfile(user.uid);
+        });
+
+        return unsubscribe;
+    }, []);
 
     return (
         <View className="flex-1 bg-[#f5fdf5] px-5 py-6">
@@ -75,8 +164,8 @@ export default function ProfilePage() {
 
             <View className="profileCard">
                 <View className="flex-1">
-                    <Text className="profileName">{name || "Unnamed User"}</Text>
-                    <Text className="profileEmail">{email}</Text>
+                    <Text className="profileName">{`${first_name} ${last_name}`.trim()|| "Unnamed User"}</Text>
+                    <Text className="profileEmail">{email || "--"}</Text>
                     <Text className="profileRole">Bibliomaniacs Reviewer</Text>
                 </View>
             </View>
@@ -86,17 +175,17 @@ export default function ProfilePage() {
 
                 <View className="infoRow">
                     <Text className="infoLabel">Phone Number</Text>
-                    <Text className="infoValue">{phone}</Text>
+                    <Text className="infoValue">{phone || "--"}</Text>
                 </View>
 
                 <View className="infoRow">
                     <Text className="infoLabel">Grade</Text>
-                    <Text className="infoValue">{grade}</Text>
+                    <Text className="infoValue">{grade || "--"}</Text>
                 </View>
 
                 <View className="infoRow">
                     <Text className="infoLabel">School</Text>
-                    <Text className="infoValue">{school}</Text>
+                    <Text className="infoValue">{school || "--"}</Text>
                 </View>
 
                 <View className="infoRow">
@@ -135,11 +224,21 @@ export default function ProfilePage() {
                             <Text className="modalTitle">Edit Profile</Text>
 
                             <Text className="inputLabel">Name</Text>
-                            <TextInput
-                                className="modalInput"
-                                value={editName}
-                                onChangeText={setEditName}
-                            />
+                            <View className="flex-row gap-3 mb-2">
+                                <TextInput
+                                    className="modalInput flex-1"
+                                    placeholder="First name"
+                                    value={editFirstName}
+                                    onChangeText={setEditFirstName}
+                                />
+
+                                <TextInput
+                                    className="modalInput flex-1"
+                                    placeholder="Last name"
+                                    value={editLastName}
+                                    onChangeText={setEditLastName}
+                                />
+                            </View>
 
                             <Text className="inputLabel">Email</Text>
                             <View pointerEvents="none">
@@ -179,19 +278,15 @@ export default function ProfilePage() {
                                 className="gradeRow"
                             >
                                 {gradeOptions.map((level) => (
-                                    <Pressable
-                                        key={level}
-                                        className={`gradeOption ${grade === level ? "gradeOptionActive" : ""
-                                            }`}
-                                        onPress={() => setGrade(level)}
-                                    >
-                                        <Text
-                                            className={`gradeText ${grade === level ? "gradeTextActive" : ""
-                                                }`}
-                                        >
-                                            {level}
-                                        </Text>
-                                    </Pressable>
+                                <Pressable
+                                    key={level}
+                                    className={`gradeOption ${editGrade === level ? "gradeOptionActive" : ""}`}
+                                    onPress={() => setEditGrade(level)}
+                                >
+                                    <Text className={`gradeText ${editGrade === level ? "gradeTextActive" : ""}`}>
+                                    {level}
+                                    </Text>
+                                </Pressable>
                                 ))}
                             </ScrollView>
 
