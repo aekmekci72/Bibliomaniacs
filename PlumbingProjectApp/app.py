@@ -7,7 +7,6 @@ from datetime import datetime
 import hashlib
 from modelsetup import chat
 from cache import get_cache, set_cache, make_prompt_key
-from config import ADMIN_EMAILS
 from fireo import connection
 from fireo.models import Model
 from fireo.fields import TextField, IDField, NumberField, ListField
@@ -27,20 +26,6 @@ class Book(Model):
     title = TextField()
     added_by = TextField()
 
-# class Review(Model):
-#     id = IDField()
-#     book_title = TextField()
-#     author_name = TextField()
-#     reviewer_name = TextField()
-#     review_text = TextField()
-#     rating = NumberField()
-#     grade_level = TextField()
-#     recommended_grades = ListField()
-#     anon_preference = TextField()
-#     status = TextField(default="Pending")
-#     user_id = TextField() 
-#     created_at = TextField()
-
 def verify_firebase_token(id_token):
     """Verify Firebase ID token"""
     try:
@@ -48,6 +33,22 @@ def verify_firebase_token(id_token):
         return decoded_token
     except Exception:
         return None
+
+def get_admin_emails():
+    """Fetch admin emails from Firestore"""
+    try:
+        admin_doc = db.collection("settings").document("admins").get()
+        if admin_doc.exists:
+            return admin_doc.to_dict().get("emails", [])
+        return []
+    except Exception as e:
+        print(f"Error fetching admin emails: {e}")
+        return []
+
+def is_user_admin(email):
+    """Check if user email is in admin list"""
+    admin_emails = get_admin_emails()
+    return email in admin_emails
     
 @app.route("/get_user_role", methods=["POST"])
 def get_user_role_route():
@@ -72,13 +73,13 @@ def get_user_role(uid, email=None):
 
     if doc.exists:
         data = doc.to_dict()
-        if email in ADMIN_EMAILS and data.get("role") != "admin":
+        if is_user_admin(email) and data.get("role") != "admin":
             user_ref.update({"role": "admin"})
             print("DEBUG: Upgraded user to admin")
             return "admin"
         return data.get("role", "user")
 
-    role = "admin" if email in ADMIN_EMAILS else "user"
+    role = "admin" if is_user_admin(email) else "user"
     user_ref.set({"email": email, "role": role})
     print("DEBUG: New user assigned role:", role)
     print(role)
@@ -99,6 +100,165 @@ def verify_token():
     email = decoded_token.get("email")
     role = get_user_role(uid, email)
     return jsonify({"uid": uid, "email": email, "role": role}), 200
+
+# =============== ADMIN MANAGEMENT ENDPOINTS ===============
+
+@app.route("/get_admins", methods=["POST"])
+def get_admins():
+    """Get list of admin emails (admin only)"""
+    data = request.json
+    id_token = data.get("idToken")
+    
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+    
+    decoded_token = verify_firebase_token(id_token)
+    if not decoded_token:
+        return jsonify({"error": "Invalid ID token"}), 401
+    
+    email = decoded_token.get("email")
+    if not is_user_admin(email):
+        return jsonify({"error": "Permission denied"}), 403
+    
+    admin_emails = get_admin_emails()
+    admins = [{"id": idx, "email": email} for idx, email in enumerate(admin_emails)]
+    
+    return jsonify(admins), 200
+
+@app.route("/add_admin", methods=["POST"])
+def add_admin():
+    """Add a new admin email (admin only)"""
+    data = request.json
+    id_token = data.get("idToken")
+    new_email = data.get("email")
+    
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+    
+    if not new_email or "@" not in new_email:
+        return jsonify({"error": "Invalid email"}), 400
+    
+    decoded_token = verify_firebase_token(id_token)
+    if not decoded_token:
+        return jsonify({"error": "Invalid ID token"}), 401
+    
+    email = decoded_token.get("email")
+    if not is_user_admin(email):
+        return jsonify({"error": "Permission denied"}), 403
+    
+    try:
+        admin_emails = get_admin_emails()
+        
+        if new_email in admin_emails:
+            return jsonify({"error": "Email already an admin"}), 400
+        
+        admin_emails.append(new_email)
+        db.collection("settings").document("admins").set({"emails": admin_emails})
+        
+        # Update user role if they already exist
+        users = db.collection("users").where("email", "==", new_email).get()
+        for user in users:
+            db.collection("users").document(user.id).update({"role": "admin"})
+        
+        return jsonify({"message": "Admin added successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/remove_admin", methods=["POST"])
+def remove_admin():
+    """Remove an admin email (admin only)"""
+    data = request.json
+    id_token = data.get("idToken")
+    email_to_remove = data.get("email")
+    
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+    
+    if not email_to_remove:
+        return jsonify({"error": "Missing email"}), 400
+    
+    decoded_token = verify_firebase_token(id_token)
+    if not decoded_token:
+        return jsonify({"error": "Invalid ID token"}), 401
+    
+    email = decoded_token.get("email")
+    if not is_user_admin(email):
+        return jsonify({"error": "Permission denied"}), 403
+    
+    try:
+        admin_emails = get_admin_emails()
+        
+        if email_to_remove not in admin_emails:
+            return jsonify({"error": "Email is not an admin"}), 400
+        
+        if len(admin_emails) <= 1:
+            return jsonify({"error": "Cannot remove the last admin"}), 400
+        
+        admin_emails.remove(email_to_remove)
+        db.collection("settings").document("admins").set({"emails": admin_emails})
+        
+        # Update user role
+        users = db.collection("users").where("email", "==", email_to_remove).get()
+        for user in users:
+            db.collection("users").document(user.id).update({"role": "user"})
+        
+        return jsonify({"message": "Admin removed successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# =============== BOOK OF THE WEEK ENDPOINTS ===============
+
+@app.route("/get_book_of_week", methods=["GET"])
+def get_book_of_week():
+    """Get current book of the week"""
+    try:
+        book_doc = db.collection("settings").document("book_of_week").get()
+        if book_doc.exists:
+            return jsonify(book_doc.to_dict()), 200
+        else:
+            # Return default if not set
+            default_book = {
+                "title": "No book selected",
+                "author": "NA",
+                "lastUpdated": datetime.now().isoformat()
+            }
+            return jsonify(default_book), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/update_book_of_week", methods=["POST"])
+def update_book_of_week():
+    """Update book of the week (admin only)"""
+    data = request.json
+    id_token = data.get("idToken")
+    title = data.get("title")
+    author = data.get("author")
+    
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+    
+    if not title or not author:
+        return jsonify({"error": "Missing title or author"}), 400
+    
+    decoded_token = verify_firebase_token(id_token)
+    if not decoded_token:
+        return jsonify({"error": "Invalid ID token"}), 401
+    
+    email = decoded_token.get("email")
+    if not is_user_admin(email):
+        return jsonify({"error": "Permission denied"}), 403
+    
+    try:
+        book_data = {
+            "title": title,
+            "author": author,
+            "lastUpdated": datetime.now().isoformat()
+        }
+        db.collection("settings").document("book_of_week").set(book_data)
+        
+        return jsonify({"message": "Book of the week updated", "book": book_data}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/add_book", methods=["POST"])
 def add_book():

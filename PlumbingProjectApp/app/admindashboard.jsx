@@ -1,61 +1,288 @@
-import { useState } from "react";
-import { Users, Book, FileText, Plus, X, Calendar, ExternalLink } from "lucide-react";
-import { ScrollView } from "react-native";
+import { useState, useEffect } from "react";
+import { Users, Book, FileText, Plus, X, Calendar, ExternalLink, Loader } from "lucide-react";
+import { getAuth } from "firebase/auth"; // Import Firebase auth
 
 export default function AdminDashboard() {
-  const [admins, setAdmins] = useState([
-    { id: 1, email: "admin@bookclub.com" },
-    { id: 2, email: "manager@bookclub.com" },
-  ]);
+  const [admins, setAdmins] = useState([]);
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [showAddAdmin, setShowAddAdmin] = useState(false);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
 
   const [bookOfWeek, setBookOfWeek] = useState({
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    lastUpdated: "2024-11-15",
+    title: "",
+    author: "",
+    lastUpdated: "",
   });
   const [showUpdateBook, setShowUpdateBook] = useState(false);
   const [newBookTitle, setNewBookTitle] = useState("");
   const [newBookAuthor, setNewBookAuthor] = useState("");
+  const [loadingBook, setLoadingBook] = useState(true);
 
-  const reviewStats = {
-    approved: 45,
-    pending: 12,
-    rejected: 8,
-  };
+  const [reviewStats, setReviewStats] = useState({
+    approved: 0,
+    pending: 0,
+    rejected: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   const totalReviews = reviewStats.approved + reviewStats.pending + reviewStats.rejected;
 
-  const addAdmin = () => {
-    if (newAdminEmail && newAdminEmail.includes("@")) {
-      setAdmins([...admins, { id: Date.now(), email: newAdminEmail }]);
-      setNewAdminEmail("");
-      setShowAddAdmin(false);
+  const API_BASE_URL = "http://localhost:5001";
+
+  const getIdToken = async () => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (user) {
+        return await user.getIdToken();
+      }
+      
+      console.error("No user is currently signed in");
+      return null;
+    } catch (error) {
+      console.error("Error getting ID token:", error);
+      return null;
     }
   };
 
-  const removeAdmin = (id) => {
-    setAdmins(admins.filter(a => a.id !== id));
-  };
+  // Wait for auth to be ready
+  useEffect(() => {
+    const auth = getAuth();
+    
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setAuthReady(true);
+      } else {
+        setAuthReady(false);
+        console.error("User not authenticated");
+      }
+    });
 
-  const updateBookOfWeek = () => {
-    if (newBookTitle && newBookAuthor) {
-      setBookOfWeek({
-        title: newBookTitle,
-        author: newBookAuthor,
-        lastUpdated: new Date().toISOString().split('T')[0],
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch admins only when auth is ready
+  useEffect(() => {
+    if (authReady) {
+      fetchAdmins();
+    }
+  }, [authReady]);
+
+  const fetchAdmins = async () => {
+    try {
+      setLoadingAdmins(true);
+      const idToken = await getIdToken();
+      
+      if (!idToken) {
+        console.error("No ID token available");
+        setLoadingAdmins(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/get_admins`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
       });
-      setNewBookTitle("");
-      setNewBookAuthor("");
-      setShowUpdateBook(false);
+
+      if (response.ok) {
+        const data = await response.json();
+        setAdmins(data);
+      } else {
+        const error = await response.json();
+        console.error("Failed to fetch admins:", error);
+      }
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+    } finally {
+      setLoadingAdmins(false);
     }
   };
 
-  const getPercentage = (value) => ((value / totalReviews) * 100).toFixed(1);
+  const addAdmin = async () => {
+    if (newAdminEmail && newAdminEmail.includes("@")) {
+      try {
+        const idToken = await getIdToken();
+        
+        if (!idToken) {
+          alert("Authentication error. Please sign in again.");
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/add_admin`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            idToken,
+            email: newAdminEmail 
+          }),
+        });
+
+        if (response.ok) {
+          await fetchAdmins();
+          setNewAdminEmail("");
+          setShowAddAdmin(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to add admin");
+        }
+      } catch (error) {
+        console.error("Error adding admin:", error);
+        alert("Failed to add admin");
+      }
+    }
+  };
+
+  const removeAdmin = async (email) => {
+    if (!confirm(`Are you sure you want to remove ${email} as an admin?`)) {
+      return;
+    }
+
+    try {
+      const idToken = await getIdToken();
+      
+      if (!idToken) {
+        alert("Authentication error. Please sign in again.");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/remove_admin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          idToken,
+          email 
+        }),
+      });
+
+      if (response.ok) {
+        await fetchAdmins();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to remove admin");
+      }
+    } catch (error) {
+      console.error("Error removing admin:", error);
+      alert("Failed to remove admin");
+    }
+  };
+
+  // Fetch book of the week when auth is ready
+  useEffect(() => {
+    if (authReady) {
+      fetchBookOfWeek();
+    }
+  }, [authReady]);
+
+  const fetchBookOfWeek = async () => {
+    try {
+      setLoadingBook(true);
+      const response = await fetch(`${API_BASE_URL}/get_book_of_week`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookOfWeek(data);
+      } else {
+        console.error("Failed to fetch book of the week");
+      }
+    } catch (error) {
+      console.error("Error fetching book of the week:", error);
+    } finally {
+      setLoadingBook(false);
+    }
+  };
+
+  const updateBookOfWeek = async () => {
+    if (newBookTitle && newBookAuthor) {
+      try {
+        const idToken = await getIdToken();
+        
+        if (!idToken) {
+          alert("Authentication error. Please sign in again.");
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/update_book_of_week`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            idToken,
+            title: newBookTitle,
+            author: newBookAuthor
+          }),
+        });
+
+        if (response.ok) {
+          await fetchBookOfWeek();
+          setNewBookTitle("");
+          setNewBookAuthor("");
+          setShowUpdateBook(false);
+        } else {
+          const error = await response.json();
+          alert(error.error || "Failed to update book of the week");
+        }
+      } catch (error) {
+        console.error("Error updating book of the week:", error);
+        alert("Failed to update book of the week");
+      }
+    }
+  };
+
+  // Fetch review statistics when auth is ready
+  useEffect(() => {
+    if (authReady) {
+      fetchReviewStats();
+    }
+  }, [authReady]);
+
+  const fetchReviewStats = async () => {
+    try {
+      setLoadingStats(true);
+      const response = await fetch(`${API_BASE_URL}/get_review_stats`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setReviewStats({
+          approved: data.approved_reviews,
+          pending: data.pending_reviews,
+          rejected: data.rejected_reviews,
+        });
+      } else {
+        console.error("Failed to fetch review stats");
+      }
+    } catch (error) {
+      console.error("Error fetching review stats:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const getPercentage = (value) => 
+    totalReviews > 0 ? ((value / totalReviews) * 100).toFixed(1) : "0.0";
+
+  // Show loading state while waiting for authentication
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <ScrollView>
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-5xl font-bold text-gray-900 mb-3 text-center">
@@ -81,22 +308,32 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <div className="space-y-3">
-              {admins.map((admin) => (
-                <div
-                  key={admin.id}
-                  className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100"
-                >
-                  <span className="text-gray-700 font-medium">{admin.email}</span>
-                  <button
-                    onClick={() => removeAdmin(admin.id)}
-                    className="text-red-600 hover:text-red-700 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            {loadingAdmins ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader className="w-8 h-8 text-emerald-600 animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {admins.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No admins found</p>
+                ) : (
+                  admins.map((admin) => (
+                    <div
+                      key={admin.id}
+                      className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100"
+                    >
+                      <span className="text-gray-700 font-medium">{admin.email}</span>
+                      <button
+                        onClick={() => removeAdmin(admin.email)}
+                        className="text-red-600 hover:text-red-700 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {showAddAdmin && (
               <div className="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-emerald-200">
@@ -138,26 +375,36 @@ export default function AdminDashboard() {
               <h2 className="text-2xl font-bold text-gray-900">Book of the Week</h2>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 mb-4 border border-emerald-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">{bookOfWeek.title}</h3>
-              <p className="text-gray-600 mb-4">by {bookOfWeek.author}</p>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Calendar className="w-4 h-4" />
-                <span>Last updated: {new Date(bookOfWeek.lastUpdated).toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                })}</span>
+            {loadingBook ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader className="w-8 h-8 text-emerald-600 animate-spin" />
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 mb-4 border border-emerald-100">
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{bookOfWeek.title}</h3>
+                  <p className="text-gray-600 mb-4">By: {bookOfWeek.author}</p>
+                  {bookOfWeek.lastUpdated && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Calendar className="w-4 h-4" />
+                      <span>Last updated: {new Date(bookOfWeek.lastUpdated).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}</span>
+                    </div>
+                  )}
+                </div>
 
-            <button
-              onClick={() => setShowUpdateBook(true)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold 
-                       py-2 rounded-lg transition-colors"
-            >
-              Update Book of the Week
-            </button>
+                <button
+                  onClick={() => setShowUpdateBook(true)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold 
+                           py-2 rounded-lg transition-colors"
+                >
+                  Update Book of the Week
+                </button>
+              </>
+            )}
 
             {showUpdateBook && (
               <div className="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-emerald-200">
@@ -208,120 +455,138 @@ export default function AdminDashboard() {
                 <FileText className="w-6 h-6 text-emerald-600" />
                 <h2 className="text-2xl font-bold text-gray-900">Review Statistics</h2>
               </div>
-<button
-  onClick={() => window.location.href = '/admin-reviews'}
-  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 
-           font-semibold transition-colors"
->
-  Manage Reviews
-  <ExternalLink className="w-4 h-4" />
-</button>
+              <button
+                onClick={() => window.location.href = '/admin-reviews'}
+                className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 
+                         font-semibold transition-colors"
+              >
+                Manage Reviews
+                <ExternalLink className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              {/* Pie Chart */}
-              <div className="flex justify-center">
-                <svg width="280" height="280" viewBox="0 0 280 280" className="transform -rotate-90">
-                  {/* Approved - Green */}
-                  <circle
-                    cx="140"
-                    cy="140"
-                    r="100"
-                    fill="none"
-                    stroke="#2b7a4b"
-                    strokeWidth="60"
-                    strokeDasharray={`${(reviewStats.approved / totalReviews) * 628} 628`}
-                    strokeDashoffset="0"
-                  />
-                  {/* Pending - Yellow */}
-                  <circle
-                    cx="140"
-                    cy="140"
-                    r="100"
-                    fill="none"
-                    stroke="#cc9a06"
-                    strokeWidth="60"
-                    strokeDasharray={`${(reviewStats.pending / totalReviews) * 628} 628`}
-                    strokeDashoffset={`-${(reviewStats.approved / totalReviews) * 628}`}
-                  />
-                  {/* Rejected - Red */}
-                  <circle
-                    cx="140"
-                    cy="140"
-                    r="100"
-                    fill="none"
-                    stroke="#c0392b"
-                    strokeWidth="60"
-                    strokeDasharray={`${(reviewStats.rejected / totalReviews) * 628} 628`}
-                    strokeDashoffset={`-${((reviewStats.approved + reviewStats.pending) / totalReviews) * 628}`}
-                  />
-                  {/* Center white circle */}
-                  <circle cx="140" cy="140" r="70" fill="white" />
-                  {/* Total count */}
-                  <text
-                    x="140"
-                    y="140"
-                    textAnchor="middle"
-                    dy=".3em"
-                    className="text-4xl font-bold"
-                    fill="#1f2937"
-                    transform="rotate(90 140 140)"
-                  >
-                    {totalReviews}
-                  </text>
-                  <text
-                    x="140"
-                    y="165"
-                    textAnchor="middle"
-                    className="text-sm"
-                    fill="#6b7280"
-                    transform="rotate(90 140 165)"
-                  >
-                    Total
-                  </text>
-                </svg>
+            {loadingStats ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader className="w-8 h-8 text-emerald-600 animate-spin" />
               </div>
-
-              {/* Legend and Stats */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 bg-green-700 rounded"></div>
-                    <span className="font-semibold text-gray-800">Approved</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">{reviewStats.approved}</div>
-                    <div className="text-sm text-gray-600">{getPercentage(reviewStats.approved)}%</div>
-                  </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                {/* Pie Chart */}
+                <div className="flex justify-center">
+                  <svg width="280" height="280" viewBox="0 0 280 280" className="transform -rotate-90">
+                    {totalReviews > 0 ? (
+                      <>
+                        {/* Approved - Green */}
+                        <circle
+                          cx="140"
+                          cy="140"
+                          r="100"
+                          fill="none"
+                          stroke="#2b7a4b"
+                          strokeWidth="60"
+                          strokeDasharray={`${(reviewStats.approved / totalReviews) * 628} 628`}
+                          strokeDashoffset="0"
+                        />
+                        {/* Pending - Yellow */}
+                        <circle
+                          cx="140"
+                          cy="140"
+                          r="100"
+                          fill="none"
+                          stroke="#cc9a06"
+                          strokeWidth="60"
+                          strokeDasharray={`${(reviewStats.pending / totalReviews) * 628} 628`}
+                          strokeDashoffset={`-${(reviewStats.approved / totalReviews) * 628}`}
+                        />
+                        {/* Rejected - Red */}
+                        <circle
+                          cx="140"
+                          cy="140"
+                          r="100"
+                          fill="none"
+                          stroke="#c0392b"
+                          strokeWidth="60"
+                          strokeDasharray={`${(reviewStats.rejected / totalReviews) * 628} 628`}
+                          strokeDashoffset={`-${((reviewStats.approved + reviewStats.pending) / totalReviews) * 628}`}
+                        />
+                      </>
+                    ) : (
+                      <circle
+                        cx="140"
+                        cy="140"
+                        r="100"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="60"
+                      />
+                    )}
+                    {/* Center white circle */}
+                    <circle cx="140" cy="140" r="70" fill="white" />
+                    {/* Total count */}
+                    <text
+                      x="140"
+                      y="140"
+                      textAnchor="middle"
+                      dy=".3em"
+                      className="text-4xl font-bold"
+                      fill="#1f2937"
+                      transform="rotate(90 140 140)"
+                    >
+                      {totalReviews}
+                    </text>
+                    <text
+                      x="140"
+                      y="165"
+                      textAnchor="middle"
+                      className="text-sm"
+                      fill="#6b7280"
+                      transform="rotate(90 140 165)"
+                    >
+                      Total
+                    </text>
+                  </svg>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 bg-yellow-600 rounded"></div>
-                    <span className="font-semibold text-gray-800">Pending</span>
+                {/* Legend and Stats */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 bg-green-700 rounded"></div>
+                      <span className="font-semibold text-gray-800">Approved</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">{reviewStats.approved}</div>
+                      <div className="text-sm text-gray-600">{getPercentage(reviewStats.approved)}%</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">{reviewStats.pending}</div>
-                    <div className="text-sm text-gray-600">{getPercentage(reviewStats.pending)}%</div>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 bg-red-600 rounded"></div>
-                    <span className="font-semibold text-gray-800">Rejected</span>
+                  <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 bg-yellow-600 rounded"></div>
+                      <span className="font-semibold text-gray-800">Pending</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">{reviewStats.pending}</div>
+                      <div className="text-sm text-gray-600">{getPercentage(reviewStats.pending)}%</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">{reviewStats.rejected}</div>
-                    <div className="text-sm text-gray-600">{getPercentage(reviewStats.rejected)}%</div>
+
+                  <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 bg-red-600 rounded"></div>
+                      <span className="font-semibold text-gray-800">Rejected</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">{reviewStats.rejected}</div>
+                      <div className="text-sm text-gray-600">{getPercentage(reviewStats.rejected)}%</div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
     </div>
-    </ScrollView>
   );
 }
