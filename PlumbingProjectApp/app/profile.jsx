@@ -46,9 +46,8 @@ export default function ProfilePage() {
     const [editSchool, setEditSchool] = useState("");
     const [editGenres, setEditGenres] = useState([]);
 
-    const gradeOptions = Array.from({ length: 13 }, (_, i) =>
-        i === 0 ? "K" : i.toString()
-    );
+    const gradeOptions = ["6", "7", "8", "9", "10", "11", "12"];
+
 
     const openModal = () => {
         setEditFirstName(first_name);
