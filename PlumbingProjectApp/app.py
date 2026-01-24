@@ -6,7 +6,8 @@ import asyncio
 from datetime import datetime
 import hashlib
 from modelsetup import chat
-from cache import get_cache, set_cache, make_prompt_key
+from cache import get_cache, set_cache, make_prompt_key, delete_cache_prefix
+from config import ADMIN_EMAILS
 from fireo import connection
 from fireo.models import Model
 from fireo.fields import TextField, IDField, NumberField, ListField
@@ -50,6 +51,32 @@ def is_user_admin(email):
     admin_emails = get_admin_emails()
     return email in admin_emails
     
+def reviews_cache_key(args: dict):
+    key_parts = {
+        "status": args.get("status"),
+        "grade": args.get("grade"),
+        "school": args.get("school"),
+        "search": args.get("search"),
+        "sort_by": args.get("sort_by", "date_received"),
+        "sort_order": args.get("sort_order", "desc"),
+    }
+    return "reviews:" + hashlib.md5(
+        repr(sorted(key_parts.items())).encode()
+    ).hexdigest()
+
+
+def user_reviews_cache_key(email: str):
+    return f"user_reviews:{email}"
+
+def invalidate_review_caches(user_email: str | None = None):
+    delete_cache_prefix("reviews:")
+    set_cache("all_reviews", None, ttl=1)
+    set_cache("review_stats", None, ttl=1)
+
+    if user_email:
+        set_cache(f"user_reviews:{user_email}", None, ttl=1)
+
+
 @app.route("/get_user_role", methods=["POST"])
 def get_user_role_route():
     data = request.json
@@ -356,8 +383,11 @@ def submit_review():
     
     try:
         review = create_review(data)
-        
-        set_cache("all_reviews", None, ttl=1)
+
+        # set_cache(user_reviews_cache_key(review.email), None, ttl=1)
+        # set_cache("all_reviews", None, ttl=1)
+
+        invalidate_review_caches(user_email=review.email)
         
         return jsonify({
             "message": "Review submitted successfully",
@@ -444,7 +474,7 @@ def bulk_import_reviews():
             })
     
     # Clear cache
-    set_cache("all_reviews", None, ttl=1)
+    invalidate_review_caches()
     
     return jsonify({
         "message": f"Imported {len(successful_imports)} reviews successfully",
@@ -456,10 +486,10 @@ def bulk_import_reviews():
 
 @app.route("/get_reviews", methods=["GET"])
 def get_reviews():
-    # cache_key = f"reviews_{request.args.to_dict()}"
-    # cached = get_cache(cache_key)
-    # if cached:
-    #     return jsonify(cached), 200
+    cache_key = reviews_cache_key(request.args)
+    cached = get_cache(cache_key)
+    if cached:
+        return jsonify(cached), 200
     
     status = request.args.get("status")
     grade = request.args.get("grade", type=int)
@@ -534,7 +564,7 @@ def get_reviews():
     elif sort_by == "book_title":
         results.sort(key=lambda x: x.get("book_title") or "", reverse=reverse)
     
-    # set_cache(cache_key, results, ttl=300)
+    set_cache(cache_key, results, ttl=300)
     
     return jsonify(results), 200
 
@@ -578,6 +608,8 @@ def update_user_review(review_id):
                 setattr(review, field, data[field])
 
         review.update()
+        invalidate_review_caches()
+        set_cache(user_reviews_cache_key(review.email), None, ttl=1)
 
         return jsonify({"message": "Review updated"}), 200
 
@@ -625,10 +657,8 @@ def update_review(review_id):
             calculate_user_hours(review.email)
         
         review.update()
-        
-        set_cache("all_reviews", None, ttl=1)
-        set_cache("review_stats", None, ttl=1)
-        
+        invalidate_review_caches(user_email=review.email)
+
         return jsonify({"message": "Review updated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -657,9 +687,7 @@ def delete_user_review(review_id):
             return jsonify({"error": "Only pending reviews can be deleted"}), 400
 
         Review.collection.delete(review_id)
-
-        set_cache("all_reviews", None, ttl=1)
-        set_cache("review_stats", None, ttl=1)
+        invalidate_review_caches(user_email=review.email)
 
         return jsonify({"message": "Review deleted successfully"}), 200
 
@@ -680,6 +708,12 @@ def get_user_reviews():
         return jsonify({"error": "Invalid ID token"}), 401
     
     email = decoded_token.get("email")
+
+    cache_key = user_reviews_cache_key(email)
+    cached = get_cache(cache_key)
+    if cached:
+        return jsonify(cached), 200
+
     
     try:
         reviews = Review.collection.filter('email', '==', email).fetch()
@@ -703,11 +737,15 @@ def get_user_reviews():
             })
         
         total_hours = sum(0.5 for r in results)
-        
-        return jsonify({
+
+        payload = {
             "reviews": results,
-            "total_hours": total_hours
-        }), 200
+            "total_hours": sum(0.5 for r in results),
+        }
+
+        set_cache(cache_key, payload, ttl=300)
+        return jsonify(payload), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -743,8 +781,7 @@ def get_review_stats():
 @app.route("/clear_cache", methods=["POST"])
 def clear_cache():
     """Clear all review caches"""
-    set_cache("all_reviews", None, ttl=1)
-    set_cache("review_stats", None, ttl=1)  # ADD THIS LINE
+    invalidate_review_caches()
     return jsonify({"message": "Cache cleared"}), 200
 
 

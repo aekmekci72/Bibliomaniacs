@@ -15,3 +15,7 @@ def set_cache(key, value, ttl=3600):
 
 def make_prompt_key(prompt):
     return hashlib.sha256(prompt.encode()).hexdigest()
+
+def delete_cache_prefix(prefix):
+    for key in cache.scan_iter(f"{prefix}*"):
+        cache.delete(key)

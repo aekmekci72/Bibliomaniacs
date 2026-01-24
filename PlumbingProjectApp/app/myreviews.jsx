@@ -279,7 +279,9 @@ export default function MyReviews() {
         setModalVisible(false);
         setIsEditMode(false);
         setEditingReviewId(null); alert(isEditMode ? "Review updated!" : "Review submitted!");
-        await fetchUserReviews();
+        const auth = getAuth();
+        const user = auth.currentUser;
+        await fetchUserReviews(user);
       } else {
         alert("Submission failed. Please try again.");
       }
@@ -414,8 +416,8 @@ export default function MyReviews() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r, i) => (
-                  <tr key={i} className="border-b border-green-100 hover:bg-green-50">
+                {filtered.map((r) => (
+                  <tr key={r.id} className="border-b border-green-100 hover:bg-green-50">
                     <td className="px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
                     <td className="px-4 py-4 text-gray-700">{r.review}</td>
                     <td className="px-4 py-4">⭐ {r.rating}</td>
