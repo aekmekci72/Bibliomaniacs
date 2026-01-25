@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Image, Animated, Dimensions, Pressable, Text, View, TextInput } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome, AntDesign } from "@expo/vector-icons";
 import { auth } from "../firebaseConfig";
 import axios from "axios";
 import './global.css';
@@ -15,6 +15,7 @@ export default function Layout() {
 
   // Map a route to a simple page name  
   function getPage() {
+    if (pathname.startsWith("/landingpage")) return "landingpage";
     if (pathname === "/homepage") return "homepage";
     if (pathname.startsWith("/explorer")) return "explorer";
     if (pathname.startsWith("/myreviews")) return "myreviews";
@@ -23,7 +24,7 @@ export default function Layout() {
     if (pathname.startsWith("/admin-reviews")) return "admin-reviews";
     if (pathname.startsWith("/admindashboard")) return "admindashboard";
     if (pathname.startsWith("/adminhomepage")) return "adminhomepage";
-    if (pathname.startsWith("/profile")) return "profile";
+    if (pathname.startsWith("/login")) return "login";
 
     return "";
   }
@@ -70,7 +71,7 @@ export default function Layout() {
   };
 
 
-  function NavItem({ icon, label, page, href }) {
+  function NavItem({ icon, IconSet, label, page, href }) {
     const isActive = getPage() === page;
   
     return (
@@ -80,7 +81,7 @@ export default function Layout() {
             ${isActive ? "bg-gray-100" : ""}
           `}
         >
-          <Ionicons
+          <IconSet
             name={icon}
             size={18}
             className={isActive ? "text-green-600" : "text-gray-500"}
@@ -155,49 +156,56 @@ export default function Layout() {
         }}
       >
         {/* Logo */}
-        <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
-          <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
-        </View>
+        {role === "user" ? (
+          <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }} href="/homepage">
+            <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
+            <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
+          </View>
+        ) : role === "admin" ? (
+          <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }} href="/adminhomepage">
+            <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
+            <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
+          </View>
+        ) : (
+          <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }} href="/landingpage">
+            <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
+            <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
+          </View>
+        )}
 
         {/* Navigation Group */}
         {/* homepage, explorer, myreviews, reviewpage, profile, admin-reviews, admindashboard, adminhomepage */}
         <View className="mt-4 space-y-1">
           {role === "no account" && (
-            <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
-          )}
-          <NavItem icon="trending-up-outline" label="Explorer" page="explorer" href="/explorer" />
-          {role === "user" && (
             <>
-            <NavItem icon="document-text-outline" label="My Reviews" page="myreviews" href="/myreviews" />
-
-            <NavItem icon="calendar-outline" label="Review Page" page="reviewpage" href="/reviewpage" />
-
-            <NavItem icon="checkbox-outline" label="Profile" page="profile" href="/profile" />
+              <NavItem icon="home-outline" IconSet={Ionicons} label="Landing Page" page="landingpage" href="/landingpage" />
+              <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
             </>
           )}
 
           {role === "user" && (
             <>
-            <NavItem icon="document-text-outline" label="My Reviews" page="myreviews" href="/myreviews" />
-
-            <NavItem icon="calendar-outline" label="Review Page" page="reviewpage" href="/reviewpage" />
-
-            <NavItem icon="checkbox-outline" label="Profile" page="profile" href="/profile" />
+              <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
+              <NavItem icon="document-text-outline" IconSet={Ionicons} label="My Reviews" page="myreviews" href="/myreviews" />
+              <NavItem icon="calendar-outline" IconSet={Ionicons} label="Review Page" page="reviewpage" href="/reviewpage" />
+              <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Profile" page="profile" href="/profile" />
             </>
           )}
 
           {role === "admin" && (
             <>
-            <NavItem icon="document-text-outline" label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
-          
-            <NavItem icon="calendar-outline" label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
-
-            <NavItem icon="checkbox-outline" label="Admin Homepage" page="adminhomepage" href="/adminhomepage" />
-
+            <NavItem icon="document-text-outline" IconSet={Ionicons} label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
+            <NavItem icon="calendar-outline" IconSet={Ionicons} label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
+            <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Admin Homepage" page="adminhomepage" href="/adminhomepage" />
+            
+            <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
+            <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
             </>
           )}
-          
+
+          <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
+          <NavItem icon="question-circle" IconSet={AntDesign} label="About" page="about" href="https://ridgewoodlibrary.org/about/" />
+          <NavItem icon="person" IconSet={Ionicons} label="Logout" page="login" href="/login" />
           
         </View>
 
