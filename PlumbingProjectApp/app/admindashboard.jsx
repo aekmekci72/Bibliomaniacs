@@ -287,7 +287,7 @@ export default function AdminDashboard() {
   return (
     <RequireAccess
       allowRoles={["admin"]}
-      redirectTo="/login"
+      redirectTo="/notfound"
     >
     <ScrollView>
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pb-12">

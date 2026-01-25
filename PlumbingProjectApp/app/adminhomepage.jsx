@@ -19,7 +19,7 @@ export default function AdminHomePage() {
   return (
     <RequireAccess
       allowRoles={["admin"]}
-      redirectTo="/login"
+      redirectTo="/notfound"
     >
     <View className="adminHomeRoot pt-16">
       <View className="adminHomeHeroSection">

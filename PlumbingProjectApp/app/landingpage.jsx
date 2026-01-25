@@ -49,7 +49,7 @@ export default function LandingPage() {
   return (
     <RequireAccess
       allowRoles={["no account", null]}
-      redirectTo="/login"
+      redirectTo="/notfound"
     >
     <ScrollView className="landingPageRoot landingScroll">
       {/* === TOP BAND === */}

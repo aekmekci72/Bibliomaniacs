@@ -177,7 +177,7 @@ export default function AdminReviews() {
   return (
     <RequireAccess
       allowRoles={["admin"]}
-      redirectTo="/login"
+      redirectTo="/notfound"
     >
     <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
       <div className="w-full max-w-[1600px] py-6">
