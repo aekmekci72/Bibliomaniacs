@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { RequireAccess } from "../components/requireaccess";
 
 export default function AdminHomePage() {
   const router = useRouter();
@@ -16,6 +17,10 @@ export default function AdminHomePage() {
   };
 
   return (
+    <RequireAccess
+      allowRoles={["admin"]}
+      redirectTo="/notfound"
+    >
     <View className="adminHomeRoot pt-16">
       <View className="adminHomeHeroSection">
         <View className="adminHomeHeroInner">
@@ -73,5 +78,6 @@ export default function AdminHomePage() {
         </View>
       </View>
     </View>
+    </RequireAccess>
   );
 }
