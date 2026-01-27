@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
 import { SendNotif } from "./_layout";
+import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function AdminReviews() {
   const [search, setSearch] = useState("");
@@ -24,9 +25,6 @@ export default function AdminReviews() {
     fetch('http://localhost:5001/clear_cache', { method: 'POST' });
     fetchReviews();
     fetchStats();
-
-    
-
   }, [statusFilter, gradeFilter, schoolFilter, sortBy, sortOrder]);
 
   const getIdToken = async () => {
@@ -224,6 +222,35 @@ export default function AdminReviews() {
 
   const uniqueGrades = ["All", ...new Set(reviews.map(r => r.grade).filter(Boolean))].sort();
   const uniqueSchools = ["All", ...new Set(reviews.map(r => r.school).filter(Boolean))].sort();
+  
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid); // change to user.email if that's your doc id
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "new_review");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing new_review notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+    }, []);
 
   return (
     <RequireAccess

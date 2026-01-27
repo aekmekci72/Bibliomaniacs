@@ -217,37 +217,6 @@ export default function MyReviews() {
   useEffect(() => {
     const auth = getAuth();
 
-    const clearReviewStatusNotifs = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) return; // no user logged in
-  
-      try {
-        const db = getFirestore();
-        const userRef = doc(db, "users", user.uid);
-        const snap = await getDoc(userRef);
-  
-        if (!snap.exists()) return;
-  
-        const data = snap.data();
-        const current = Array.isArray(data.notifications) ? data.notifications : [];
-  
-        // Filter out all review_status notifications
-        const filtered = current.filter((n) => n.type !== "review_status");
-  
-        // Only update Firestore if something changed
-        if (filtered.length !== current.length) {
-          await updateDoc(userRef, {
-            notifications: filtered,
-          });
-        }
-      } catch (err) {
-        console.error("Failed clearing review_status notifications:", err);
-      }
-    };
-  
-    clearReviewStatusNotifs();
-
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         setLoading(false);
@@ -401,6 +370,35 @@ export default function MyReviews() {
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid); // change to user.email if that's your doc id
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "review_status");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing review_status notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+    }, []);
 
   return (
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">

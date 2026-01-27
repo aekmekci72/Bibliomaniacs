@@ -104,7 +104,7 @@ def notify_admins(sender, book="", status=""):
         recipients = [uid for uid in recipients if uid]
         recipients = list(dict.fromkeys(recipients))
 
-        icon = "document-text-outline"
+        icon = "book"
         message = f"{sender} submitted a new review of {book}"
 
         new_notif = {

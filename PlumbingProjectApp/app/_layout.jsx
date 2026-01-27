@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
+import { Ionicons, Octicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import axios from "axios";
 import './global.css';
 
@@ -281,7 +281,7 @@ export default function Layout() {
                     borderRadius: 12,
                   }}
                 >
-                  <Ionicons
+                  <Octicons
                     name={n.icon || "mail-outline"}
                     size={18}
                     color="#374151"
@@ -448,17 +448,21 @@ export async function SendNotif(type, sender, recipients, book = "", status = ""
     let icon = "";
 
     if (type === "new_review") {
-      icon = "document-text-outline";
+      icon = "book";
       message = `${sender} submitted a new review of ${book}`;
     }
 
     else if (type === "review_status") {
-      icon = "checkmark-circle-outline";
+      if (status === "approved") {
+        icon = "check-circle";
+      } else {
+        icon = "x-circle";
+      }
       message = `Your review of ${book} was ${status} by ${sender}`;
     }
 
     else if (type === "book_of_the_week") {
-      icon = "sparkles-outline";
+      icon = "sparkles-fill";
       message = "Book of the Week has been updated, check it out!";
     }
 
