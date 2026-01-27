@@ -748,6 +748,28 @@ def get_user_reviews():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/get_uid_by_email", methods=["POST"])
+def get_uid_by_email():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Missing email"}), 400
+
+    try:
+        qs = db.collection("users").where("email", "==", email).limit(1).stream()
+        docs = list(qs)
+
+        if not docs:
+            return jsonify({"error": f"User not found for email: {email}"}), 404
+
+        return jsonify({"uid": docs[0].id}), 200
+
+    except Exception as e:
+        # this makes the actual error visible in network tab
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/get_review_stats", methods=["GET"])

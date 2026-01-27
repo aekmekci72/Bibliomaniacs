@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
+import { SendNotif } from "./_layout";
 
 export default function AdminReviews() {
   const [search, setSearch] = useState("");
@@ -125,6 +126,53 @@ export default function AdminReviews() {
       });
 
       if (response.ok) {
+        try {
+          const review = confirmModal.review;
+          const reviewerEmail = review.email;
+          const bookTitle = review.book_title;
+          const newStatusLower = action.toLowerCase();
+      
+          // 1. Get admin sender info
+          const auth = getAuth();
+          const adminUser = auth.currentUser;
+      
+          // These will work if you store names on the user document OR displayName:
+          const senderFirstName =
+            adminUser?.first_name ||
+            adminUser?.displayName?.split(" ")[0] ||
+            "";
+          const senderLastName =
+            adminUser?.last_name ||
+            (adminUser?.displayName?.includes(" ")
+              ? adminUser.displayName.split(" ").slice(1).join(" ")
+              : "");
+      
+          // 2. Backend request to look up UID by email
+          const resRecipient = await fetch("http://localhost:5001/get_uid_by_email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: reviewerEmail }),
+          });
+      
+          const recipientData = await resRecipient.json();
+
+          if (!resRecipient.ok) {
+            console.error("get_uid_by_email failed:", recipientData);
+            return; // or just skip sending notif
+          }
+
+          const recipientUid = recipientData.uid;
+
+          if (!recipientUid) {
+            console.error("No recipient uid returned for email:", reviewerEmail);
+            return;
+          }
+      
+          // 3. Send the notification
+          await SendNotif("review_status", `${senderFirstName} ${senderLastName}`, [recipientUid], bookTitle, newStatusLower);
+        } catch (notifErr) {
+          console.error("Failed to send notification:", notifErr);
+        }
         // Clear cache and refresh data
         await clearCacheAndRefresh();
       } else {
