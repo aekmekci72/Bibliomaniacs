@@ -38,21 +38,61 @@ export default function Layout() {
 
 
   // NOTIFICATION VARIABLES
-  const dummyNotifications = [
-    { id: "n1", iconSet: "Ionicons", icon: "checkmark-circle-outline", text: "Your [Catcher in the Rye] review was approved by Ms. Rivera." },
-    { id: "n2", iconSet: "Ionicons", icon: "time-outline", text: "Your [The Giver] review is currently in review." },
-    { id: "n3", iconSet: "Ionicons", icon: "mail-unread-outline", text: "New message from an admin about your volunteer hours." },
-    { id: "n4", iconSet: "Ionicons", icon: "alert-circle-outline", text: "Your review needs a quick edit: missing grade level." },
-    { id: "n5", iconSet: "Ionicons", icon: "sparkles-outline", text: "Book of the Week has been updated—check it out!" },
-    { id: "n6", iconSet: "Ionicons", icon: "document-text-outline", text: "Reminder: finish your draft for [Fahrenheit 451]." },
-  ].slice(0, 12);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
 
-  const shouldScroll = dummyNotifications.length > 6;
+  const shouldScroll = notifications.length > 6;
 
   const handleNotificationPress = (notif) => {
-    // later: mark as read + route based on notif.type/href
     setNotifOpen(false);
-    router.push("/myreviews");
+    switch (notif?.type) {
+      case "new_review":
+        router.push("/admin-reviews");
+        break;
+  
+      case "review_status":
+        router.push("/myreviews");
+        break;
+  
+      default:
+        router.push("/myreviews");
+        break;
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        setNotifications([]);
+        return;
+      }
+  
+      setLoadingNotifs(true);
+  
+      const db = getFirestore(app);
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+  
+      if (!snap.exists()) {
+        setNotifications([]);
+        return;
+      }
+  
+      const data = snap.data() || {};
+      const arr = Array.isArray(data.notifications) ? data.notifications : [];
+  
+      // Optional: ensure newest first (if createdAt exists)
+      const sorted = [...arr].sort((a, b) => (b?.createdAt || 0) - (a?.createdAt || 0));
+  
+      // Only show most recent 12
+      setNotifications(sorted.slice(0, 12));
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+      setNotifications([]);
+    } finally {
+      setLoadingNotifs(false);
+    }
   };
 
 
@@ -139,9 +179,14 @@ export default function Layout() {
       <View className="flex-1 flex-row">
         <Pressable
           className="iconBtn ml-auto"
-          onPress={() => {
+          onPress={async () => {
             setIsOpen(false);
-            setNotifOpen((v) => !v);
+
+            setNotifOpen((v) => {
+              const next = !v;
+              if (next) fetchNotifications();
+              return next;
+            });
           }}
         >
           <FontAwesome5 name="inbox" size={16} color="rgb(71, 71, 71)" />
@@ -214,38 +259,48 @@ export default function Layout() {
             style={{ paddingHorizontal: 10, paddingTop: 8 }}
             contentContainerStyle={{ paddingBottom: 10 }}
           >
-            {dummyNotifications.map((n) => (
-              <Pressable
-                key={n.id}
-                onPress={() => handleNotificationPress(n)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  paddingVertical: 10,
-                  paddingHorizontal: 10,
-                  borderRadius: 12,
-                }}
-              >
-                <Ionicons
-                  name={n.icon}
-                  size={18}
-                  color="#374151"
-                  style={{ marginTop: 1 }}
-                />
-
-                <Text
+            {loadingNotifs ? (
+              <Text style={{ padding: 14, color: "#6b7280", fontSize: 14 }}>
+                Loading...
+              </Text>
+            ) : notifications.length === 0 ? (
+              <Text style={{ padding: 14, color: "#6b7280", fontSize: 14 }}>
+                No new messages
+              </Text>
+            ) : (
+              notifications.map((n, idx) => (
+                <Pressable
+                  key={n.id || `${n.type}-${n.createdAt || idx}`}
+                  onPress={() => handleNotificationPress(n)}
                   style={{
-                    flex: 1,
-                    fontSize: 13,
-                    color: "#111827",
-                    lineHeight: 18,
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 10,
+                    borderRadius: 12,
                   }}
                 >
-                  {n.text}
-                </Text>
-              </Pressable>
-            ))}
+                  <Ionicons
+                    name={n.icon || "mail-outline"}
+                    size={18}
+                    color="#374151"
+                    style={{ marginTop: 1 }}
+                  />
+
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      color: "#111827",
+                      lineHeight: 18,
+                    }}
+                  >
+                    {n.message || n.text || "Notification"}
+                  </Text>
+                </Pressable>
+              ))
+            )}
           </ScrollView>
         </View>
       </View>

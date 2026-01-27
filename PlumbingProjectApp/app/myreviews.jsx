@@ -217,6 +217,37 @@ export default function MyReviews() {
   useEffect(() => {
     const auth = getAuth();
 
+    const clearReviewStatusNotifs = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) return; // no user logged in
+  
+      try {
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+  
+        if (!snap.exists()) return;
+  
+        const data = snap.data();
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+  
+        // Filter out all review_status notifications
+        const filtered = current.filter((n) => n.type !== "review_status");
+  
+        // Only update Firestore if something changed
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, {
+            notifications: filtered,
+          });
+        }
+      } catch (err) {
+        console.error("Failed clearing review_status notifications:", err);
+      }
+    };
+  
+    clearReviewStatusNotifs();
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         setLoading(false);
@@ -276,6 +307,24 @@ export default function MyReviews() {
       if (response.ok) {
         const result = await response.json();
         console.log("Success:", result);
+        try {
+          const sender = `${firstName} ${lastName}`;
+          console.log("before notif");
+          const res = await fetch("http://localhost:5001/notify_admins", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              idToken,
+              sender: `${firstName} ${lastName}`,
+              book: bookTitle,
+            }),
+          });
+          console.log("notif status:", res.status, "ok:", res.ok);
+          console.log("notif response text:", await res.text());
+          console.log("after notif");
+        } catch (notifErr) {
+          console.error("Failed to notify admins:", notifErr);
+        }
         setModalVisible(false);
         setIsEditMode(false);
         setEditingReviewId(null); alert(isEditMode ? "Review updated!" : "Review submitted!");

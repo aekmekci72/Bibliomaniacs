@@ -24,6 +24,9 @@ export default function AdminReviews() {
     fetch('http://localhost:5001/clear_cache', { method: 'POST' });
     fetchReviews();
     fetchStats();
+
+    
+
   }, [statusFilter, gradeFilter, schoolFilter, sortBy, sortOrder]);
 
   const getIdToken = async () => {
