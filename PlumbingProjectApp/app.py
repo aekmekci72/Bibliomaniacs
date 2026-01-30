@@ -70,7 +70,6 @@ def get_admin_ids():
 
 @app.route("/notify_admins", methods=["POST"])
 def notify_admins_route():
-    print("notify admins route")
     try:
         data = request.get_json(silent=True) or {}
 
@@ -96,7 +95,6 @@ def notify_admins_route():
 
 
 def notify_admins(sender, book="", status=""):
-    print("notif admins from" + sender)
     try:
         recipients = get_admin_ids()
         print(recipients)

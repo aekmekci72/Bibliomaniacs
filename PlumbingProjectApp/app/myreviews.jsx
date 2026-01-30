@@ -278,7 +278,6 @@ export default function MyReviews() {
         console.log("Success:", result);
         try {
           const sender = `${firstName} ${lastName}`;
-          console.log("before notif");
           const res = await fetch("http://localhost:5001/notify_admins", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -288,9 +287,6 @@ export default function MyReviews() {
               book: bookTitle,
             }),
           });
-          console.log("notif status:", res.status, "ok:", res.ok);
-          console.log("notif response text:", await res.text());
-          console.log("after notif");
         } catch (notifErr) {
           console.error("Failed to notify admins:", notifErr);
         }

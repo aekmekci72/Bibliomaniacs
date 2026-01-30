@@ -442,8 +442,6 @@ export async function SendNotif(type, sender, recipients, book = "", status = ""
   try {
     const db = getFirestore(app);
 
-    console.log("sendNotif: ", recipients);
-
     let message = "";
     let icon = "";
 
