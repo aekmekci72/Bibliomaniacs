@@ -13,8 +13,7 @@ db = firestore.client()
 def initialize_admins():
     
     initial_admins = [
-        "shreeja.das.16@gmail.com",
-        "bomiejun@gmail.com"
+        "shreeja.das.16@gmail.com"
     ]
     
     try:

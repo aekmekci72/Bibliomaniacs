@@ -1,10 +1,11 @@
 import "./login";
+import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
+import { auth, app } from "../firebaseConfig";
 import { useState, useRef, useEffect } from "react";
-import { Image, Animated, Dimensions, Pressable, Text, View, TextInput } from "react-native";
+import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { auth } from "../firebaseConfig";
+import { Ionicons, Octicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import axios from "axios";
 import './global.css';
 
@@ -15,6 +16,7 @@ export default function Layout() {
 
   // Map a route to a simple page name  
   function getPage() {
+    if (pathname.startsWith("/landingpage")) return "landingpage";
     if (pathname === "/homepage") return "homepage";
     if (pathname.startsWith("/explorer")) return "explorer";
     if (pathname.startsWith("/myreviews")) return "myreviews";
@@ -23,7 +25,7 @@ export default function Layout() {
     if (pathname.startsWith("/admin-reviews")) return "admin-reviews";
     if (pathname.startsWith("/admindashboard")) return "admindashboard";
     if (pathname.startsWith("/adminhomepage")) return "adminhomepage";
-    if (pathname.startsWith("/profile")) return "profile";
+    if (pathname.startsWith("/login")) return "login";
 
     return "";
   }
@@ -31,6 +33,67 @@ export default function Layout() {
   const [isOpen, setIsOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(-270)).current;
   const SCREEN_WIDTH = Dimensions.get("window").width;
+
+  const [notifOpen, setNotifOpen] = useState(false);
+
+
+  // NOTIFICATION VARIABLES
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
+
+  const shouldScroll = notifications.length > 6;
+
+  const handleNotificationPress = (notif) => {
+    setNotifOpen(false);
+    switch (notif?.type) {
+      case "new_review":
+        router.push("/admin-reviews");
+        break;
+  
+      case "review_status":
+        router.push("/myreviews");
+        break;
+  
+      default:
+        router.push("/myreviews");
+        break;
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        setNotifications([]);
+        return;
+      }
+  
+      setLoadingNotifs(true);
+  
+      const db = getFirestore(app);
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+  
+      if (!snap.exists()) {
+        setNotifications([]);
+        return;
+      }
+  
+      const data = snap.data() || {};
+      const arr = Array.isArray(data.notifications) ? data.notifications : [];
+  
+      // Optional: ensure newest first (if createdAt exists)
+      const sorted = [...arr].sort((a, b) => (b?.createdAt || 0) - (a?.createdAt || 0));
+  
+      // Only show most recent 12
+      setNotifications(sorted.slice(0, 12));
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+      setNotifications([]);
+    } finally {
+      setLoadingNotifs(false);
+    }
+  };
 
 
   const fetchRole = async () => {
@@ -70,7 +133,7 @@ export default function Layout() {
   };
 
 
-  function NavItem({ icon, label, page, href }) {
+  function NavItem({ icon, IconSet, label, page, href }) {
     const isActive = getPage() === page;
   
     return (
@@ -80,7 +143,7 @@ export default function Layout() {
             ${isActive ? "bg-gray-100" : ""}
           `}
         >
-          <Ionicons
+          <IconSet
             name={icon}
             size={18}
             className={isActive ? "text-green-600" : "text-gray-500"}
@@ -113,13 +176,136 @@ export default function Layout() {
         <Ionicons name="menu" size={18} />
       </Pressable>
 
+      <View className="flex-1 flex-row">
+        <Pressable
+          className="iconBtn ml-auto"
+          onPress={async () => {
+            setIsOpen(false);
+
+            setNotifOpen((v) => {
+              const next = !v;
+              if (next) fetchNotifications();
+              return next;
+            });
+          }}
+        >
+          <FontAwesome5 name="inbox" size={16} color="rgb(71, 71, 71)" />
+        </Pressable>
+      </View>
+
       <Pressable
-        className="iconBtn ml-auto"
+        className="iconBtn ml-auto rounded-full"
         onPress={() => router.push("/profile")}
       >
-        <Ionicons name="person-circle-outline" size={20} />
+        <Ionicons name="person-circle-outline" size={20} color='rgb(71, 71, 71)' />
       </Pressable>
     </View>
+
+    {/* NOTIFICATION MENU */}
+    {notifOpen && (
+      <Pressable
+        onPress={() => setNotifOpen(false)}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 5, // below popover, above page
+          backgroundColor: "transparent",
+        }}
+      />
+    )}
+
+    {/* Notification Popover */}
+    {notifOpen && (
+      <View
+        style={{
+          position: "absolute",
+          top: 62, // tweak if your topbar height differs
+          right: 16, // aligns under right-side icons
+          width: 320, // fixed width
+          maxHeight: Dimensions.get("window").height * 0.55, // a little over half screen
+          backgroundColor: "white",
+          borderRadius: 14,
+          paddingVertical: 10,
+          zIndex: 6,
+          shadowColor: "#000",
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          borderWidth: 1,
+          borderColor: "#e5e7eb",
+        }}
+      >
+        <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
+            Notifications
+          </Text>
+          <Text style={{ fontSize: 14, color: "#6b7280", marginTop: 2 }}>
+            Recent activity
+          </Text>
+        </View>
+
+        <View style={{ height: 1, backgroundColor: "#e5e7eb" }} />
+
+        {/* List (top-aligned; scroll only if needed) */}
+        <View
+          style={{
+            maxHeight: shouldScroll ? Dimensions.get("window").height * 0.55 : undefined,
+          }}
+        >
+          <ScrollView
+            style={{ paddingHorizontal: 10, paddingTop: 8 }}
+            contentContainerStyle={{ paddingBottom: 10 }}
+          >
+            {loadingNotifs ? (
+              <Text style={{ padding: 14, color: "#6b7280", fontSize: 14 }}>
+                Loading...
+              </Text>
+            ) : notifications.length === 0 ? (
+              <Text style={{ padding: 14, color: "#6b7280", fontSize: 14 }}>
+                No new messages
+              </Text>
+            ) : (
+              notifications.map((n, idx) => (
+                <Pressable
+                  key={n.id || `${n.type}-${n.createdAt || idx}`}
+                  onPress={() => handleNotificationPress(n)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 10,
+                    borderRadius: 12,
+                  }}
+                >
+                  <Octicons
+                    name={n.icon || "mail-outline"}
+                    size={18}
+                    color="#374151"
+                    style={{ marginTop: 1 }}
+                  />
+
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      color: "#111827",
+                      lineHeight: 18,
+                    }}
+                  >
+                    {n.message || n.text || "Notification"}
+                  </Text>
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    )}
+
       <Stack screenOptions={{ headerShown: false }} />
 
       {/* Drawer Backdrop */}
@@ -155,49 +341,56 @@ export default function Layout() {
         }}
       >
         {/* Logo */}
-        <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }}>
-          <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
-          <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
-        </View>
+        {role === "user" ? (
+          <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }} href="/homepage">
+            <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
+            <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
+          </View>
+        ) : role === "admin" ? (
+          <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }} href="/adminhomepage">
+            <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
+            <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
+          </View>
+        ) : (
+          <View style={{ marginBottom: 30, flexDirection: "row", alignItems: "center", gap: 5 }} href="/landingpage">
+            <Image source={require("../assets/logo.png")} style={{ width: 22, height: 22, resizeMode: "contain" }} />
+            <Text style={{ fontSize: 22, fontWeight: "600" }}>Bibliomaniacs</Text>
+          </View>
+        )}
 
         {/* Navigation Group */}
         {/* homepage, explorer, myreviews, reviewpage, profile, admin-reviews, admindashboard, adminhomepage */}
         <View className="mt-4 space-y-1">
           {role === "no account" && (
-            <NavItem icon="home-outline" label="Landing Page" page="landingpage" href="/landingpage" />
-          )}
-          <NavItem icon="trending-up-outline" label="Explorer" page="explorer" href="/explorer" />
-          {role === "user" && (
             <>
-            <NavItem icon="document-text-outline" label="My Reviews" page="myreviews" href="/myreviews" />
-
-            <NavItem icon="calendar-outline" label="Review Page" page="reviewpage" href="/reviewpage" />
-
-            <NavItem icon="checkbox-outline" label="Profile" page="profile" href="/profile" />
+              <NavItem icon="home-outline" IconSet={Ionicons} label="Landing Page" page="landingpage" href="/landingpage" />
+              <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
             </>
           )}
 
           {role === "user" && (
             <>
-            <NavItem icon="document-text-outline" label="My Reviews" page="myreviews" href="/myreviews" />
-
-            <NavItem icon="calendar-outline" label="Review Page" page="reviewpage" href="/reviewpage" />
-
-            <NavItem icon="checkbox-outline" label="Profile" page="profile" href="/profile" />
+              <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
+              <NavItem icon="document-text-outline" IconSet={Ionicons} label="My Reviews" page="myreviews" href="/myreviews" />
+              <NavItem icon="calendar-outline" IconSet={Ionicons} label="Review Page" page="reviewpage" href="/reviewpage" />
+              <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Profile" page="profile" href="/profile" />
             </>
           )}
 
           {role === "admin" && (
             <>
-            <NavItem icon="document-text-outline" label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
-          
-            <NavItem icon="calendar-outline" label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
-
-            <NavItem icon="checkbox-outline" label="Admin Homepage" page="adminhomepage" href="/adminhomepage" />
-
+            <NavItem icon="document-text-outline" IconSet={Ionicons} label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
+            <NavItem icon="calendar-outline" IconSet={Ionicons} label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
+            <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Admin Homepage" page="adminhomepage" href="/adminhomepage" />
+            
+            <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
+            <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
             </>
           )}
-          
+
+          <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
+          <NavItem icon="question-circle" IconSet={AntDesign} label="About" page="about" href="https://ridgewoodlibrary.org/about/" />
+          <NavItem icon="person" IconSet={Ionicons} label="Logout" page="login" href="/login" />
           
         </View>
 
@@ -244,24 +437,81 @@ export default function Layout() {
   );
 }
 
-// const styles = StyleSheet.create({
-//   topbar: {
-//     height: 56,
-//     paddingHorizontal: 12,
-//     backgroundColor: "#cfe8cf",
-//     borderBottomWidth: 1,
-//     borderColor: "#b6d5b6",
-//     flexDirection: "row",
-//     alignItems: "center",
-//     gap: 10,
-//   },
-//   iconBtn: {
-//     width: 32, height: 32, alignItems: "center", justifyContent: "center",
-//     borderRadius: 8, backgroundColor: "white",
-//   },
-//   search: {
-//     flex: 1, height: 34, borderRadius: 8, paddingHorizontal: 10,
-//     backgroundColor: "white", borderWidth: 1, borderColor: "#e5efe5",
-//     flexDirection: "row", alignItems: "center", gap: 6,
-//   },
-// });
+
+export async function SendNotif(type, sender, recipients, book = "", status = "") {
+  try {
+    const db = getFirestore(app);
+
+    let message = "";
+    let icon = "";
+
+    if (type === "new_review") {
+      icon = "book";
+      message = `${sender} submitted a new review of ${book}`;
+    }
+
+    else if (type === "review_status") {
+      if (status === "approved") {
+        icon = "check-circle";
+      } else {
+        icon = "x-circle";
+      }
+      message = `Your review of ${book} was ${status} by ${sender}`;
+    }
+
+    else if (type === "book_of_the_week") {
+      icon = "sparkles-fill";
+      message = "Book of the Week has been updated, check it out!";
+    }
+
+    else {
+      console.error("Invalid notification type:", type);
+      return;
+    }
+
+    // 3. Build the new notification object
+    const newNotif = {
+      type,
+      icon,
+      message,
+      createdAt: Date.now(),
+    };
+
+    // 4. Update notifications for each recipient
+    for (const uid of recipients) {
+      try {
+        const userRef = doc(db, "users", uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) {
+          console.warn(`Recipient ${uid} does not exist in Firestore.`);
+          continue;
+        }
+
+        const data = snap.data();
+        let notifArray = Array.isArray(data.notifications)
+          ? [...data.notifications]
+          : [];
+
+        // Add new notification to the top
+        notifArray.unshift(newNotif);
+
+        // Trim to max of 8
+        if (notifArray.length > 8) {
+          notifArray = notifArray.slice(0, 8);
+        }
+
+        // Save updated array to Firestore
+        await updateDoc(userRef, {
+          notifications: notifArray,
+        });
+
+      } catch (err) {
+        console.error(`Error updating notifications for ${uid}:`, err);
+      }
+    }
+
+  } catch (err) {
+    console.error("sendNotif error:", err);
+  }
+}

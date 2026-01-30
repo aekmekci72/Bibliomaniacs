@@ -276,6 +276,20 @@ export default function MyReviews() {
       if (response.ok) {
         const result = await response.json();
         console.log("Success:", result);
+        try {
+          const sender = `${firstName} ${lastName}`;
+          const res = await fetch("http://localhost:5001/notify_admins", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              idToken,
+              sender: `${firstName} ${lastName}`,
+              book: bookTitle,
+            }),
+          });
+        } catch (notifErr) {
+          console.error("Failed to notify admins:", notifErr);
+        }
         setModalVisible(false);
         setIsEditMode(false);
         setEditingReviewId(null); alert(isEditMode ? "Review updated!" : "Review submitted!");
@@ -352,6 +366,35 @@ export default function MyReviews() {
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid); // change to user.email if that's your doc id
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "review_status");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing review_status notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+    }, []);
 
   return (
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
