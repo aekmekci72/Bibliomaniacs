@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
-import { SendNotif } from "./_layout";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function AdminReviews() {
@@ -169,8 +168,27 @@ export default function AdminReviews() {
             return;
           }
       
-          // 3. Send the notification
-          await SendNotif("review_status", `${senderFirstName} ${senderLastName}`, [recipientUid], bookTitle, newStatusLower);
+          // Send the notification
+          console.log(recipientUid);
+
+          try {
+            const sender = `${senderFirstName} ${senderLastName}`;
+            const res = await fetch("http://localhost:5001/notify_reviewer", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                idToken,
+                sender: `${senderFirstName} ${senderLastName}`,
+                recipients: [recipientUid],
+                book: bookTitle,
+                status: newStatusLower,
+              }),
+            });
+          } catch (notifErr) {
+            console.error("Failed to notify reviewer:", notifErr);
+          }
+
+          // await SendNotif("review_status", `${senderFirstName} ${senderLastName}`, [recipientUid], bookTitle, newStatusLower);
         } catch (notifErr) {
           console.error("Failed to send notification:", notifErr);
         }

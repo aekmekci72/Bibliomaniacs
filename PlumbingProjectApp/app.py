@@ -66,6 +66,85 @@ def get_admin_ids():
             print(f"Could not convert admin email {email} to UID:", e)
 
     return uids
+
+@app.route("/notify_reviewer", methods=["POST"])
+def notify_reviewer_route():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        id_token = data.get("idToken")
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded = verify_firebase_token(id_token)
+        if not decoded:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        sender = data.get("sender", "")
+        recipients = data.get("recipients", "")
+        book = data.get("book", "")
+        status = data.get("status", "")
+
+        payload, code = notify_reviewer(sender, recipients, book, status)
+        return jsonify(payload), code
+
+    except Exception as e:
+        print("notify_reviewer_route ERROR:", e)
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+
+def notify_reviewer(sender, recipients, book="", status=""):
+    try:
+        recipients = [uid for uid in recipients if uid]
+        recipients = list(dict.fromkeys(recipients))
+
+        if status == "approved":
+            icon = "check-circle"
+        elif status == "rejected":
+            icon = "x-circle"
+      
+        message = f"Your review of {book} was {status} by {sender}"
+
+        new_notif = {
+            "type": "review_status",
+            "icon": icon,
+            "message": message,
+            "createdAt": int(time.time() * 1000),  # JS Date.now() equivalent (ms)
+        }
+        print(new_notif)
+
+        # Update each admin's notifications
+        for uid in recipients:
+            try:
+                user_ref = db.collection("users").document(uid)
+                snap = user_ref.get()
+
+                if not snap.exists:
+                    print(f"Recipient {uid} does not exist in Firestore.")
+                    continue
+
+                data = snap.to_dict() or {}
+
+
+                notif_array = data.get("notifications", [])
+                if not isinstance(notif_array, list):
+                    notif_array = []
+
+                # Add to top and trim to 8
+                notif_array.insert(0, new_notif)
+                notif_array = notif_array[:8]
+                
+                user_ref.update({"notifications": notif_array})
+
+            except Exception as inner_e:
+                print(f"Error updating notifications for {uid}: {inner_e}")
+
+        return {"ok": True, "sent_to": recipients}, 200
+
+    except Exception as e:
+        print("notify_admins error:", e)
+        return {"error": str(e)}, 500
     
 
 @app.route("/notify_admins", methods=["POST"])
@@ -97,7 +176,6 @@ def notify_admins_route():
 def notify_admins(sender, book="", status=""):
     try:
         recipients = get_admin_ids()
-        print(recipients)
 
         recipients = [uid for uid in recipients if uid]
         recipients = list(dict.fromkeys(recipients))
