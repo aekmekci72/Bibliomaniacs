@@ -62,7 +62,13 @@ export default function ProfileSetup() {
         try {
             await updateDoc(userRef, updates);
             Alert.alert("Profile Saved", "Your profile is now complete!");
-            router.replace("/homepage");
+            if (user.role === "admin") {
+                router.replace("/adminhomepage");
+            } else {
+                console.log("user role: ", user.role);
+                router.replace("/homepage");
+            }
+            
         } catch (err) {
             console.log("Profile Setup Error:", err);
             Alert.alert("Error", "Could not save profile.");

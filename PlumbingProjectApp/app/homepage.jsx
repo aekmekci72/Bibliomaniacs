@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { RequireAccess } from "../components/requireaccess";
 import { Link } from "expo-router";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { interpolate, interpolateColor } from 'react-native-reanimated';
@@ -44,6 +45,10 @@ export default function LandingPage() {
   };
 
   return (
+    <RequireAccess
+      allowRoles={["user"]}
+      redirectTo="/notfound"
+    >
     <ScrollView className="landingPageRoot landingScroll">
       {/* === TOP BAND === */}
       <View className="landingTopSection">
@@ -209,5 +214,6 @@ export default function LandingPage() {
         </View>
       </View >
     </ScrollView >
+    </RequireAccess>
   );
 }

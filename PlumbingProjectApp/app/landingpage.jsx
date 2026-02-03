@@ -6,6 +6,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signO
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import axios from "axios";
 import { auth, app } from "../firebaseConfig";
+import { RequireAccess } from "../components/requireaccess";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -46,6 +47,10 @@ export default function LandingPage() {
     "blurb": "The conscience of a town steeped in prejudice, violence and hypocrisy is pricked by the stamina of one man's struggle for justice. But the weight of history will only tolerate so much."
   }
   return (
+    <RequireAccess
+      allowRoles={["no account", null]}
+      redirectTo="/notfound"
+    >
     <ScrollView className="landingPageRoot landingScroll">
       {/* === TOP BAND === */}
       <View className="landingTopSection">
@@ -192,6 +197,7 @@ export default function LandingPage() {
         </View>
       </View>
     </ScrollView>
+    </RequireAccess>
   );
 }
 

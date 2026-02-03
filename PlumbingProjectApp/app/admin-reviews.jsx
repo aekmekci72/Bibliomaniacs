@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
 
 export default function AdminReviews() {
@@ -174,6 +175,10 @@ export default function AdminReviews() {
   const uniqueSchools = ["All", ...new Set(reviews.map(r => r.school).filter(Boolean))].sort();
 
   return (
+    <RequireAccess
+      allowRoles={["admin"]}
+      redirectTo="/notfound"
+    >
     <div className="flex flex-col items-center pb-12 px-6 bg-gray-50 min-h-screen">
       <div className="w-full max-w-[1600px] py-6">
         <div className="flex items-center justify-center mb-6">
@@ -474,5 +479,6 @@ export default function AdminReviews() {
         </div>
       )}
     </div>
+    </RequireAccess>
   );
 }
