@@ -275,18 +275,25 @@ export default function AdminDashboard() {
   // Show loading state while waiting for authentication
   if (!authReady) {
     return (
+      <RequireAccess
+      allowRoles={["admin"]}
+      denyRoles={[null, "no account"]}
+      redirectTo="/notfound"
+    >
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center">
         <div className="text-center">
           <Loader className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
+      </RequireAccess>
     );
   }
 
   return (
     <RequireAccess
       allowRoles={["admin"]}
+      denyRoles={[null, "no account"]}
       redirectTo="/notfound"
     >
     <ScrollView>
