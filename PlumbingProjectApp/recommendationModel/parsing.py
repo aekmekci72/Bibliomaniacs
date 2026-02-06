@@ -1,6 +1,9 @@
 import pandas as pd
 import re
 from collections import defaultdict
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+analyzer = SentimentIntensityAnalyzer()
 
 def normalize_text(text: str) -> str:
     text = text.lower()
@@ -65,7 +68,8 @@ def load_reviews(csv_path, books):
                     break
             else:
                 continue
-
+        
+        sentiment = analyzer.polarity_scores(row["REVIEW"])["compound"]
 
         books[book_id]["reviews"].append({
             "stars": int(row["STARS"]) if not pd.isna(row["STARS"]) else None,
@@ -75,7 +79,8 @@ def load_reviews(csv_path, books):
                 if not pd.isna(row["RECOMMENDED_GRADES"])
                 else []
             ),
-            "text": normalize_text(row["REVIEW"])
+            "text": normalize_text(row["REVIEW"]),
+            "sentiment": sentiment
         })
 
     return books

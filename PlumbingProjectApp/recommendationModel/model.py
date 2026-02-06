@@ -34,9 +34,25 @@ class HybridRecommender:
             book_id = r["book_id"]
             stars = r.get("stars", 3)
 
-            if book_id in self.book_embeddings:
-                vectors.append(self.book_embeddings[book_id])
-                weights.append(stars)
+            if book_id not in self.book_embeddings:
+                continue
+
+            book = self.books[book_id]
+
+            sentiments = [
+                rev.get("sentiment", 0)
+                for rev in book["reviews"]
+                if rev.get("sentiment") is not None
+            ]
+
+            avg_sentiment = np.mean(sentiments) if sentiments else 0
+
+            sentiment_weight = (avg_sentiment + 1) / 2
+
+            final_weight = stars * sentiment_weight
+
+            vectors.append(self.book_embeddings[book_id])
+            weights.append(final_weight)
 
         if not vectors:
             return None
@@ -45,6 +61,21 @@ class HybridRecommender:
         weights = np.array(weights).reshape(-1, 1)
 
         return np.sum(vectors * weights, axis=0) / np.sum(weights)
+
+    def book_sentiment_score(self, book):
+        sentiments = [
+            r.get("sentiment")
+            for r in book["reviews"]
+            if r.get("sentiment") is not None
+        ]
+
+        if not sentiments:
+            return 0.0
+
+        avg = np.mean(sentiments)
+
+        return (avg + 1) / 2
+
 
     def genre_overlap(self, user_genres, book_genres):
         if not user_genres or not book_genres:
@@ -76,10 +107,15 @@ class HybridRecommender:
             genre_score = self.genre_overlap(user_genres, book["genres"])
             grade_score = self.grade_score(user_grade, book)
 
+            book_sentiment = self.book_sentiment_score(book)
+
+            print(book["title"], "sentiment score:", book_sentiment)
+
             final_score = (
-                0.6 * sim +
-                0.25 * genre_score +
-                0.15 * grade_score
+                0.55 * sim +
+                0.20 * genre_score +
+                0.15 * grade_score +
+                0.10 * book_sentiment
             )
 
             scores.append((book_id, final_score))
