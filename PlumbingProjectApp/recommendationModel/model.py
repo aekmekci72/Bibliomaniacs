@@ -47,7 +47,7 @@ class HybridRecommender:
 
             avg_sentiment = np.mean(sentiments) if sentiments else 0
 
-            sentiment_weight = (avg_sentiment + 1) / 2
+            sentiment_weight = avg_sentiment
 
             final_weight = stars * sentiment_weight
 
@@ -74,7 +74,7 @@ class HybridRecommender:
 
         avg = np.mean(sentiments)
 
-        return (avg + 1) / 2
+        return avg
 
 
     def genre_overlap(self, user_genres, book_genres):
