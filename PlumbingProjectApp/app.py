@@ -12,6 +12,8 @@ from fireo import connection
 from fireo.models import Model
 from fireo.fields import TextField, IDField, NumberField, ListField
 from review_model import Review, create_review, process_review, calculate_user_hours
+import traceback
+import time
 
 
 app = Flask(__name__)
@@ -45,6 +47,179 @@ def get_admin_emails():
     except Exception as e:
         print(f"Error fetching admin emails: {e}")
         return []
+    
+def get_admin_ids():
+    doc = db.collection("settings").document("admins").get()
+
+    if not doc.exists:
+        return []
+
+    data = doc.to_dict() or {}
+    emails = data.get("emails", [])
+    uids = []
+
+    for email in emails:
+        try:
+            user = auth.get_user_by_email(email)
+            uids.append(user.uid)
+        except Exception as e:
+            print(f"Could not convert admin email {email} to UID:", e)
+
+    return uids
+
+@app.route("/notify_reviewer", methods=["POST"])
+def notify_reviewer_route():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        id_token = data.get("idToken")
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded = verify_firebase_token(id_token)
+        if not decoded:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        sender = data.get("sender", "")
+        recipients = data.get("recipients", "")
+        book = data.get("book", "")
+        status = data.get("status", "")
+
+        payload, code = notify_reviewer(sender, recipients, book, status)
+        return jsonify(payload), code
+
+    except Exception as e:
+        print("notify_reviewer_route ERROR:", e)
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+
+def notify_reviewer(sender, recipients, book="", status=""):
+    try:
+        recipients = [uid for uid in recipients if uid]
+        recipients = list(dict.fromkeys(recipients))
+
+        if status == "approved":
+            icon = "check-circle"
+        elif status == "rejected":
+            icon = "x-circle"
+      
+        message = f"Your review of {book} was {status} by {sender}"
+
+        new_notif = {
+            "type": "review_status",
+            "icon": icon,
+            "message": message,
+            "createdAt": int(time.time() * 1000),  # JS Date.now() equivalent (ms)
+        }
+        print(new_notif)
+
+        # Update each admin's notifications
+        for uid in recipients:
+            try:
+                user_ref = db.collection("users").document(uid)
+                snap = user_ref.get()
+
+                if not snap.exists:
+                    print(f"Recipient {uid} does not exist in Firestore.")
+                    continue
+
+                data = snap.to_dict() or {}
+
+
+                notif_array = data.get("notifications", [])
+                if not isinstance(notif_array, list):
+                    notif_array = []
+
+                # Add to top and trim to 8
+                notif_array.insert(0, new_notif)
+                notif_array = notif_array[:8]
+                
+                user_ref.update({"notifications": notif_array})
+
+            except Exception as inner_e:
+                print(f"Error updating notifications for {uid}: {inner_e}")
+
+        return {"ok": True, "sent_to": recipients}, 200
+
+    except Exception as e:
+        print("notify_admins error:", e)
+        return {"error": str(e)}, 500
+    
+
+@app.route("/notify_admins", methods=["POST"])
+def notify_admins_route():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        id_token = data.get("idToken")
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded = verify_firebase_token(id_token)
+        if not decoded:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        sender = data.get("sender", "")
+        book = data.get("book", "")
+        status = data.get("status", "")
+
+        payload, code = notify_admins(sender, book, status)
+        return jsonify(payload), code
+
+    except Exception as e:
+        print("notify_admins_route ERROR:", e)
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+
+
+def notify_admins(sender, book="", status=""):
+    try:
+        recipients = get_admin_ids()
+
+        recipients = [uid for uid in recipients if uid]
+        recipients = list(dict.fromkeys(recipients))
+
+        icon = "book"
+        message = f"{sender} submitted a new review of {book}"
+
+        new_notif = {
+            "type": "new_review",
+            "icon": icon,
+            "message": message,
+            "createdAt": int(time.time() * 1000),  # JS Date.now() equivalent (ms)
+        }
+
+        # Update each admin's notifications
+        for uid in recipients:
+            try:
+                user_ref = db.collection("users").document(uid)
+                snap = user_ref.get()
+
+                if not snap.exists:
+                    print(f"Recipient {uid} does not exist in Firestore.")
+                    continue
+
+                data = snap.to_dict() or {}
+                notif_array = data.get("notifications", [])
+                if not isinstance(notif_array, list):
+                    notif_array = []
+
+                # Add to top and trim to 8
+                notif_array.insert(0, new_notif)
+                notif_array = notif_array[:8]
+
+                user_ref.update({"notifications": notif_array})
+
+            except Exception as inner_e:
+                print(f"Error updating notifications for {uid}: {inner_e}")
+
+        return {"ok": True, "sent_to": recipients}, 200
+
+    except Exception as e:
+        print("notify_admins error:", e)
+        return {"error": str(e)}, 500
+
 
 def is_user_admin(email):
     """Check if user email is in admin list"""
@@ -747,6 +922,28 @@ def get_user_reviews():
         return jsonify(payload), 200
 
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/get_uid_by_email", methods=["POST"])
+def get_uid_by_email():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Missing email"}), 400
+
+    try:
+        qs = db.collection("users").where("email", "==", email).limit(1).stream()
+        docs = list(qs)
+
+        if not docs:
+            return jsonify({"error": f"User not found for email: {email}"}), 404
+
+        return jsonify({"uid": docs[0].id}), 200
+
+    except Exception as e:
+        # this makes the actual error visible in network tab
         return jsonify({"error": str(e)}), 500
 
 

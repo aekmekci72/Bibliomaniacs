@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function AdminReviews() {
   const [search, setSearch] = useState("");
@@ -125,6 +126,72 @@ export default function AdminReviews() {
       });
 
       if (response.ok) {
+        try {
+          const review = confirmModal.review;
+          const reviewerEmail = review.email;
+          const bookTitle = review.book_title;
+          const newStatusLower = action.toLowerCase();
+      
+          // 1. Get admin sender info
+          const auth = getAuth();
+          const adminUser = auth.currentUser;
+      
+          // These will work if you store names on the user document OR displayName:
+          const senderFirstName =
+            adminUser?.first_name ||
+            adminUser?.displayName?.split(" ")[0] ||
+            "";
+          const senderLastName =
+            adminUser?.last_name ||
+            (adminUser?.displayName?.includes(" ")
+              ? adminUser.displayName.split(" ").slice(1).join(" ")
+              : "");
+      
+          // 2. Backend request to look up UID by email
+          const resRecipient = await fetch("http://localhost:5001/get_uid_by_email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: reviewerEmail }),
+          });
+      
+          const recipientData = await resRecipient.json();
+
+          if (!resRecipient.ok) {
+            console.error("get_uid_by_email failed:", recipientData);
+            return; // or just skip sending notif
+          }
+
+          const recipientUid = recipientData.uid;
+
+          if (!recipientUid) {
+            console.error("No recipient uid returned for email:", reviewerEmail);
+            return;
+          }
+      
+          // Send the notification
+          console.log(recipientUid);
+
+          try {
+            const sender = `${senderFirstName} ${senderLastName}`;
+            const res = await fetch("http://localhost:5001/notify_reviewer", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                idToken,
+                sender: `${senderFirstName} ${senderLastName}`,
+                recipients: [recipientUid],
+                book: bookTitle,
+                status: newStatusLower,
+              }),
+            });
+          } catch (notifErr) {
+            console.error("Failed to notify reviewer:", notifErr);
+          }
+
+          // await SendNotif("review_status", `${senderFirstName} ${senderLastName}`, [recipientUid], bookTitle, newStatusLower);
+        } catch (notifErr) {
+          console.error("Failed to send notification:", notifErr);
+        }
         // Clear cache and refresh data
         await clearCacheAndRefresh();
       } else {
@@ -173,6 +240,35 @@ export default function AdminReviews() {
 
   const uniqueGrades = ["All", ...new Set(reviews.map(r => r.grade).filter(Boolean))].sort();
   const uniqueSchools = ["All", ...new Set(reviews.map(r => r.school).filter(Boolean))].sort();
+  
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid); // change to user.email if that's your doc id
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "new_review");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing new_review notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+    }, []);
 
   return (
     <RequireAccess
