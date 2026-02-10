@@ -10,16 +10,28 @@ class EmbeddingBuilder:
             return None
         return self.model.encode(texts, normalize_embeddings=True)
 
-    def build_book_embeddings(self, books):
+    def build_book_embeddings(self, books, max_reviews=5):
         book_embeddings = {}
 
         for book_id, book in books.items():
-            review_texts = [r["text"] for r in book["reviews"] if r["text"]]
+            reviews = [r for r in book["reviews"] if r["text"]]
 
-            if not review_texts:
+            if not reviews:
                 continue
 
-            embeddings = self.embed_texts(review_texts)
-            book_embeddings[book_id] = np.mean(embeddings, axis=0)
+            reviews = sorted(
+                reviews,
+                key=lambda r: (r["stars"] or 3),
+                reverse=True
+            )[:max_reviews]
+
+            combined_text = " ".join(r["text"] for r in reviews)
+
+            embedding = self.model.encode(
+                combined_text,
+                normalize_embeddings=True
+            )
+
+            book_embeddings[book_id] = embedding
 
         return book_embeddings
