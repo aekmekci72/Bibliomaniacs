@@ -518,6 +518,26 @@ def ask_question():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+def get_daily_review_count(email):
+    """Count how many reviews a user has submitted today"""
+    try:
+        # Get start of today (midnight) in local timezone
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Query reviews from today
+        reviews = Review.collection.filter('email', '==', email).fetch()
+        
+        # Count reviews submitted today
+        count = 0
+        for review in reviews:
+            if review.date_received and review.date_received >= today_start:
+                count += 1
+        
+        return count
+    except Exception as e:
+        print(f"Error counting daily reviews: {e}")
+        return 0
+
 @app.route("/submit_review", methods=["POST"])
 def submit_review():
     data = request.json
@@ -536,6 +556,16 @@ def submit_review():
         if not data.get(field):
             return jsonify({"error": f"Missing required field: {field}"}), 400
     
+    # Check daily review limit
+    user_email = data.get("email")
+    daily_count = get_daily_review_count(user_email)
+    
+    if daily_count >= 2:
+        return jsonify({
+            "error": "Daily limit reached",
+            "message": "You can only submit 2 reviews per day. Please try again tomorrow."
+        }), 429  # 429 Too Many Requests
+    
     if "recommended_audience_grade" in data:
         if not isinstance(data["recommended_audience_grade"], list):
             data["recommended_audience_grade"] = [data["recommended_audience_grade"]]
@@ -547,10 +577,14 @@ def submit_review():
         review = create_review(data)
         invalidate_review_caches(user_email=review.email)
         
+        remaining = 2 - (daily_count + 1)
+        
         return jsonify({
             "message": "Review submitted successfully",
             "id": review.id,
-            "entry_id": entry_id
+            "entry_id": entry_id,
+            "daily_reviews_submitted": daily_count + 1,
+            "daily_reviews_remaining": remaining
         }), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
