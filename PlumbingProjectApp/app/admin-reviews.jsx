@@ -132,18 +132,18 @@ export default function AdminReviews() {
 
       if (response.ok) {
         const result = await response.json();
-
+        
         // Send notification to reviewer
         try {
           const review = confirmModal.review;
           const reviewerEmail = review.email;
           const bookTitle = review.book_title;
           const newStatusLower = action.toLowerCase();
-
+      
           // Get admin sender info
           const auth = getAuth();
           const adminUser = auth.currentUser;
-
+      
           const senderFirstName =
             adminUser?.first_name ||
             adminUser?.displayName?.split(" ")[0] ||
@@ -153,19 +153,19 @@ export default function AdminReviews() {
             (adminUser?.displayName?.includes(" ")
               ? adminUser.displayName.split(" ").slice(1).join(" ")
               : "");
-
+      
           // Backend request to look up UID by email
           const resRecipient = await fetch("http://localhost:5001/get_uid_by_email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: reviewerEmail }),
           });
-
+      
           const recipientData = await resRecipient.json();
 
           if (resRecipient.ok && recipientData.uid) {
             const recipientUid = recipientData.uid;
-
+            
             // Send the notification
             await fetch("http://localhost:5001/notify_reviewer", {
               method: "POST",
@@ -233,7 +233,6 @@ export default function AdminReviews() {
     setLoadingDraft(reviewId);
     try {
       const idToken = await getIdToken();
-
       const response = await fetch(`http://localhost:5001/get_email_draft/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -263,7 +262,6 @@ export default function AdminReviews() {
     const { reviewId } = emailDraftModal;
     try {
       const idToken = await getIdToken();
-
       const response = await fetch(`http://localhost:5001/mark_email_sent/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -327,6 +325,35 @@ export default function AdminReviews() {
 
   const uniqueGrades = ["All", ...new Set(reviews.map(r => r.grade).filter(Boolean))].sort();
   const uniqueSchools = ["All", ...new Set(reviews.map(r => r.school).filter(Boolean))].sort();
+  
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "new_review");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing new_review notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const auth = getAuth();
@@ -682,6 +709,10 @@ export default function AdminReviews() {
                   Close
                 </button>
               </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
+              <div className="text-2xl font-bold text-red-700">{stats.emails_not_sent || 0}</div>
+              <div className="text-xs text-gray-500 font-semibold">Emails Not Sent</div>
             </div>
           </div>
         )}
