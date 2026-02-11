@@ -20,7 +20,7 @@ class HybridRecommender:
             book = self.books[book_id]
 
             sentiments = [
-                rev.get("sentiment", 0)
+                rev.get("sentiment", 0.5)
                 for rev in book["reviews"]
                 if rev.get("sentiment") is not None
             ]
@@ -31,7 +31,7 @@ class HybridRecommender:
 
             final_weight = stars * sentiment_weight
 
-            vectors.append(self.book_embeddings[book_id])
+            vectors.append(self.book_embeddings[book_id]["centroid"])
             weights.append(final_weight)
 
         if not vectors:
@@ -42,7 +42,7 @@ class HybridRecommender:
 
         return np.sum(vectors * weights, axis=0) / np.sum(weights)
 
-    def book_sentiment_score(self, book):
+    def sentiment_score(self, book):
         sentiments = [
             r.get("sentiment")
             for r in book["reviews"]
@@ -50,14 +50,14 @@ class HybridRecommender:
         ]
 
         if not sentiments:
-            return 0.0
+            return 0.5
 
         avg = np.mean(sentiments)
 
         return avg
 
 
-    def genre_overlap(self, user_genres, book_genres):
+    def genre_score(self, user_genres, book_genres):
         if not user_genres or not book_genres:
             return 0.0
         return len(set(user_genres) & set(book_genres)) / len(set(user_genres))
@@ -73,35 +73,71 @@ class HybridRecommender:
         avg = sum(grades) / len(grades)
         return max(0, 1 - abs(user_grade - avg) / 6)
 
-    def recommend(self, user_profile, user_genres, user_grade, top_k=10):
+    def adaptive_weights(self, user_profile, user_reviews):
+        #return so weights sum to 1
+        n_reviews = len(user_reviews)
+
+        emb_w = min(0.7, 0.3 + 0.1 * n_reviews)
+
+        genre_w = max(0.15, 0.4 - 0.05 * n_reviews)
+        grade_w = 0.15
+        sentiment_w = 1.0 - (emb_w + genre_w + grade_w)
+
+        weights = {
+            "embedding": emb_w,
+            "genre": genre_w,
+            "grade": grade_w,
+            "sentiment": sentiment_w
+        }
+
+        s = sum(weights.values())
+        for k in weights:
+            weights[k] /= s
+
+        return weights
+
+    def semantic_similarity(self, user_profile, book_id):
+        # soft max similarity
+        book = self.book_embeddings[book_id]
+        vecs = book["review_vectors"]
+
+        sims = cosine_similarity(
+            user_profile.reshape(1, -1),
+            vecs
+        )[0]
+
+        # soft-top-k pooling
+        top = np.sort(sims)[-3:]
+        return float(np.mean(top))
+
+    def recommend(self, user_profile, user_reviews, user_genres, user_grade, top_k=10):
+        weights = self.adaptive_weights(user_profile, user_reviews)
         scores = []
 
-        for book_id, book_vec in self.book_embeddings.items():
+        for book_id in self.book_embeddings:
             book = self.books[book_id]
 
-            sim = cosine_similarity(
-                user_profile.reshape(1, -1),
-                book_vec.reshape(1, -1)
-            )[0][0]
+            sim = self.semantic_similarity(user_profile, book_id)
+            genre = self.genre_score(user_genres, book["genres"])
+            grade = self.grade_score(user_grade, book)
+            sentiment = self.sentiment_score(book)
 
-            genre_score = self.genre_overlap(user_genres, book["genres"])
-            grade_score = self.grade_score(user_grade, book)
+            uncertainty = self.book_embeddings[book_id]["variance"]
 
-            book_sentiment = self.book_sentiment_score(book)
-
-            # print(book["title"], "sentiment score:", book_sentiment)
-
-            final_score = (
-                0.55 * sim +
-                0.20 * genre_score +
-                0.15 * grade_score +
-                0.10 * book_sentiment
+            final = (
+                weights["embedding"] * sim +
+                weights["genre"] * genre +
+                weights["grade"] * grade +
+                weights["sentiment"] * sentiment
             )
 
-            scores.append((book_id, final_score))
+            final *= np.exp(-0.3 * uncertainty)
+
+            scores.append((book_id, final))
 
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:top_k]
+    
     def cold_start_recommend(self, user_genres, user_grade, top_k=10):
         scores = []
 

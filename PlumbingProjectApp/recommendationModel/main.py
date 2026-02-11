@@ -51,6 +51,7 @@ if user_profile is None:
 else:
     recommendations = recommender.recommend(
         user_profile=user_profile,
+        user_reviews=user_reviews,
         user_genres=user_genres,
         user_grade=user_grade
     )
@@ -80,10 +81,10 @@ for genre in all_genres:
         s+=score
     print(f"{genre} hit rate:", score)
 
-print("average hit rate: "+ (score/len(all_genres)))
+# print("average hit rate: "+ (score/len(all_genres)))
 
-silhouette = evaluator.embedding_silhouette()
-print("Embedding silhouette score:", silhouette)
+# silhouette = evaluator.embedding_silhouette()
+# print("Embedding silhouette score:", silhouette)
 
 div = evaluator.diversity(recommendations)
 print("Recommendation diversity:", div)

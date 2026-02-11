@@ -37,6 +37,7 @@ class RecommenderEvaluator:
 
             recs = self.recommender.recommend(
                 user_profile=profile,
+                user_reviews=user_reviews,
                 user_genres=[genre],
                 user_grade=8,
                 top_k=k

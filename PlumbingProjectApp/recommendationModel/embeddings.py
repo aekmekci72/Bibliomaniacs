@@ -8,8 +8,11 @@ class EmbeddingBuilder:
     def embed_texts(self, texts):
         if not texts:
             return None
-        return self.model.encode(texts, normalize_embeddings=True)
-
+        return self.model.encode(
+            texts,
+            normalize_embeddings=True,
+            show_progress_bar=False
+        )
     def build_book_embeddings(self, books, max_reviews=5):
         book_embeddings = {}
 
@@ -21,17 +24,24 @@ class EmbeddingBuilder:
 
             reviews = sorted(
                 reviews,
-                key=lambda r: (r["stars"] or 3),
+                key=lambda r: (r.get("stars", 3), r.get("sentiment", 0.5)),
                 reverse=True
             )[:max_reviews]
 
-            combined_text = " ".join(r["text"] for r in reviews)
+            texts = [r["text"] for r in reviews]
 
-            embedding = self.model.encode(
-                combined_text,
-                normalize_embeddings=True
-            )
+            vecs = self.embed_texts(texts)
 
-            book_embeddings[book_id] = embedding
+            centroid = np.mean(vecs, axis=0)
+
+            variance = float(np.mean(
+                np.linalg.norm(vecs - centroid, axis=1)
+            ))
+
+            book_embeddings[book_id] = {
+                "review_vectors": vecs,
+                "centroid": centroid,
+                "variance": variance
+            }
 
         return book_embeddings
