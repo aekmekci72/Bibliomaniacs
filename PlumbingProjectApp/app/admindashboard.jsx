@@ -3,6 +3,8 @@ import { Users, Book, FileText, Plus, X, Calendar, ExternalLink, Loader } from "
 import { getAuth } from "firebase/auth"; // Import Firebase auth
 import { View, Text, ScrollView } from "react-native";
 import { RequireAccess } from "../components/requireaccess";
+import { getFirestore, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { auth, app } from "../firebaseConfig";
 
 export default function AdminDashboard() {
   const [admins, setAdmins] = useState([]);
@@ -72,6 +74,36 @@ const [reviewStats, setReviewStats] = useState({
       fetchAdmins();
     }
   }, [authReady]);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore(app);
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "book_of_the_week");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing review_status notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const fetchAdmins = async () => {
     try {

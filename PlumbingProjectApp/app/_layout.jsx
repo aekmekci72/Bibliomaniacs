@@ -55,7 +55,12 @@ export default function Layout() {
         break;
 
       case "book_of_the_week":
-        router.push("/homepage");
+        if (role==="admin") {
+          router.push("/admindashboard");
+        } else {
+          router.push("/homepage");
+        }
+        
         break;
   
       default:

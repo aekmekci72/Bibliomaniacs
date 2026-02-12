@@ -12,6 +12,16 @@ export default function LandingPage() {
   const router = useRouter();
   const db = getFirestore(app);
 
+  const getUserRole = async (user) => {
+    const idToken = await user.getIdToken(true);
+  
+    const res = await axios.post("http://localhost:5001/get_user_role", {
+      idToken,
+    });
+  
+    return typeof res.data === "string" ? res.data : res.data.role;
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
@@ -25,11 +35,13 @@ export default function LandingPage() {
         await setDoc(userRef, { email: user.email, role: "user" });
       }
 
+      const role = await getUserRole(user);  
+
       Alert.alert("Login Success", `Welcome ${user.displayName}!`);
 
       if (isNewUser) {
         router.replace("/profilesetup");
-      } else if (user.role == "admin") {
+      } else if (role == "admin") {
         router.replace("/adminhomepage");
       } else {
         router.replace("/homepage");
