@@ -1,14 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { RequireAccess } from "../components/requireaccess";
 import { Link } from "expo-router";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { interpolate, interpolateColor } from 'react-native-reanimated';
 import Carousel from "react-native-reanimated-carousel";
 import { Dimensions } from "react-native";
+import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { auth, app } from "../firebaseConfig";
+
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = Math.min(width * 0.7, 340);
 
 export default function LandingPage() {
+
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      try {
+        const db = getFirestore(app);
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const current = Array.isArray(data.notifications) ? data.notifications : [];
+
+        const filtered = current.filter((n) => n?.type !== "book_of_the_week");
+
+        if (filtered.length !== current.length) {
+          await updateDoc(userRef, { notifications: filtered });
+        }
+      } catch (err) {
+        console.error("Failed clearing review_status notifications:", err);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   const bookOfTheWeek = {
     title: "To Kill a Mockingbird",
     genre: "Bildungsroman",
@@ -46,7 +81,7 @@ export default function LandingPage() {
 
   return (
     <RequireAccess
-      allowRoles={["user"]}
+      allowRoles={["user", "admin"]}
       redirectTo="/notfound"
     >
     <ScrollView className="landingPageRoot landingScroll">

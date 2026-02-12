@@ -29,8 +29,11 @@ export default function LandingPage() {
 
       if (isNewUser) {
         router.replace("/profilesetup");
+      } else if (user.role == "admin") {
+        router.replace("/adminhomepage");
       } else {
         router.replace("/homepage");
+        console.log(user.role);
       }
 
     } catch (error) {

@@ -53,6 +53,10 @@ export default function Layout() {
       case "review_status":
         router.push("/myreviews");
         break;
+
+      case "book_of_the_week":
+        router.push("/homepage");
+        break;
   
       default:
         router.push("/myreviews");
