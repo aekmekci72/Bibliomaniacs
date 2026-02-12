@@ -24,6 +24,10 @@ export default function ReviewModal({
     titleFlagged,
     gradeLevel,
     setGradeLevel,
+    school,
+    setSchool,
+    email,
+    setEmail,
     firstName,
     setFirstName,
     lastName,
@@ -39,6 +43,24 @@ export default function ReviewModal({
     onSubmit,
     isEditMode,
 }) {
+
+    const [requiredError, setRequiredError] = useState(false);
+    const [failedSubmit, setFailedSubmit] = useState(false);
+
+    const handleSubmit = () => {
+        if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || !lastName.trim() || !review.trim() || !gradeLevel || !recommendedGrades || !rating || !school.trim() || !email.trim()) {
+            setRequiredError(true);
+            setFailedSubmit(true);
+            return;
+        } else {
+            setRequiredError(false);
+            setFailedSubmit(false);
+        }
+    
+        setRequiredError(false);
+        onSubmit();
+    };
+
     return (
         <Modal
             transparent
@@ -57,7 +79,9 @@ export default function ReviewModal({
                         </Text>
 
 
-                        <Text className="inputLabel">Book Title</Text>
+                        <Text className="inputLabel">
+                            Book Title <Text style={{ color: "red" }}>*</Text>
+                        </Text>
                         <TextInput
                             className="modalInput"
                             placeholder="Book title"
@@ -77,7 +101,9 @@ export default function ReviewModal({
                             </View>
                         )}
 
-                        <Text className="inputLabel">Author Name</Text>
+<                       Text className="inputLabel">
+                            Author Name <Text style={{ color: "red" }}>*</Text>
+                        </Text>
                         <TextInput
                             className="modalInput"
                             placeholder="Author name"
@@ -85,7 +111,9 @@ export default function ReviewModal({
                             onChangeText={setAuthorName}
                         />
 
-                        <Text className="inputLabel">Reviewer Name</Text>
+                        <Text className="inputLabel">
+                            Reviewer Name <Text style={{ color: "red" }}>*</Text>
+                        </Text>
 
                         <View className="flex-row gap-3 mb-2">
                             <TextInput
@@ -103,7 +131,29 @@ export default function ReviewModal({
                             />
                         </View>
 
-                        <Text className="inputLabel">Review</Text>
+                        <Text className="inputLabel">
+                            Email <Text style={{ color: "red" }}>*</Text>
+                        </Text>
+                        <TextInput
+                            className="modalInput"
+                            placeholder="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                        />
+
+                        <Text className="inputLabel">
+                            School <Text style={{ color: "red" }}>*</Text>
+                        </Text>
+                        <TextInput
+                            className="modalInput"
+                            placeholder="School"
+                            value={school}
+                            onChangeText={setSchool}
+                        />
+
+                        <Text className="inputLabel">
+                            Review <Text style={{ color: "red" }}>*</Text>
+                        </Text>
                         <TextInput
                             className="modalTextarea"
                             placeholder="Write your review..."
@@ -112,7 +162,9 @@ export default function ReviewModal({
                             onChangeText={setReview}
                         />
 
-                        <Text className="inputLabel">Grade Level</Text>
+                        <Text className="inputLabel">
+                            Grade Level <Text style={{ color: "red" }}>*</Text>
+                        </Text>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -132,7 +184,9 @@ export default function ReviewModal({
                                 ))}
                         </ScrollView>
 
-                        <Text className="inputLabel">Recommended Grade Levels</Text>
+                        <Text className="inputLabel">
+                            Recommended Grade Levels <Text style={{ color: "red" }}>*</Text>
+                        </Text>
                         <View className="flex-row flex-wrap mb-3">
                             {gradeOptions.map((level) => (
                                 <Pressable
@@ -174,7 +228,9 @@ export default function ReviewModal({
                             ))}
                         </View>
 
-                        <Text className="inputLabel">Rating</Text>
+                        <Text className="inputLabel">
+                            Rating <Text style={{ color: "red" }}>*</Text>
+                        </Text>
                         <View className="flex-row mb-3">
                             {[1, 2, 3, 4, 5].map((num) => (
                                 <Pressable key={num} onPress={() => setRating(num)}>
@@ -188,10 +244,21 @@ export default function ReviewModal({
                             ))}
                         </View>
 
+                        {requiredError && failedSubmit && (
+                            <View className="requiredBox">
+                                <View className="flex-1">
+                                    <Text className="requiredTitle">Missing info</Text>
+                                    <Text className="requiredText">
+                                        Please fill all required fields
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
                         <View className="buttonRow mt-1">
                             <Pressable
                                 className="primaryBtn flex-1"
-                                onPress={onSubmit}
+                                onPress={handleSubmit}
                             >
                                 <Text className="primaryText">
                                     {isEditMode ? "Update Review" : "Submit"}

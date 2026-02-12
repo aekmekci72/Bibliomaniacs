@@ -25,6 +25,8 @@ export default function MyReviews() {
   const [modalVisible, setModalVisible] = useState(false);
   const [rating, setRating] = useState(0);
   const [gradeLevel, setGradeLevel] = useState("");
+  const [school, setSchool] = useState("");
+  const [email, setEmail] = useState("");
   const [anonPref, setAnonPref] = useState("");
   const [recommendedGrades, setRecommendedGrades] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -142,6 +144,7 @@ export default function MyReviews() {
           first_name: r.first_name,
           last_name: r.last_name,
           email: user.email,
+          school: r.school,
           grade: r.grade,
           recommended_audience_grade: r.recommended_audience_grade,
           anonymous: r.anonymous,
@@ -210,10 +213,12 @@ export default function MyReviews() {
         setFirstName(data.first_name ?? "");
         setLastName(data.last_name ?? "");
         setGradeLevel(data.grade ?? "");
+        setEmail(data.email ?? "");
       } else {
         setFirstName("");
         setLastName("");
         setGradeLevel("");
+        setEmail("");
       }
 
     } catch (err) {
@@ -261,6 +266,7 @@ export default function MyReviews() {
       first_name: firstName,
       last_name: lastName,
       email: user.email,
+      school: school,
       book_title: bookTitle,
       author: authorName,
       rating: rating,
@@ -336,6 +342,8 @@ export default function MyReviews() {
 
     setBookTitle(review.bookTitle);
     setAuthorName(review.author || "");
+    setEmail(review.email || "");
+    setSchool(review.school || "");
     setReview(review.review);
     setRating(review.rating);
     setGradeLevel(
@@ -574,6 +582,10 @@ export default function MyReviews() {
         setFirstName={setFirstName}
         lastName={lastName}
         setLastName={setLastName}
+        email={email}
+        setEmail={setEmail}
+        school={school}
+        setSchool={setSchool}
         recommendedGrades={recommendedGrades}
         toggleRecommendedGrade={toggleRecommendedGrade}
         anonPref={anonPref}

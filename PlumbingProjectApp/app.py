@@ -563,8 +563,8 @@ def submit_review():
     if not decoded_token:
         return jsonify({"error": "Invalid ID token"}), 401
     
-    required = ["first_name", "last_name", "email", "book_title", 
-                "author", "rating", "review", "grade", "recommended_audience_grade", "anonymous"]
+    required = ["first_name", "last_name", "email", "book_title", "school",
+                "author", "rating", "review", "grade", "recommended_audience_grade"]
     for field in required:
         if not data.get(field):
             return jsonify({"error": f"Missing required field: {field}"}), 400
