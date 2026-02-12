@@ -74,14 +74,22 @@ fantasy_hit_rate = evaluator.synthetic_user_test(
     k=10
 )
 
-s=0
+valid_genres=0
+total_score=0
 for genre in all_genres:
     score = evaluator.synthetic_user_test(genre)
-    if score:
-        s+=score
     print(f"{genre} hit rate:", score)
 
-# print("average hit rate: "+ (score/len(all_genres)))
+    if score is not None:
+        total_score += score
+        valid_genres += 1
+
+if valid_genres > 0:
+    avg = total_score / valid_genres
+else:
+    avg = 0
+
+print("Average hit rate:", avg)
 
 # silhouette = evaluator.embedding_silhouette()
 # print("Embedding silhouette score:", silhouette)
@@ -98,8 +106,3 @@ for _ in range(100):
         top_k=10
     )
     all_recommendations.append(recs)
-
-coverage = evaluator.coverage(all_recommendations)
-print("Catalog coverage:", coverage)
-
-

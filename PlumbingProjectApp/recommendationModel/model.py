@@ -40,7 +40,11 @@ class HybridRecommender:
         vectors = np.vstack(vectors)
         weights = np.array(weights).reshape(-1, 1)
 
-        return np.sum(vectors * weights, axis=0) / np.sum(weights)
+        weight_sum = np.sum(weights)
+        if weight_sum == 0:
+            return None
+
+        return np.sum(vectors * weights, axis=0) / weight_sum
 
     def sentiment_score(self, book):
         sentiments = [
@@ -77,7 +81,7 @@ class HybridRecommender:
         #return so weights sum to 1
         n_reviews = len(user_reviews)
 
-        emb_w = min(0.7, 0.3 + 0.1 * n_reviews)
+        emb_w = min(0.5, 0.2 + 0.08 * n_reviews)
 
         genre_w = max(0.15, 0.4 - 0.05 * n_reviews)
         grade_w = 0.15
@@ -114,16 +118,20 @@ class HybridRecommender:
         weights = self.adaptive_weights(user_profile, user_reviews)
         scores = []
 
-        for book_id in self.book_embeddings:
+        for book_id in self.books:
             book = self.books[book_id]
 
-            sim = self.semantic_similarity(user_profile, book_id)
             genre = self.genre_score(user_genres, book["genres"])
             grade = self.grade_score(user_grade, book)
             sentiment = self.sentiment_score(book)
 
-            uncertainty = self.book_embeddings[book_id]["variance"]
-
+            if book_id in self.book_embeddings:
+                sim = self.semantic_similarity(user_profile, book_id)
+                uncertainty = self.book_embeddings[book_id]["variance"]
+            else:
+                sim = 0
+                uncertainty = 0
+            
             final = (
                 weights["embedding"] * sim +
                 weights["genre"] * genre +
@@ -135,14 +143,28 @@ class HybridRecommender:
 
             scores.append((book_id, final))
 
-        scores.sort(key=lambda x: x[1], reverse=True)
-        return scores[:top_k]
+        scores = sorted(scores, key=lambda x: x[1], reverse=True)
+
+        # take top 50 candidates
+        candidates = scores[:50]
+
+        ids, vals = zip(*candidates)
+        vals = np.array(vals)
+
+        # temperature controls exploration
+        temperature = 0.05
+        probs = np.exp(vals / temperature)
+        probs /= np.sum(probs)
+
+        chosen = np.random.choice(len(ids), size=top_k, replace=False, p=probs)
+
+        return [(ids[i], float(vals[i])) for i in chosen]
     
     def cold_start_recommend(self, user_genres, user_grade, top_k=10):
         scores = []
 
         for book_id, book in self.books.items():
-            genre_score = self.genre_overlap(user_genres, book["genres"])
+            genre_score = self.genre_score(user_genres, book["genres"])
             grade_score = self.grade_score(user_grade, book)
 
             final_score = (
