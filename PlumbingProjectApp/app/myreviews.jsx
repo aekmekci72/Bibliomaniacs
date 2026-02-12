@@ -304,6 +304,7 @@ export default function MyReviews() {
                 idToken,
                 sender: `${firstName} ${lastName}`,
                 book: bookTitle,
+                status: "new_review"
               }),
             });
           } catch (notifErr) {

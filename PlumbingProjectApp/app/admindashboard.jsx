@@ -230,6 +230,16 @@ const [reviewStats, setReviewStats] = useState({
           setNewBookTitle("");
           setNewBookAuthor("");
           setShowUpdateBook(false);
+
+          await fetch("http://localhost:5001/notify_all", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              idToken,
+              book: newBookTitle,
+            }),
+          });
+
         } else {
           const error = await response.json();
           alert(error.error || "Failed to update book of the week");

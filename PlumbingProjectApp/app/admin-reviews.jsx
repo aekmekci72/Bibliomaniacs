@@ -167,7 +167,7 @@ export default function AdminReviews() {
             const recipientUid = recipientData.uid;
             
             // Send the notification
-            await fetch("http://localhost:5001/notify_reviewer", {
+            await fetch("http://localhost:5001/notify_recipients", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
