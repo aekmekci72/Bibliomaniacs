@@ -84,7 +84,6 @@ def load_reviews(csv_path, books):
         })
 
     return books
-    
 # def search_books(reviews_dict, query):
 #     query_norm = normalize_for_search(query)
 #     results = {}
