@@ -724,6 +724,23 @@
     .warningText {
       @apply text-sm text-[#8a5a00] leading-snug;
     }
+
+    .requiredBox {
+      @apply mt-2 mb-5 flex-row gap-2 rounded-xl border px-3 py-2;
+      @apply bg-[#ffe5e5] border-[#f1a8a8];
+    }
+
+    .requiredIcon {
+      @apply mt-0.5;
+    }
+
+    .requiredTitle {
+      @apply text-sm font-bold text-[#8a0000];
+    }
+
+    .requiredText {
+      @apply text-sm text-[#8a0000] leading-snug;
+    }
   }
 }
 
