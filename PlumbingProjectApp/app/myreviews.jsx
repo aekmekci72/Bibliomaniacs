@@ -34,6 +34,8 @@ export default function MyReviews() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [dailyReviewsRemaining, setDailyReviewsRemaining] = useState(2);
+  const [dailyReviewsSubmitted, setDailyReviewsSubmitted] = useState(0);
 
   const debounceTimer = useRef(null);
 
@@ -47,6 +49,21 @@ export default function MyReviews() {
 
   const approvedReviews = reviews.filter(r => r.status === "Approved").length;
   const volunteerHours = (approvedReviews * 0.5).toFixed(1);
+
+  // Calculate daily reviews from today's submissions
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayReviews = reviews.filter(r => {
+      const reviewDate = new Date(r.createdAt);
+      reviewDate.setHours(0, 0, 0, 0);
+      return reviewDate.getTime() === today.getTime();
+    }).length;
+
+    setDailyReviewsSubmitted(todayReviews);
+    setDailyReviewsRemaining(Math.max(0, 2 - todayReviews));
+  }, [reviews]);
 
   const filtered = reviews
     .filter((r) => {
@@ -122,7 +139,6 @@ export default function MyReviews() {
       setRecommendedGrades([...recommendedGrades, level]);
     }
   };
-
 
   const fetchUserReviews = async (user) => {
     try {
@@ -216,7 +232,6 @@ export default function MyReviews() {
     }
   };
 
-
   const fetchUserProfile = async (user) => {
     try {
       const userRef = doc(db, "users", user.uid);
@@ -224,7 +239,6 @@ export default function MyReviews() {
 
       if (snap.exists()) {
         const data = snap.data();
-
         setFirstName(data.first_name ?? "");
         setLastName(data.last_name ?? "");
         setGradeLevel(data.grade ?? "");
@@ -233,7 +247,6 @@ export default function MyReviews() {
         setLastName("");
         setGradeLevel("");
       }
-
     } catch (err) {
       console.error("Failed to load profile:", err);
     } finally {
@@ -257,14 +270,17 @@ export default function MyReviews() {
     return () => unsubscribe();
   }, []);
 
-
-
   const handleSubmitReview = async () => {
     const auth = getAuth();
-    console.log(editingReviewId)
     const user = auth.currentUser;
     if (!user) {
       alert("You must be logged in");
+      return;
+    }
+
+    // Check daily limit before submitting
+    if (!isEditMode && dailyReviewsRemaining <= 0) {
+      alert("You've reached your daily limit of 2 reviews. Please try again tomorrow!");
       return;
     }
 
@@ -286,13 +302,11 @@ export default function MyReviews() {
     };
 
     try {
-
       const url = isEditMode
         ? `http://localhost:5001/update_user_review/${editingReviewId}`
         : "http://localhost:5001/submit_review";
 
       const method = isEditMode ? "PUT" : "POST";
-
 
       const response = await fetch(url, {
         method,
@@ -300,31 +314,43 @@ export default function MyReviews() {
         body: JSON.stringify(reviewData),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        const result = await response.json();
         console.log("Success:", result);
-        try {
-          const res = await fetch("http://localhost:5001/notify_admins", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              idToken,
-              sender: `${firstName} ${lastName}`,
-              book: bookTitle,
-            }),
-          });
-        } catch (notifErr) {
-          console.error("Failed to notify admins:", notifErr);
+
+        // Update daily counts from response if provided
+        if (result.daily_reviews_remaining !== undefined) {
+          setDailyReviewsRemaining(result.daily_reviews_remaining);
+          setDailyReviewsSubmitted(result.daily_reviews_submitted);
         }
+
+        // Only notify admins for new reviews, not edits
+        if (!isEditMode) {
+          try {
+            await fetch("http://localhost:5001/notify_admins", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                idToken,
+                sender: `${firstName} ${lastName}`,
+                book: bookTitle,
+              }),
+            });
+          } catch (notifErr) {
+            console.error("Failed to notify admins:", notifErr);
+          }
+        }
+
         setModalVisible(false);
         setIsEditMode(false);
         setEditingReviewId(null);
         alert(isEditMode ? "Review updated!" : "Review submitted!");
-        const auth = getAuth();
-        const user = auth.currentUser;
         await fetchUserReviews(user);
+      } else if (response.status === 429) {
+        alert(result.message || "You've reached your daily limit of 2 reviews. Please try again tomorrow!");
       } else {
-        alert("Submission failed. Please try again.");
+        alert(result.error || "Submission failed. Please try again.");
       }
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -349,7 +375,6 @@ export default function MyReviews() {
     setAnonPref(review.anonymous || "");
     setFirstName(review.first_name || "");
     setLastName(review.last_name || "");
-
     setTitleFlagged(false);
     setTitleCheckLoading(false);
 
@@ -360,7 +385,6 @@ export default function MyReviews() {
     setSelectedReview(review);
     setShowViewModal(true);
   };
-
 
   const generateCertificate = () => {
     const certificateHTML = `
@@ -431,8 +455,24 @@ export default function MyReviews() {
           <h1 className="text-4xl font-bold mb-2 text-center text-gray-800">My Submitted Reviews</h1>
           <p className="text-center text-gray-600 mb-6">View the status of your submitted reviews</p>
 
+          {/* Daily Limit Warning */}
+          {dailyReviewsRemaining === 0 && (
+            <div className="mb-6 p-4 bg-orange-50 border-l-4 border-orange-400 rounded-lg max-w-4xl mx-auto">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-orange-800 font-semibold">
+                    ⚠️ Daily Review Limit Reached
+                  </p>
+                  <p className="text-sm text-orange-700 mt-1">
+                    You've submitted {dailyReviewsSubmitted} reviews today. You can submit 2 more reviews tomorrow!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-gray-400">
               <div className="text-3xl font-bold text-gray-700">{reviews.length}</div>
               <div className="text-sm text-gray-500 font-semibold">Total Reviews</div>
@@ -448,6 +488,10 @@ export default function MyReviews() {
             <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-600">
               <div className="text-3xl font-bold text-blue-700">{volunteerHours}</div>
               <div className="text-sm text-gray-500 font-semibold">Volunteer Hours</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-purple-600">
+              <div className="text-3xl font-bold text-purple-700">{dailyReviewsRemaining}</div>
+              <div className="text-sm text-gray-500 font-semibold">Reviews Left Today</div>
             </div>
           </div>
 
@@ -533,7 +577,13 @@ export default function MyReviews() {
           <div className="mt-8 flex justify-center gap-4 flex-wrap">
             <button onClick={exportCSV} className="bg-green-900 text-white font-bold py-4 px-8 rounded-lg">Export CSV</button>
             <button onClick={generateCertificate} className="bg-blue-700 text-white font-bold py-4 px-8 rounded-lg">📜 Certificate</button>
-            <button onClick={() => setModalVisible(true)} className="bg-green-700 text-white font-bold py-4 px-8 rounded-lg">+ Add New Review</button>
+            <button
+              onClick={() => setModalVisible(true)}
+              className={`bg-green-700 text-white font-bold py-4 px-8 rounded-lg ${dailyReviewsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={dailyReviewsRemaining === 0}
+            >
+              + Add New Review {dailyReviewsRemaining > 0 && `(${dailyReviewsRemaining} left today)`}
+            </button>
           </div>
         </div>
       </div>

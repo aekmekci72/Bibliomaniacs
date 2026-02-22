@@ -532,6 +532,7 @@ def check_book_popularity():
         matching_reviews = [
             r for r in recent_reviews
             if r.book_title and r.book_title.lower() == title_lower
+            and (r.approved or not r.date_processed)  # approved or pending, not rejected
         ]
 
         count = len(matching_reviews)
@@ -567,7 +568,7 @@ def get_commonly_reviewed_books():
 
         book_counts: dict[str, int] = {}
         for r in recent_reviews:
-            if r.book_title:
+            if r.book_title and (r.approved or not r.date_processed):  # approved or pending, not rejected
                 key = r.book_title.strip().lower()
                 book_counts[key] = book_counts.get(key, 0) + 1
 
@@ -591,7 +592,6 @@ def get_commonly_reviewed_books():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/ask_question", methods=["POST"])
 def ask_question():
