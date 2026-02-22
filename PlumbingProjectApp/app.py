@@ -14,6 +14,8 @@ from fireo.fields import TextField, IDField, NumberField, ListField
 from review_model import Review, create_review, process_review, calculate_user_hours
 import traceback
 import time
+from datetime import datetime, timedelta
+
 from email_utils import generate_email_draft, generate_bulk_email_drafts
 
 app = Flask(__name__)
@@ -511,6 +513,87 @@ def get_books():
 
     set_cache("books", books, ttl=3600)
     return jsonify(books), 200
+
+
+@app.route("/check_book_popularity", methods=["GET"])
+def check_book_popularity():
+    title = request.args.get("title", "").strip()
+    threshold = request.args.get("threshold", 3, type=int)
+
+    if not title:
+        return jsonify({"error": "Missing 'title' query parameter"}), 400
+
+    try:
+        one_year_ago = datetime.now() - timedelta(days=365)
+
+        recent_reviews = Review.collection.filter(
+            "date_received", ">=", one_year_ago
+        ).fetch()
+
+        title_lower = title.lower()
+        matching_reviews = [
+            r for r in recent_reviews
+            if r.book_title and r.book_title.lower() == title_lower
+            and (r.approved or not r.date_processed)  # approved or pending, not rejected
+        ]
+
+        count = len(matching_reviews)
+        is_common = count >= threshold
+
+        return jsonify({
+            "commonly_reviewed": is_common,
+            "review_count": count,
+            "title": title,
+            "threshold": threshold,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/get_commonly_reviewed_books", methods=["GET"])
+def get_commonly_reviewed_books():
+    threshold = request.args.get("threshold", 3, type=int)
+    days = request.args.get("days", 365, type=int)
+
+    cache_key = f"commonly_reviewed_books:{threshold}:{days}"
+    cached = get_cache(cache_key)
+    if cached:
+        return jsonify(cached), 200
+
+    try:
+        cutoff = datetime.now() - timedelta(days=days)
+
+        recent_reviews = Review.collection.filter(
+            "date_received", ">=", cutoff
+        ).fetch()
+
+        book_counts: dict[str, int] = {}
+        for r in recent_reviews:
+            if r.book_title and (r.approved or not r.date_processed):  # approved or pending, not rejected
+                key = r.book_title.strip().lower()
+                book_counts[key] = book_counts.get(key, 0) + 1
+
+        commonly_reviewed = [
+            {"title": title.title(), "review_count": count}
+            for title, count in book_counts.items()
+            if count >= threshold
+        ]
+
+        commonly_reviewed.sort(key=lambda x: x["review_count"], reverse=True)
+
+        payload = {
+            "books": commonly_reviewed,
+            "threshold": threshold,
+            "days": days,
+            "total": len(commonly_reviewed),
+        }
+
+        set_cache(cache_key, payload, ttl=300)
+        return jsonify(payload), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/ask_question", methods=["POST"])
 def ask_question():

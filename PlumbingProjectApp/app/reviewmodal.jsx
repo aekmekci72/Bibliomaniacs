@@ -42,6 +42,7 @@ export default function ReviewModal({
     anonOptions,
     onSubmit,
     isEditMode,
+    titleCheckLoading,
 }) {
 
     const [requiredError, setRequiredError] = useState(false);
@@ -89,16 +90,20 @@ export default function ReviewModal({
                             onChangeText={handleTitleChange}
                         />
 
-                        {titleFlagged && (
-                            <View className="warningBox">
-                                <View className="flex-1">
-                                    <Text className="warningTitle">Already popular title</Text>
-                                    <Text className="warningText">
-                                        This book has already been reviewed many times. Consider
-                                        reviewing a different book.
-                                    </Text>
-                                </View>
+                        {titleCheckLoading && (
+                        <Text className="text-xs text-gray-400 mb-2">Checking title...</Text>
+                        )}
+
+                        {titleFlagged && !titleCheckLoading && (
+                        <View className="warningBox">
+                            <View className="flex-1">
+                            <Text className="warningTitle">Already popular title</Text>
+                            <Text className="warningText">
+                                This book has already been reviewed many times. Consider
+                                reviewing a different book.
+                            </Text>
                             </View>
+                        </View>
                         )}
 
 <                       Text className="inputLabel">
