@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, Star, Calendar, TrendingUp, TrendingDown, Filter, ArrowLeft } from "lucide-react";
+import { View, Text, TextInput, Pressable, ScrollView, Alert } from "react-native";
 
 export default function AllReviews() {
   const [search, setSearch] = useState("");
@@ -187,6 +188,7 @@ export default function AllReviews() {
 
   // Main Reviews Grid View
   return (
+    <ScrollView>
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
@@ -317,5 +319,6 @@ export default function AllReviews() {
         )}
       </div>
     </div>
+    </ScrollView>
   );
 }

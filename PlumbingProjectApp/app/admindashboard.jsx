@@ -20,11 +20,12 @@ export default function AdminDashboard() {
   const [newBookAuthor, setNewBookAuthor] = useState("");
   const [loadingBook, setLoadingBook] = useState(true);
 
-  const [reviewStats, setReviewStats] = useState({
-    approved: 0,
-    pending: 0,
-    rejected: 0,
-  });
+const [reviewStats, setReviewStats] = useState({
+  approved: 0,
+  pending: 0,
+  rejected: 0,
+  emails_not_sent: 0,
+});
   const [loadingStats, setLoadingStats] = useState(true);
   const [authReady, setAuthReady] = useState(false);
 
@@ -258,6 +259,7 @@ export default function AdminDashboard() {
           approved: data.approved_reviews,
           pending: data.pending_reviews,
           rejected: data.rejected_reviews,
+          emails_not_sent: data.emails_not_sent || 0,
         });
       } else {
         console.error("Failed to fetch review stats");
@@ -275,12 +277,17 @@ export default function AdminDashboard() {
   // Show loading state while waiting for authentication
   if (!authReady) {
     return (
+      <RequireAccess
+      allowRoles={["admin"]}
+      redirectTo="/notfound"
+    >
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center">
         <div className="text-center">
           <Loader className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
+      </RequireAccess>
     );
   }
 
@@ -591,6 +598,30 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+            {reviewStats.emails_not_sent > 0 && (
+            <div className="mt-6 p-4 bg-orange-50 border-l-4 border-orange-400 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-800 font-semibold">
+                    ⚠️ {reviewStats.emails_not_sent} update
+                    {reviewStats.emails_not_sent > 1 ? "s have" : " has"} not been emailed
+                  </p>
+                  <p className="text-sm text-orange-700 mt-1">
+                    Processed reviews are missing confirmation emails
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    window.location.href = "/admin-reviews?filter=not_sent"
+                  }
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+                >
+                  View
+                </button>
+              </div>
+            </div>
+          )}
+
           </div>
         </div>
       </div>
