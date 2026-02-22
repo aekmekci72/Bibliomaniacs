@@ -285,6 +285,11 @@ def get_user_role(uid, email=None):
             user_ref.update({"role": "admin"})
             print("DEBUG: Upgraded user to admin")
             return "admin"
+        elif not is_user_admin(email) and data.get("role") == "admin":
+            user_ref.update({"role": "user"})
+            print("DEBUG: Demoted user to user")
+            return "user"
+        
         return data.get("role", "user")
 
     role = "admin" if is_user_admin(email) else "user"
