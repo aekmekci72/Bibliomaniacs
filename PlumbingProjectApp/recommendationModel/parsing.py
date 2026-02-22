@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from collections import defaultdict
-from sentiment import ReviewSentimentAnalyzer
+from recommendationModel.sentiment import ReviewSentimentAnalyzer
 
 analyzer = ReviewSentimentAnalyzer()
 
@@ -84,7 +84,6 @@ def load_reviews(csv_path, books):
         })
 
     return books
-    
 # def search_books(reviews_dict, query):
 #     query_norm = normalize_for_search(query)
 #     results = {}

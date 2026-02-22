@@ -13,6 +13,8 @@ const { width } = Dimensions.get("window");
 const CARD_WIDTH = Math.min(width * 0.7, 340);
 
 export default function LandingPage() {
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingRecs, setLoadingRecs] = useState(true);
 
   useEffect(() => {
     const auth = getAuth();
@@ -20,6 +22,32 @@ export default function LandingPage() {
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) return;
+
+      if (user) {
+
+        if (!user) {
+          alert("You must be logged in");
+          return;
+        }
+        try {
+          const idToken = await user.getIdToken(true);
+          const response = await fetch("http://localhost:5001/get_recommendations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: idToken })
+          });
+
+          const result = await response.json();
+          if (result.recommendations) {
+            setRecommendations(result.recommendations);
+          }
+        } catch (err) {
+          console.error("Rec fetch failed:", err);
+        } finally {
+          setLoadingRecs(false);
+        }
+      }
+
 
       try {
         const db = getFirestore(app);
@@ -72,11 +100,11 @@ export default function LandingPage() {
   const [index, setIndex] = useState(0);
 
   const next = () => {
-    setIndex((prev) => (prev + 1) % topRecs.length);
+    setIndex((prev) => (prev + 1) % recommendations.length);
   };
 
   const prev = () => {
-    setIndex((prev) => (prev - 1 + topRecs.length) % topRecs.length);
+    setIndex((prev) => (prev - 1 + recommendations.length) % recommendations.length);
   };
 
   return (
@@ -84,171 +112,179 @@ export default function LandingPage() {
       allowRoles={["user", "admin"]}
       redirectTo="/notfound"
     >
-    <ScrollView className="landingPageRoot landingScroll">
-      {/* === TOP BAND === */}
-      <View className="landingTopSection">
-        <View className="landingTopInner">
-          <View className="homeTopLeft">
-            <Text className="landingTitle">Welcome Back!</Text>
+      <ScrollView className="landingPageRoot landingScroll">
+        {/* === TOP BAND === */}
+        <View className="landingTopSection">
+          <View className="landingTopInner">
+            <View className="homeTopLeft">
+              <Text className="landingTitle">Welcome Back!</Text>
 
-            <Text className="landingTagline pt-2 pb-8">
-              Book review website that enhances Ridgewood Public Library’s
-              volunteer review service by streamlining personal information
-              entry, organizing hours, and providing recommendations.
-            </Text>
+              <Text className="landingTagline pt-2 pb-8">
+                Book review website that enhances Ridgewood Public Library’s
+                volunteer review service by streamlining personal information
+                entry, organizing hours, and providing recommendations.
+              </Text>
 
-            <Pressable
-              className="landingPrimaryBtn self-start"
-              onPress={() => navigation?.navigate?.("explorer")}
-            >
-              <Text className="landingPrimaryText">Start Logging</Text>
-            </Pressable>
-          </View>
+              <Pressable
+                className="landingPrimaryBtn self-start"
+                onPress={() => navigation?.navigate?.("explorer")}
+              >
+                <Text className="landingPrimaryText">Start Logging</Text>
+              </Pressable>
+            </View>
 
-          {/* RIGHT COLUMN – Book of the Week */}
-          <View className="bookWeekCard">
-            <Text className="bookWeekLabel">Book of the Week</Text>
-            <Text className="bookWeekTitle">{bookOfTheWeek.title}</Text>
+            {/* RIGHT COLUMN – Book of the Week */}
+            <View className="bookWeekCard">
+              <Text className="bookWeekLabel">Book of the Week</Text>
+              <Text className="bookWeekTitle">{bookOfTheWeek.title}</Text>
 
-            <View className="bookWeekCover" />
+              <View className="bookWeekCover" />
 
-            <View className="bookWeekMetaRow">
-              <View className="bookWeekTag">
-                <Text className="bookWeekTagText">
-                  {bookOfTheWeek.genre} · {bookOfTheWeek.stars} ★
+              <View className="bookWeekMetaRow">
+                <View className="bookWeekTag">
+                  <Text className="bookWeekTagText">
+                    {bookOfTheWeek.genre} · {bookOfTheWeek.stars} ★
+                  </Text>
+                </View>
+                <Text className="bookWeekPages">
+                  {bookOfTheWeek.pages} · {bookOfTheWeek.descr}
                 </Text>
               </View>
-              <Text className="bookWeekPages">
-                {bookOfTheWeek.pages} · {bookOfTheWeek.descr}
-              </Text>
-            </View>
 
-            <Text className="bookWeekBlurb">{bookOfTheWeek.blurb}</Text>
+              <Text className="bookWeekBlurb">{bookOfTheWeek.blurb}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* === BOTTOM BAND === */}
-      <View className="landingBottomSection">
-        <View className="recsHeaderRow">
-          <Text className="recsTitle">Top Recommendations</Text>
-          <Pressable>
-            <Link href="explorer" className="recsShowMore">Show more</Link>
-          </Pressable>
-        </View>
-        <View style>
-          <Carousel
-            width={width}
-            height={300}
-            data={topRecs}
-            loop
-            autoPlay
-            autoPlayInterval={3000}
-            scrollAnimationDuration={800}
-            mode="custom"
-            customAnimation={(value) => {
-              'worklet';
-              const zIndex = interpolate(
-                value,
-                [-1, -0.5, 0, 0.5, 1],
-                [1, 5, 20, 5, 1]
-              );
+        {/* === BOTTOM BAND === */}
+        <View className="landingBottomSection">
+          <View className="recsHeaderRow">
+            <Text className="recsTitle">Top Recommendations</Text>
+            <Pressable>
+              <Link href="explorer" className="recsShowMore">Show more</Link>
+            </Pressable>
+          </View>
+          <View style>
+            <Carousel
+              width={width}
+              height={300}
+              data={recommendations}
+              loop
+              autoPlay
+              autoPlayInterval={3000}
+              scrollAnimationDuration={800}
+              mode="custom"
+              customAnimation={(value) => {
+                'worklet';
+                const zIndex = interpolate(
+                  value,
+                  [-1, -0.5, 0, 0.5, 1],
+                  [1, 5, 20, 5, 1]
+                );
 
-              const scale = interpolate(
-                value,
-                [-1, 0, 1],
-                [0.8, 1, 0.8]
-              );
+                const scale = interpolate(
+                  value,
+                  [-1, 0, 1],
+                  [0.8, 1, 0.8]
+                );
 
-              const opacity = interpolate(
-                value,
-                [-1, -0.5, 0, 0.5, 1],
-                [0.4, 0.8, 1, 0.8, 0.4]
-              );
+                const opacity = interpolate(
+                  value,
+                  [-1, -0.5, 0, 0.5, 1],
+                  [0.4, 0.8, 1, 0.8, 0.4]
+                );
 
-              const translateX = interpolate(
-                value,
-                [-1, 0, 1],
-                [-width * 0.25, 0, width * 0.25]
-              );
+                const translateX = interpolate(
+                  value,
+                  [-1, 0, 1],
+                  [-width * 0.25, 0, width * 0.25]
+                );
 
-              return {
-                transform: [
-                  { scale },
-                  { translateX }
-                ],
-                zIndex,
-                opacity,
-              };
-            }}
-            windowSize={3}
-            renderItem={({ item }) => (
-              <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                <View
-                  style={{
-                    width: CARD_WIDTH,
-                    backgroundColor: '#f6faf6',
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 8,
-                    elevation: 5,
-                  }}
-                  className="carouselCard"
-                >
-                  <View className="carouselThumb" />
-                  <Text className="carouselTitle">{item.title}</Text>
-                  <Text className="carouselMeta">{item.meta}</Text>
+                return {
+                  transform: [
+                    { scale },
+                    { translateX }
+                  ],
+                  zIndex,
+                  opacity,
+                };
+              }}
+              windowSize={3}
+              renderItem={({ item }) => (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                  <View
+                    style={{
+                      width: CARD_WIDTH,
+                      backgroundColor: '#f6faf6',
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.1,
+                      shadowRadius: 8,
+                      elevation: 5,
+                    }}
+                    className="carouselCard"
+                  >
+                    <View className="carouselThumb" />
+                    <Text className="carouselTitle">{item.title}</Text>
+                    <Text className="carouselMeta">
+                      {item.author}
+                    </Text>
+
+                    <Text className="carouselMeta">
+                      ⭐ {item.avg_rating && item.avg_rating > 0
+                          ? item.avg_rating.toFixed(1)
+                          : "N/A"}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
-          />
-        </View>
-      </View>
-
-
-
-      {/* FOOTER */}
-      < View className="footer" >
-        <View className="footerInner">
-          <View className="flex flex-row flex-wrap justify-between gap-10">
-            <View className="w-40">
-              <Text className="footerBrand">Bibliomaniacs</Text>
-              <Text className="footerText">
-                Building better reading habits for the Ridgewood community.
-              </Text>
-            </View>
-
-            <View className="w-40">
-              <Text className="footerTitle">Contact Us</Text>
-              <Text className="footerText">Email: support@bibliomaniacs.fake</Text>
-              <Text className="footerText">Phone: (555) 123-4567</Text>
-              <Text className="footerText">123 Library Lane, Ridgewood, NJ</Text>
-            </View>
-
-            <View className="w-40">
-              <Text className="footerTitle">Quick Links</Text>
-              <Text className="footerText">About Us</Text>
-              <Text className="footerText">FAQ</Text>
-              <Text className="footerText">Privacy Policy</Text>
-            </View>
-
-            <View className="w-40">
-              <Text className="footerTitle">Follow Us</Text>
-              <Text className="footerText">Instagram</Text>
-              <Text className="footerText">Twitter</Text>
-              <Text className="footerText">Facebook</Text>
-            </View>
+              )}
+            />
           </View>
-
-          <View className="footerDivider" />
-
-          <Text className="footerCopyright">
-            © {new Date().getFullYear()} Bibliomaniacs. All rights reserved.
-          </Text>
         </View>
-      </View >
-    </ScrollView >
+
+
+
+        {/* FOOTER */}
+        < View className="footer" >
+          <View className="footerInner">
+            <View className="flex flex-row flex-wrap justify-between gap-10">
+              <View className="w-40">
+                <Text className="footerBrand">Bibliomaniacs</Text>
+                <Text className="footerText">
+                  Building better reading habits for the Ridgewood community.
+                </Text>
+              </View>
+
+              <View className="w-40">
+                <Text className="footerTitle">Contact Us</Text>
+                <Text className="footerText">Email: support@bibliomaniacs.fake</Text>
+                <Text className="footerText">Phone: (555) 123-4567</Text>
+                <Text className="footerText">123 Library Lane, Ridgewood, NJ</Text>
+              </View>
+
+              <View className="w-40">
+                <Text className="footerTitle">Quick Links</Text>
+                <Text className="footerText">About Us</Text>
+                <Text className="footerText">FAQ</Text>
+                <Text className="footerText">Privacy Policy</Text>
+              </View>
+
+              <View className="w-40">
+                <Text className="footerTitle">Follow Us</Text>
+                <Text className="footerText">Instagram</Text>
+                <Text className="footerText">Twitter</Text>
+                <Text className="footerText">Facebook</Text>
+              </View>
+            </View>
+
+            <View className="footerDivider" />
+
+            <Text className="footerCopyright">
+              © {new Date().getFullYear()} Bibliomaniacs. All rights reserved.
+            </Text>
+          </View>
+        </View >
+      </ScrollView >
     </RequireAccess>
   );
 }
