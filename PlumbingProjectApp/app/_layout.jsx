@@ -372,7 +372,6 @@ export default function Layout() {
             <>
               <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
               <NavItem icon="document-text-outline" IconSet={Ionicons} label="My Reviews" page="myreviews" href="/myreviews" />
-              <NavItem icon="calendar-outline" IconSet={Ionicons} label="Review Page" page="reviewpage" href="/reviewpage" />
               <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Profile" page="profile" href="/profile" />
             </>
           )}

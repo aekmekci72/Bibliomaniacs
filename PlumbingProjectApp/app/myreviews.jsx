@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ export default function MyReviews() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [titleFlagged, setTitleFlagged] = useState(false);
+  const [titleCheckLoading, setTitleCheckLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [rating, setRating] = useState(0);
   const [gradeLevel, setGradeLevel] = useState("");
@@ -34,7 +35,7 @@ export default function MyReviews() {
   const [selectedReview, setSelectedReview] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
 
-
+  const debounceTimer = useRef(null);
 
   const statusColor = {
     Approved: "#2b7a4b",
@@ -72,14 +73,44 @@ export default function MyReviews() {
     window.URL.revokeObjectURL(url);
   };
 
-  const overReviewedBooks = ["Harry Potter", "Percy Jackson", "Jane Eyre", "The Great Gatsby", "To Kill a Mockingbird"];
-
   const handleTitleChange = (text) => {
     setBookTitle(text);
-    const normalized = text.trim().toLowerCase();
-    const isOverReviewed = overReviewedBooks.some((book) => book.toLowerCase() === normalized);
-    setTitleFlagged(isOverReviewed);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setTitleFlagged(false);
+      setTitleCheckLoading(false);
+      return;
+    }
+
+    setTitleCheckLoading(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5001/check_book_popularity?title=${encodeURIComponent(trimmed)}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTitleFlagged(data.commonly_reviewed === true);
+        } else {
+          setTitleFlagged(false);
+        }
+      } catch (err) {
+        console.warn("Title check failed:", err);
+        setTitleFlagged(false);
+      } finally {
+        setTitleCheckLoading(false);
+      }
+    }, 500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
 
   const gradeOptions = ["6", "7", "8", "9", "10", "11", "12"];
   const anonOptions = ["Yes", "No", "First Name Only"];
@@ -196,15 +227,11 @@ export default function MyReviews() {
 
         setFirstName(data.first_name ?? "");
         setLastName(data.last_name ?? "");
-        // setPhone(data.phone ?? "");
         setGradeLevel(data.grade ?? "");
-        // setSchool(data.school ?? "");
       } else {
         setFirstName("");
         setLastName("");
-        // setPhone("");
         setGradeLevel("");
-        // setSchool("");
       }
 
     } catch (err) {
@@ -277,7 +304,6 @@ export default function MyReviews() {
         const result = await response.json();
         console.log("Success:", result);
         try {
-          const sender = `${firstName} ${lastName}`;
           const res = await fetch("http://localhost:5001/notify_admins", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -292,7 +318,8 @@ export default function MyReviews() {
         }
         setModalVisible(false);
         setIsEditMode(false);
-        setEditingReviewId(null); alert(isEditMode ? "Review updated!" : "Review submitted!");
+        setEditingReviewId(null);
+        alert(isEditMode ? "Review updated!" : "Review submitted!");
         const auth = getAuth();
         const user = auth.currentUser;
         await fetchUserReviews(user);
@@ -323,6 +350,9 @@ export default function MyReviews() {
     setFirstName(review.first_name || "");
     setLastName(review.last_name || "");
 
+    setTitleFlagged(false);
+    setTitleCheckLoading(false);
+
     setModalVisible(true);
   };
 
@@ -330,8 +360,6 @@ export default function MyReviews() {
     setSelectedReview(review);
     setShowViewModal(true);
   };
-
-
 
 
   const generateCertificate = () => {
@@ -375,7 +403,7 @@ export default function MyReviews() {
 
       try {
         const db = getFirestore();
-        const userRef = doc(db, "users", user.uid); // change to user.email if that's your doc id
+        const userRef = doc(db, "users", user.uid);
         const snap = await getDoc(userRef);
 
         if (!snap.exists()) return;
@@ -394,7 +422,7 @@ export default function MyReviews() {
     });
 
     return unsubscribe;
-    }, []);
+  }, []);
 
   return (
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
@@ -455,7 +483,6 @@ export default function MyReviews() {
                   <th className="px-4 py-4 text-left font-bold text-gray-700">Status</th>
                   <th className="px-4 py-4 text-left font-bold text-gray-700">Date</th>
                   <th className="px-4 py-4 text-left font-bold text-gray-700">Actions</th>
-
                 </tr>
               </thead>
               <tbody>
@@ -496,8 +523,6 @@ export default function MyReviews() {
                         )}
                       </div>
                     </td>
-
-
                   </tr>
                 ))}
               </tbody>
@@ -523,6 +548,7 @@ export default function MyReviews() {
         review={review}
         setReview={setReview}
         titleFlagged={titleFlagged}
+        titleCheckLoading={titleCheckLoading}
         gradeLevel={gradeLevel}
         setGradeLevel={setGradeLevel}
         firstName={firstName}
@@ -541,75 +567,72 @@ export default function MyReviews() {
         isEditMode={isEditMode}
       />
 
-      {
-        showViewModal && selectedReview && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4 text-gray-800">Review Details</h2>
+      {showViewModal && selectedReview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">Review Details</h2>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">Date Received</p>
-                  <p className="text-gray-800">{new Date(selectedReview.date_received).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">Reviewer</p>
-                  <p className="text-gray-800">{selectedReview.first_name} {selectedReview.last_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">Grade</p>
-                  <p className="text-gray-800">{selectedReview.grade}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">School</p>
-                  <p className="text-gray-800">{selectedReview.school}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">Email</p>
-                  <p className="text-gray-800 text-sm">{selectedReview.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">Phone</p>
-                  <p className="text-gray-800">{selectedReview.phone_number}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-semibold">Anonymous</p>
-                  <p className="text-gray-800">{selectedReview.anonymous}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">Date Received</p>
+                <p className="text-gray-800">{new Date(selectedReview.date_received).toLocaleString()}</p>
               </div>
-
-              <div className="border-t pt-4 mb-4">
-                <h3 className="font-bold text-lg mb-2 text-gray-800">Book Information</h3>
-                <p className="text-sm text-gray-500 font-semibold">Title</p>
-                <p className="text-gray-800 mb-2">{selectedReview.bookTitle}</p>
-                <p className="text-sm text-gray-500 font-semibold">Author</p>
-                <p className="text-gray-800 mb-2">{selectedReview.author}</p>
-                <p className="text-sm text-gray-500 font-semibold">Rating</p>
-                <p className="text-gray-800 mb-2">★ {Number(selectedReview.rating).toFixed(1)} / 5</p>
-                <p className="text-sm text-gray-500 font-semibold">Recommended Grade</p>
-                <p className="text-gray-800">{Array.isArray(selectedReview.recommended_audience_grade)
-                  ? selectedReview.recommended_audience_grade.join(", ")
-                  : selectedReview.recommended_audience_grade || "N/A"}</p>
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">Reviewer</p>
+                <p className="text-gray-800">{selectedReview.first_name} {selectedReview.last_name}</p>
               </div>
-
-              <div className="border-t pt-4 mb-4">
-                <p className="text-sm text-gray-500 font-semibold mb-2">Review</p>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-line">{selectedReview.review}</p>
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">Grade</p>
+                <p className="text-gray-800">{selectedReview.grade}</p>
               </div>
-
-              <div className="flex gap-3 justify-end mt-6">
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors"
-                >
-                  Close
-                </button>
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">School</p>
+                <p className="text-gray-800">{selectedReview.school}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">Email</p>
+                <p className="text-gray-800 text-sm">{selectedReview.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">Phone</p>
+                <p className="text-gray-800">{selectedReview.phone_number}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-semibold">Anonymous</p>
+                <p className="text-gray-800">{selectedReview.anonymous}</p>
               </div>
             </div>
-          </div>
-        )
-      }
 
+            <div className="border-t pt-4 mb-4">
+              <h3 className="font-bold text-lg mb-2 text-gray-800">Book Information</h3>
+              <p className="text-sm text-gray-500 font-semibold">Title</p>
+              <p className="text-gray-800 mb-2">{selectedReview.bookTitle}</p>
+              <p className="text-sm text-gray-500 font-semibold">Author</p>
+              <p className="text-gray-800 mb-2">{selectedReview.author}</p>
+              <p className="text-sm text-gray-500 font-semibold">Rating</p>
+              <p className="text-gray-800 mb-2">★ {Number(selectedReview.rating).toFixed(1)} / 5</p>
+              <p className="text-sm text-gray-500 font-semibold">Recommended Grade</p>
+              <p className="text-gray-800">{Array.isArray(selectedReview.recommended_audience_grade)
+                ? selectedReview.recommended_audience_grade.join(", ")
+                : selectedReview.recommended_audience_grade || "N/A"}</p>
+            </div>
+
+            <div className="border-t pt-4 mb-4">
+              <p className="text-sm text-gray-500 font-semibold mb-2">Review</p>
+              <p className="text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-line">{selectedReview.review}</p>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
