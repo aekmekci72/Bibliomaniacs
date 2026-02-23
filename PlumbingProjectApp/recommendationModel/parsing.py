@@ -1,7 +1,8 @@
 import pandas as pd
 import re
 from collections import defaultdict
-from recommendationModel.sentiment import ReviewSentimentAnalyzer
+# from recommendationModel.sentiment import ReviewSentimentAnalyzer
+from sentiment import ReviewSentimentAnalyzer
 
 analyzer = ReviewSentimentAnalyzer()
 

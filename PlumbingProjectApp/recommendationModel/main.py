@@ -2,10 +2,18 @@ from parsing import load_books, load_reviews
 from embeddings import EmbeddingBuilder
 from model import HybridRecommender
 from evaluation import RecommenderEvaluator
+from housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
+
+cache = AvailabilityCache(
+    redis_host="localhost",
+    redis_port=6380,
+    ttl_seconds=3600
+)
+
+availability_service = AvailabilityService(cache)
 
 books = load_books("reviewedBooks.csv")
 books = load_reviews("bigReviews.csv", books)
-
 
 all_genres = set()
 
@@ -24,6 +32,14 @@ book_embeddings = embedder.build_book_embeddings(books)
 # print(list(book_embeddings.keys())[:10])
 
 recommender = HybridRecommender(book_embeddings, books)
+context_recommender = ContextAwareRecommender(
+    base_recommender=recommender,
+    books=books,
+    availability_service=availability_service,
+    initial_pool=50,
+    expansion_step=50,
+    max_pool=300
+)
 
 user_reviews = [
     {
@@ -42,19 +58,26 @@ print("User profile built:", user_profile is not None)
 user_genres = ["fantasy", "adventure", "action"]
 user_grade = 8
 
-if user_profile is None:
-    print("No user profile could be built — falling back to popular / genre-based recommendations.")
-    recommendations = recommender.cold_start_recommend(
-        user_genres=user_genres,
-        user_grade=user_grade
-    )
-else:
-    recommendations = recommender.recommend(
-        user_profile=user_profile,
-        user_reviews=user_reviews,
-        user_genres=user_genres,
-        user_grade=user_grade
-    )
+recommendations = context_recommender.recommend(
+    user_profile=user_profile,
+    user_reviews=user_reviews,
+    user_genres=user_genres,
+    user_grade=user_grade,
+    top_k=10
+)
+# if user_profile is None:
+#     print("No user profile could be built — falling back to popular / genre-based recommendations.")
+#     recommendations = recommender.cold_start_recommend(
+#         user_genres=user_genres,
+#         user_grade=user_grade
+#     )
+# else:
+#     recommendations = recommender.recommend(
+#         user_profile=user_profile,
+#         user_reviews=user_reviews,
+#         user_genres=user_genres,
+#         user_grade=user_grade
+#     )
 
 
 for book_id, score in recommendations:
