@@ -3,7 +3,7 @@ import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from flask_cors import CORS
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from modelsetup import chat
 from cache import get_cache, set_cache, make_prompt_key, delete_cache_prefix
@@ -19,6 +19,8 @@ from email_utils import generate_email_draft, generate_bulk_email_drafts
 from recommendationModel.parsing import load_books, load_reviews
 from recommendationModel.embeddings import EmbeddingBuilder
 from recommendationModel.model import HybridRecommender
+import pickle
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -28,13 +30,28 @@ firebase_admin.initialize_app(cred)
 connection(from_file="serviceKey.json")
 db = firestore.client()
 
-print("Loading Recommendation Model...")
+def load_or_train_model():
+    cache_key = "recommendation_model"
+    cached = get_cache(cache_key)
+    if cached:
+        print("Loading model from cache...")
+        return pickle.loads(base64.b64decode(cached))
+
+    print("Training new model...")
+    embedder = EmbeddingBuilder()
+    book_embeddings = embedder.build_book_embeddings(books_data)
+    recommender = HybridRecommender(book_embeddings, books_data)
+
+    # Cache for 24 hours
+    set_cache(cache_key, base64.b64encode(pickle.dumps((book_embeddings, recommender))).decode('utf-8'), ttl=86400)
+    return (book_embeddings, recommender)
+
 books_data = load_books("./recommendationModel/reviewedBooks.csv")
 books_data = load_reviews("./recommendationModel/bigReviews.csv", books_data)
-embedder = EmbeddingBuilder()
-book_embeddings = embedder.build_book_embeddings(books_data)
-recommender = HybridRecommender(book_embeddings, books_data)
+    
+book_embeddings, recommender = load_or_train_model()
 print("Model Ready.")
+
 
 
 class Book(Model):
