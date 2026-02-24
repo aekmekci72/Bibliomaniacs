@@ -51,34 +51,38 @@ class LibraryAvailabilityChecker:
             )
             accept_button.click()
             print("Accepted cookies.")
-            time.sleep(1)
+            # time.sleep(1)
         except:
             print("No cookie popup found or already accepted.")
 
     def availability(self, title: str) -> bool:
-        url = self._build_url(title)
-        print("Searching:", url)
-        self.driver.get(url)
-        self.accept_cookies()
+        try:
+            url = self._build_url(title)
+            print("Searching:", url)
+            self.driver.get(url)
+            self.accept_cookies()
 
-        self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.card.py-4.px-4")))
-        cards = self.driver.find_elements(By.CSS_SELECTOR, "div.card.py-4.px-4")
-        print(f"Found {len(cards)} book cards")
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.card.py-4.px-4")))
+            cards = self.driver.find_elements(By.CSS_SELECTOR, "div.card.py-4.px-4")
+            print(f"Found {len(cards)} book cards")
 
-        for card in cards:
-            try:
-                link = card.find_element(By.CSS_SELECTOR, "h2.card-title a.notranslate")
-                card_title = link.text.strip()
-                print("Card title:", card_title)
-                if card_title.lower() == title.lower():
-                    print("Exact title match found!")
-                    return True
-            except Exception as e:
-                print("Error reading card:", e)
-                continue
+            for card in cards:
+                try:
+                    link = card.find_element(By.CSS_SELECTOR, "h2.card-title a.notranslate")
+                    card_title = link.text.strip()
+                    print("Card title:", card_title)
+                    if card_title.lower() == title.lower():
+                        print("Exact title match found!")
+                        return True
+                except Exception as e:
+                    print("Error reading card:", e)
+                    continue
 
-        print("No exact title match found")
-        return False
+            print("No exact title match found")
+            return False
+        except Exception as e:
+            print("Error:", e)
+            return False
 
 
     def close(self):
@@ -89,6 +93,3 @@ _checker = LibraryAvailabilityChecker()
 
 def avail(title: str) -> bool:
     return _checker.availability(title)
-
-
-print(avail("Harry Potter and the Sorcerer's Stone"))

@@ -9,7 +9,7 @@ from typing import List, Tuple
 from housedBooks.availability import avail
 
 class AvailabilityCache:
-    def __init__(self, redis_host="localhost", redis_port=6379, ttl_seconds=3600):
+    def __init__(self, redis_host="localhost", redis_port=6379, ttl_seconds=36000):
         self.redis = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
         self.ttl = ttl_seconds
 
@@ -37,9 +37,11 @@ class AvailabilityService:
     def check(self, title: str) -> bool:
         cached = self.cache.get(title)
         if cached is not None:
+            print(f"CACHED: Title {title} is {cached} for availability")
             return cached
 
         is_available = avail(title)
+        print(f"Title {title} is {is_available} for availability")
         self.cache.set(title, is_available)
         return is_available
 
