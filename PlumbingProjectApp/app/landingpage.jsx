@@ -83,9 +83,9 @@ export default function LandingPage() {
               </Text>
 
               <View className="landingBullets">
-                <Text className="landingBullet">• This is a website</Text>
-                <Text className="landingBullet">• We have cool features and stuff</Text>
-                <Text className="landingBullet">• Another feature because it would look uglier with less text</Text>
+                <Text className="landingBullet">• Share your opinions on your favorite books</Text>
+                <Text className="landingBullet">• Explore new works approved by fellow teens</Text>
+                <Text className="landingBullet">• Earn community service hours</Text>
               </View>
             </View>
 
@@ -142,21 +142,21 @@ export default function LandingPage() {
             {/* Card 1 */}
             <View className="recCardLarge">
               <View className="recThumbLarge" />
-              <Text className="recTitleLarge">T'es stupide</Text>
+              <Text className="recTitleLarge">Wings of Fire</Text>
               <Text className="recMetaLarge">Fantasy · 4.7 ★</Text>
             </View>
 
             {/* Card 2 */}
             <View className="recCardLarge">
               <View className="recThumbLarge" />
-              <Text className="recTitleLarge">Hon Hon Hon</Text>
-              <Text className="recMetaLarge">Non-fiction · 4.6 ★</Text>
+              <Text className="recTitleLarge">The Boy in the Striped Pajamas</Text>
+              <Text className="recMetaLarge">Historical Fiction · 4.6 ★</Text>
             </View>
 
             {/* Card 3 */}
             <View className="recCardLarge">
               <View className="recThumbLarge" />
-              <Text className="recTitleLarge">Feed Me Baguette</Text>
+              <Text className="recTitleLarge">Dark Matter</Text>
               <Text className="recMetaLarge">Sci-fi · 4.9 ★</Text>
             </View>
           </View>

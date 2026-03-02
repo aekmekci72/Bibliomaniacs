@@ -5,6 +5,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
+import { RequireAccess } from "../components/requireaccess";
 import ReviewModal from "./reviewmodal";
 
 import { getAuth } from "firebase/auth";
@@ -64,7 +65,7 @@ export default function MyReviews() {
     }).length;
 
     setDailyReviewsSubmitted(todayReviews);
-    setDailyReviewsRemaining(Math.max(0, 2 - todayReviews));
+    setDailyReviewsRemaining(Math.max(0, 2 - todayReviews)); 
   }, [reviews]);
 
   const filtered = reviews
@@ -458,6 +459,10 @@ export default function MyReviews() {
   }, []);
 
   return (
+    <RequireAccess
+      allowRoles={["user", "admin"]}
+      redirectTo="/notfound"
+    >
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
       <div className="w-full max-w-7xl py-6 mx-auto">
         <div>
@@ -541,7 +546,9 @@ export default function MyReviews() {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b border-green-100 hover:bg-green-50">
-                    <td className="px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
+                    <td className="px-4 py-4 text-gray-600">
+                      <span className="font-semibold text-gray-800">{r.bookTitle}</span> by {r.author}
+                    </td>
                     <td className="px-4 py-4 text-gray-700">{r.review}</td>
                     <td className="px-4 py-4">⭐ {r.rating}</td>
                     <td className="px-4 py-4">
@@ -697,5 +704,6 @@ export default function MyReviews() {
         </div>
       )}
     </div>
+    </RequireAccess>
   );
 }
