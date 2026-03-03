@@ -1,0 +1,764 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .topbar {
+    @apply h-14 px-3 bg-[#cfe8cf] border-b border-[#b6d5b6] flex flex-row items-center gap-2.5;
+  }
+
+  .iconBtn {
+    @apply w-8 h-8 items-center justify-center rounded-lg bg-white;
+  }
+
+  .searchBar {
+    @apply flex-1 h-[34px] rounded-lg px-2.5 bg-white border border-[#e5efe5] flex flex-row items-center gap-1.5;
+  }
+
+
+  /* === LandingPage Custom Styles === */
+
+  .container {
+    @apply w-full min-h-screen flex flex-col items-center justify-center px-6 py-8 gap-6 bg-[#f5f5f5];
+  }
+
+  .title {
+    @apply text-4xl font-extrabold text-center pt-12;
+  }
+
+  .subtitle {
+    @apply text-base text-neutral-700 text-center max-w-[720px];
+  }
+
+  .hero {
+    @apply w-full max-w-[960px] h-[320px] rounded-2xl bg-neutral-300;
+  }
+
+  .ctaRow {
+    @apply flex-row gap-3 mt-2 flex-wrap;
+  }
+
+  .primaryBtn {
+    @apply bg-[#2b7a4b] py-3 px-4 rounded-xl;
+  }
+
+  .primaryText {
+    @apply text-white font-bold;
+  }
+
+  .secondaryBtn {
+    @apply bg-white border-2 border-[#2b7a4b] py-3 px-4 rounded-xl;
+  }
+
+  .secondaryText {
+    @apply text-[#2b7a4b] font-bold;
+  }
+
+  .features {
+    @apply flex-row gap-3 flex-wrap justify-center;
+  }
+
+  .featureCard {
+    @apply bg-[#eaf6ea] border border-[#cfe8cf] rounded-xl py-2.5 px-3.5;
+  }
+
+  .featureText {
+    @apply text-[#224c2f] font-bold;
+  }
+
+
+  .landingTopSection {
+    @apply w-full bg-[#eef1ee] items-center;
+  }
+
+  /* This is the “container inside the band” */
+  .landingTopInner {
+    @apply w-full max-w-[1120px] px-6 pt-10 pb-12 flex-row gap-10 items-stretch;
+  }
+
+  /* Left column is a flex column that stretches full height */
+  .landingTopLeft {
+    @apply flex-1 flex-col pb-10;
+  }
+
+  .homeTopLeft {
+    @apply flex-1 justify-center flex-col pb-10;
+  }
+
+  .landingTopCopy {
+    @apply flex-1 gap-4;
+  }
+
+  .landingCtaRowBottom {
+    @apply mt-auto pt-6 flex-row gap-3 self-start;
+  }
+
+  .landingTitle {
+    @apply text-[40px] font-extrabold text-[#224c2f];
+  }
+
+  .landingTagline {
+    @apply text-base text-neutral-700 max-w-[560px] leading-relaxed;
+  }
+
+  .landingBullets {
+    @apply mt-1 gap-1.5;
+  }
+
+  .landingBullet {
+    @apply text-sm text-neutral-700;
+  }
+
+  .landingPrimaryBtn {
+    @apply primaryBtn px-5;
+  }
+
+  .landingPrimaryText {
+    @apply primaryText;
+  }
+
+  .landingSecondaryBtn {
+    @apply secondaryBtn px-5;
+  }
+
+  .landingSecondaryText {
+    @apply secondaryText;
+  }
+
+  .bookWeekCard {
+    @apply w-[340px] bg-white border border-[#e1ebe1] rounded-3xl p-5 shadow-sm;
+  }
+
+  .bookWeekLabel {
+    @apply text-xs font-semibold uppercase tracking-[0.15em] text-[#6b7c6b];
+  }
+
+  .bookWeekTitle {
+    @apply text-lg font-bold text-[#224c2f] mt-1.5;
+  }
+
+  .bookWeekCover {
+    @apply w-full h-[150px] rounded-2xl bg-neutral-200 mt-4;
+  }
+
+  .bookWeekMetaRow {
+    @apply flex-row items-center gap-2 mt-4;
+  }
+
+  .bookWeekTag {
+    @apply bg-[#eaf6ea] px-3 py-1 rounded-full;
+  }
+
+  .bookWeekTagText {
+    @apply text-xs font-semibold text-[#224c2f];
+  }
+
+  .bookWeekPages {
+    @apply text-[11px] text-neutral-500;
+  }
+
+  .bookWeekBlurb {
+    @apply mt-3 text-xs leading-relaxed text-neutral-600;
+  }
+
+  /* === Bottom recommendations band === */
+
+  .landingBottomSection {
+    @apply w-full bg-white items-center border-t border-[#dde5dd] pt-4;
+  }
+
+  .landingBottomInner {
+    @apply w-full max-w-[1120px] px-6 pt-10 pb-16;
+  }
+
+  .recsHeaderRow {
+    @apply flex-row items-center justify-between mb-6 px-4 pt-6;
+  }
+
+  .recsTitle {
+    @apply text-2xl font-bold text-[#224c2f];
+  }
+
+  .recsShowMore {
+    @apply text-sm font-semibold text-[#2b7a4b] px-2 py-1;
+  }
+
+  /* === NEW: 3 large cards that fill the row === */
+  .recsRowLarge {
+    @apply w-full flex-row justify-between gap-6;
+  }
+
+  .recCardLarge {
+    @apply flex-1 bg-[#f6faf6] border border-[#dde5dd] rounded-2xl p-5;
+  }
+
+  .recThumbLarge {
+    @apply w-full h-[160px] rounded-2xl bg-neutral-200;
+  }
+
+  .recTitleLarge {
+    @apply mt-4 text-lg font-semibold text-[#224c2f];
+  }
+
+  .recMetaLarge {
+    @apply mt-1 text-sm text-neutral-600;
+  }
+
+
+  /* === DBTest Custom Styles === */
+
+
+  .inputCard {
+    @apply w-full max-w-[720px] bg-white rounded-xl p-4 border border-neutral-200;
+  }
+
+  /* Input box */
+  .input {
+    @apply w-full border border-neutral-300 rounded-lg px-3 py-2 text-base bg-white;
+  }
+
+  /* Row of buttons */
+  .buttonRow {
+    @apply flex flex-row gap-3 mt-3 flex-wrap;
+  }
+
+  /* Container around list */
+  .listContainer {
+    @apply w-full max-w-[720px] mt-6;
+  }
+
+  /* Section title */
+  .sectionTitle {
+    @apply text-xl font-bold mb-2;
+  }
+
+  /* Book card */
+  .bookCard {
+    @apply bg-[#eaf6ea] border border-[#cfe8cf] rounded-lg p-3 mb-2;
+  }
+
+  /* Book title text */
+  .bookTitle {
+    @apply text-lg font-semibold text-[#224c2f];
+  }
+
+  .emptyText {
+    @apply text-center text-neutral-500 mt-4;
+  }
+
+
+
+  /* === Explorer Custom Styles === */
+
+  /* Page container */
+  .explorerContainer {
+    @apply px-5 py-6 gap-4;
+  }
+
+  /* Main title */
+  .explorerH1 {
+    @apply text-2xl font-extrabold text-center my-2;
+  }
+
+  /* Grid layout (2 columns, wrap on mobile) */
+  .explorerGrid {
+    @apply flex flex-row flex-wrap justify-between gap-6;
+  }
+
+  /* Each column */
+  .explorerCol {
+    @apply flex-1 min-w-[320px] gap-3;
+  }
+
+  /* Section titles */
+  .explorerSection {
+    @apply text-lg font-bold text-[#6b7c6b] mt-2;
+  }
+
+  /* Review card container */
+  .reviewCard {
+    @apply flex flex-row gap-3 p-3 bg-white border border-[#e7eee7] rounded-xl;
+  }
+
+  /* Thumbnail image */
+  .reviewThumb {
+    @apply w-[120px] h-[80px] rounded-lg bg-neutral-300;
+  }
+
+  /* Placeholder lines */
+  .reviewLine {
+    @apply h-3 rounded bg-[#cfe8cf];
+  }
+
+  /* === ChatbotPage Custom Styles === */
+  @layer components {
+    .chatbotMessage {
+      @apply max-w-[75%] rounded-xl p-3 my-1;
+    }
+
+    .chatbotUser {
+      @apply self-end bg-[#2b7a4b];
+    }
+
+    .chatbotBot {
+      @apply self-start bg-[#eaf6ea];
+    }
+
+    .chatbotMessageText {
+      @apply text-base;
+    }
+
+    .chatbotUser .chatbotMessageText {
+      @apply text-white;
+    }
+
+    .chatbotBot .chatbotMessageText {
+      @apply text-[#224c2f];
+    }
+
+    .chatbotInputContainer {
+      @apply flex-row items-center px-4 py-2 bg-white border-t border-neutral-200;
+    }
+
+    .chatbotInput {
+      @apply flex-1 border border-neutral-300 rounded-xl px-4 py-2 text-base bg-white mr-2;
+    }
+
+    .chatbotSendBtn {
+      @apply bg-[#2b7a4b] px-4 py-2 rounded-xl;
+    }
+
+    .chatbotSendText {
+      @apply text-white font-bold;
+    }
+
+    /* FOOTER BASE CONTAINER */
+    .footer {
+      @apply w-full bg-[#2F5F3A] py-10 mt-16;
+    }
+
+    /* INNER WRAPPER (centers content + limits width) */
+    .footerInner {
+      @apply max-w-6xl mx-auto px-6;
+    }
+
+    /* FOOTER SECTION TITLE */
+    .footerTitle {
+      @apply text-white text-lg font-semibold mb-3;
+    }
+
+    /* FOOTER BODY TEXT */
+    .footerText {
+      @apply text-white/80 text-sm leading-5;
+    }
+
+    /* BRAND TITLE (larger than section titles) */
+    .footerBrand {
+      @apply text-white text-xl font-semibold mb-3;
+    }
+
+    /* HORIZONTAL DIVIDER */
+    .footerDivider {
+      @apply w-full h-px bg-white/20 my-8;
+    }
+
+    /* COPYRIGHT TEXT */
+    .footerCopyright {
+      @apply text-center text-white/60 text-xs;
+    }
+
+    /* Full-page background & centering */
+    .adminHomeRoot {
+      @apply flex-1 bg-[#eef1ec];
+    }
+
+    /* FULL HEIGHT HERO SECTION */
+    .adminHomeHeroSection {
+      @apply w-full min-h-screen flex items-center;
+    }
+
+    .adminHomeHeroInner {
+      @apply max-w-6xl mx-auto px-10 flex-row items-center justify-between gap-16;
+    }
+
+    /* LEFT COLUMN */
+    .adminHomeLeft {
+      @apply flex-1;
+    }
+
+    .adminHomeTitle {
+      @apply text-5xl font-semibold text-[#245632];
+    }
+
+    .adminHomeTagline {
+      @apply mt-4 text-base leading-relaxed text-[#37453a] max-w-xl;
+    }
+
+    .adminHomeBullets {
+      @apply mt-4 space-y-1;
+    }
+
+    .adminHomeBullet {
+      @apply text-base text-[#3f4b40];
+    }
+
+    .adminHomeCtas {
+      @apply mt-8 flex-row gap-4;
+    }
+
+    .adminHomePrimaryBtn {
+      @apply px-8 py-3 rounded-full bg-[#2f7a3b] justify-center items-center;
+    }
+
+    .adminHomePrimaryText {
+      @apply text-white font-semibold text-base;
+    }
+
+    .adminHomeSecondaryBtn {
+      @apply px-8 py-3 rounded-full border border-[#2f7a3b] bg-transparent justify-center items-center;
+    }
+
+    .adminHomeSecondaryText {
+      @apply text-[#2f7a3b] font-semibold text-base;
+    }
+
+    /* RIGHT COLUMN */
+    .adminHomeRight {
+      @apply w-[420px];
+    }
+
+    /* BOOK CARD */
+    .adminHomeBookCard {
+      @apply bg-white rounded-3xl shadow-md px-8 py-7;
+    }
+
+    .adminHomeBookLabel {
+      @apply text-xs font-semibold tracking-[0.25em] uppercase text-[#7a8a7c];
+    }
+
+    .adminHomeBookTitle {
+      @apply mt-2 text-2xl font-semibold text-[#245632];
+    }
+
+    .adminHomeBookCover {
+      @apply mt-5 mb-4 h-40 rounded-2xl bg-[#e5e8e2];
+    }
+
+    .adminHomeBookMetaRow {
+      @apply flex-row items-center justify-between mb-3;
+    }
+
+    .adminHomeBookTag {
+      @apply px-3 py-1 rounded-full bg-[#e6f4ea];
+    }
+
+    .adminHomeBookTagText {
+      @apply text-xs font-semibold text-[#2f7a3b];
+    }
+
+    .adminHomeBookPages {
+      @apply text-xs text-[#6b776f];
+    }
+
+    .adminHomeBookBlurb {
+      @apply text-sm leading-5 text-[#37453a];
+    }
+
+    /* ==== Submit Review Page Styles ==== */
+
+    .modalBackdrop {
+      @apply flex-1 bg-black/40 items-center justify-center px-4;
+    }
+
+    .modalCard {
+      @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg;
+    }
+
+    .modalTitle {
+      @apply text-xl font-bold text-center mb-3;
+    }
+
+    .inputLabel {
+      @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+    }
+
+    .modalInput {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+    }
+
+    .modalTextarea {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+    }
+
+    /* ==== Profile Page Custom Styles ==== */
+
+    .profileH1 {
+      @apply text-3xl font-extrabold text-center mb-5;
+    }
+
+    .profileCard {
+      @apply flex-row items-center gap-4 bg-white border border-[#d8e8d8] rounded-2xl p-4 mb-5 shadow-sm;
+    }
+
+    .profileName {
+      @apply text-xl font-bold text-[#224c2f];
+    }
+
+    .profileEmail {
+      @apply text-base text-neutral-600;
+    }
+
+    .profileRole {
+      @apply text-sm text-[#2b7a4b] font-semibold mt-1;
+    }
+
+    .profileInfoCard {
+      @apply w-full bg-white border border-neutral-200 rounded-xl p-4;
+    }
+
+    .infoRow {
+      @apply mb-3;
+    }
+
+    .infoLabel {
+      @apply text-sm font-semibold text-neutral-600;
+    }
+
+    .infoValue {
+      @apply text-base text-[#224c2f] mt-0.5;
+    }
+
+    .genresContainer {
+      @apply flex-row flex-wrap;
+    }
+
+    .genreChip {
+      @apply bg-[#eaf6ea] border border-[#cfe8cf] rounded-full px-3 py-1 mr-2 mt-2;
+    }
+
+    .genreChipText {
+      @apply text-[#224c2f] text-sm font-semibold;
+    }
+
+    .editBtn {
+      @apply mt-5 self-center w-[200px];
+    }
+
+    .modalScrollContainer {
+      @apply w-full px-4;
+    }
+
+    .modalBackdrop {
+      @apply flex-1 bg-black/40 justify-center;
+    }
+
+    .modalCard {
+      @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg self-center;
+    }
+
+    .modalInputDisabled {
+      @apply bg-neutral-100 text-neutral-500 border-neutral-300;
+    }
+
+    .dropdownBtn {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+    }
+
+    .dropdownBtnText {
+      @apply text-base text-neutral-800;
+    }
+
+    .dropdownList {
+      @apply bg-white border border-neutral-300 rounded-lg mt-2 p-1;
+    }
+
+    .dropdownScroll {
+      @apply max-h-[180px];
+    }
+
+    .dropdownItem {
+      @apply flex-row justify-between items-center px-2 py-2 border-b border-neutral-200;
+    }
+
+    .dropdownItemText {
+      @apply text-base text-neutral-800;
+    }
+
+    .checkbox {
+      @apply w-5 h-5 rounded border;
+    }
+
+    .checkboxUnchecked {
+      @apply border-neutral-400 bg-white;
+    }
+
+    .checkboxChecked {
+      @apply border-[#2b7a4b] bg-[#2b7a4b];
+    }
+
+    /* ==== Submit Review Page Styles ==== */
+
+    .modalBackdrop {
+      @apply flex-1 bg-black/40 items-center justify-center px-4;
+    }
+
+    .modalCard {
+      @apply w-full max-w-[720px] bg-white rounded-xl p-5 border border-neutral-300 shadow-lg;
+    }
+
+    .modalTitle {
+      @apply text-xl font-bold text-center mb-3;
+    }
+
+    .inputLabel {
+      @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+    }
+
+    .modalInput {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+    }
+
+    .modalTextarea {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+    }
+
+
+    .radioOuter {
+      @apply w-5 h-5 rounded-full border-2 items-center justify-center;
+    }
+
+    .radioInner {
+      @apply w-3 h-3 rounded-full;
+    }
+
+
+    .modalBackdrop {
+      @apply flex-1 bg-black/40 items-center justify-center px-4;
+    }
+
+    .modalCard {
+      @apply w-full max-w-[720px] max-h-[90%] bg-white rounded-xl p-0 border border-neutral-300 shadow-lg;
+    }
+
+    .modalScroll {
+      @apply px-5;
+    }
+
+    .modalTitle {
+      @apply text-xl font-bold text-center mb-3;
+    }
+
+    .inputLabel {
+      @apply text-base font-semibold mt-2 mb-1 text-[#224c2f];
+    }
+
+    .modalInput {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white;
+    }
+
+    .modalTextarea {
+      @apply border border-neutral-300 rounded-lg px-3 py-2 bg-white h-28;
+    }
+
+    .gradeRow {
+      @apply flex-row gap-2 mb-3;
+    }
+
+    .gradeOption {
+      @apply px-3 py-1 rounded-lg border border-neutral-300 bg-white;
+    }
+
+    .gradeOptionActive {
+      @apply bg-[#2b7a4b] border-[#2b7a4b];
+    }
+
+    .gradeText {
+      @apply text-[#224c2f] font-semibold;
+    }
+
+    .gradeTextActive {
+      @apply text-white;
+    }
+
+    .radioRow {
+      @apply flex-row gap-4 mt-2 mb-3 flex-wrap;
+    }
+
+    .radioOption {
+      @apply flex-row items-center gap-2 px-3 py-2 rounded-lg border border-neutral-300 bg-white;
+    }
+
+    .radioOptionActive {
+      @apply border-[#2b7a4b] bg-[#eaf6ea];
+    }
+
+    .radioCircle {
+      @apply w-4 h-4 rounded-full border border-neutral-400;
+    }
+
+    .radioCircleActive {
+      @apply border-[#2b7a4b] bg-[#2b7a4b];
+    }
+
+    .radioText {
+      @apply text-[#224c2f] font-medium;
+    }
+
+    .radioTextActive {
+      @apply text-[#2b7a4b] font-bold;
+    }
+
+    .warningBox {
+      @apply mt-2 flex-row gap-2 rounded-xl border px-3 py-2;
+      @apply bg-[#fff6e5] border-[#f1d8a8];
+    }
+
+    .warningIcon {
+      @apply mt-0.5;
+    }
+
+    .warningTitle {
+      @apply text-sm font-bold text-[#8a5a00];
+    }
+
+    .warningText {
+      @apply text-sm text-[#8a5a00] leading-snug;
+    }
+
+    .requiredBox {
+      @apply mt-2 mb-5 flex-row gap-2 rounded-xl border px-3 py-2;
+      @apply bg-[#ffe5e5] border-[#f1a8a8];
+    }
+
+    .requiredIcon {
+      @apply mt-0.5;
+    }
+
+    .requiredTitle {
+      @apply text-sm font-bold text-[#8a0000];
+    }
+
+    .requiredText {
+      @apply text-sm text-[#8a0000] leading-snug;
+    }
+  }
+}
+
+/* === Carousel Card Styling === */
+.carouselCard {
+  @apply bg-[#f6faf6] border border-[#dde5dd] rounded-2xl p-5 items-center shadow-md;
+  width: 100%;
+  max-width: 320px;
+}
+
+.carouselThumb {
+  @apply w-full h-[150px] rounded-2xl bg-neutral-300;
+}
+
+.carouselTitle {
+  @apply mt-3 text-lg font-semibold text-[#224c2f] text-center;
+}
+
+.carouselMeta {
+  @apply mt-1 text-sm text-neutral-600 text-center;
+}
