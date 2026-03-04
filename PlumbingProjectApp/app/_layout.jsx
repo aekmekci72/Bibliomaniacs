@@ -53,6 +53,15 @@ export default function Layout() {
       case "review_status":
         router.push("/myreviews");
         break;
+
+      case "book_of_the_week":
+        if (role==="admin") {
+          router.push("/admindashboard");
+        } else {
+          router.push("/homepage");
+        }
+        
+        break;
   
       default:
         router.push("/myreviews");
@@ -372,7 +381,6 @@ export default function Layout() {
             <>
               <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
               <NavItem icon="document-text-outline" IconSet={Ionicons} label="My Reviews" page="myreviews" href="/myreviews" />
-              <NavItem icon="calendar-outline" IconSet={Ionicons} label="Review Page" page="reviewpage" href="/reviewpage" />
               <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Profile" page="profile" href="/profile" />
             </>
           )}

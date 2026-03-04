@@ -14,6 +14,8 @@ from fireo.fields import TextField, IDField, NumberField, ListField
 from review_model import Review, create_review, process_review, calculate_user_hours
 import traceback
 import time
+from datetime import datetime, timedelta
+
 from email_utils import generate_email_draft, generate_bulk_email_drafts
 
 app = Flask(__name__)
@@ -67,8 +69,83 @@ def get_admin_ids():
 
     return uids
 
-@app.route("/notify_reviewer", methods=["POST"])
-def notify_reviewer_route():
+
+def get_all_users():
+    docs = db.collection("users").get()
+    uids = []
+
+    for doc in docs:
+        data = doc.to_dict() or {}
+        email = data.get("email")
+
+        if email:
+            uids.append(doc.id)
+
+    return uids
+
+
+@app.route("/notify_admins", methods=["POST"])
+def notify_admins_route():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        id_token = data.get("idToken")
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded = verify_firebase_token(id_token)
+        if not decoded:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        sender = data.get("sender", "")
+        book = data.get("book", "")
+        status = data.get("status", "")
+
+        recipients = get_admin_ids()
+
+        recipients = [uid for uid in recipients if uid]
+        recipients = list(dict.fromkeys(recipients))
+
+        payload, code = notify_recipients(sender, recipients, book, status)
+        return jsonify(payload), code
+
+    except Exception as e:
+        print("notify_admins_route ERROR:", e)
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+    
+
+@app.route("/notify_all", methods=["POST"])
+def notify_all_route():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        id_token = data.get("idToken")
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded = verify_firebase_token(id_token)
+        if not decoded:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        book = data.get("book", "")
+
+        recipients = get_all_users()
+
+        recipients = [uid for uid in recipients if uid]
+        recipients = list(dict.fromkeys(recipients))
+
+        payload, code = notify_recipients("", recipients, book, "book_of_the_week")
+        return jsonify(payload), code
+
+    except Exception as e:
+        print("notify_admins_route ERROR:", e)
+        print(traceback.format_exc())
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
+    
+
+@app.route("/notify_recipients", methods=["POST"])
+def notify_recipients_route():
     try:
         data = request.get_json(silent=True) or {}
 
@@ -85,7 +162,7 @@ def notify_reviewer_route():
         book = data.get("book", "")
         status = data.get("status", "")
 
-        payload, code = notify_reviewer(sender, recipients, book, status)
+        payload, code = notify_recipients(sender, recipients, book, status)
         return jsonify(payload), code
 
     except Exception as e:
@@ -93,27 +170,34 @@ def notify_reviewer_route():
         print(traceback.format_exc())
         return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
-def notify_reviewer(sender, recipients, book="", status=""):
+
+def notify_recipients(sender, recipients, book="", status=""):
     try:
         recipients = [uid for uid in recipients if uid]
         recipients = list(dict.fromkeys(recipients))
 
         if status == "approved":
             icon = "check-circle"
+            message = f"Your review of {book} was {status}"
         elif status == "rejected":
             icon = "x-circle"
+            message = f"Your review of {book} was {status}"
+        elif status == "new_review":
+            icon = "book"
+            message = f"{sender} submitted a new review of {book}"
+        elif status == "book_of_the_week":
+            icon = "sparkle"
+            message = f"Check out {book}, the new Book of the Week!"
         else:
             icon = "info"
+            message = "Untagged "
       
-        message = f"Your review of {book} was {status} by {sender}"
-
         new_notif = {
-            "type": "review_status",
+            "type": "review_status" if (status=="approved" or status=="rejected") else status,
             "icon": icon,
             "message": message,
             "createdAt": int(time.time() * 1000),
         }
-        print(new_notif)
 
         for uid in recipients:
             try:
@@ -144,75 +228,6 @@ def notify_reviewer(sender, recipients, book="", status=""):
         print("notify_reviewer error:", e)
         return {"error": str(e)}, 500
 
-@app.route("/notify_admins", methods=["POST"])
-def notify_admins_route():
-    try:
-        data = request.get_json(silent=True) or {}
-
-        id_token = data.get("idToken")
-        if not id_token:
-            return jsonify({"error": "Missing ID token"}), 401
-
-        decoded = verify_firebase_token(id_token)
-        if not decoded:
-            return jsonify({"error": "Invalid ID token"}), 401
-
-        sender = data.get("sender", "")
-        book = data.get("book", "")
-        status = data.get("status", "")
-
-        payload, code = notify_admins(sender, book, status)
-        return jsonify(payload), code
-
-    except Exception as e:
-        print("notify_admins_route ERROR:", e)
-        print(traceback.format_exc())
-        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
-
-def notify_admins(sender, book="", status=""):
-    try:
-        recipients = get_admin_ids()
-
-        recipients = [uid for uid in recipients if uid]
-        recipients = list(dict.fromkeys(recipients))
-
-        icon = "book"
-        message = f"{sender} submitted a new review of {book}"
-
-        new_notif = {
-            "type": "new_review",
-            "icon": icon,
-            "message": message,
-            "createdAt": int(time.time() * 1000),
-        }
-
-        for uid in recipients:
-            try:
-                user_ref = db.collection("users").document(uid)
-                snap = user_ref.get()
-
-                if not snap.exists:
-                    print(f"Recipient {uid} does not exist in Firestore.")
-                    continue
-
-                data = snap.to_dict() or {}
-                notif_array = data.get("notifications", [])
-                if not isinstance(notif_array, list):
-                    notif_array = []
-
-                notif_array.insert(0, new_notif)
-                notif_array = notif_array[:8]
-
-                user_ref.update({"notifications": notif_array})
-
-            except Exception as inner_e:
-                print(f"Error updating notifications for {uid}: {inner_e}")
-
-        return {"ok": True, "sent_to": recipients}, 200
-
-    except Exception as e:
-        print("notify_admins error:", e)
-        return {"error": str(e)}, 500
 
 def is_user_admin(email):
     """Check if user email is in admin list"""
@@ -499,6 +514,87 @@ def get_books():
     set_cache("books", books, ttl=3600)
     return jsonify(books), 200
 
+
+@app.route("/check_book_popularity", methods=["GET"])
+def check_book_popularity():
+    title = request.args.get("title", "").strip()
+    threshold = request.args.get("threshold", 3, type=int)
+
+    if not title:
+        return jsonify({"error": "Missing 'title' query parameter"}), 400
+
+    try:
+        one_year_ago = datetime.now() - timedelta(days=365)
+
+        recent_reviews = Review.collection.filter(
+            "date_received", ">=", one_year_ago
+        ).fetch()
+
+        title_lower = title.lower()
+        matching_reviews = [
+            r for r in recent_reviews
+            if r.book_title and r.book_title.lower() == title_lower
+            and (r.approved or not r.date_processed)  # approved or pending, not rejected
+        ]
+
+        count = len(matching_reviews)
+        is_common = count >= threshold
+
+        return jsonify({
+            "commonly_reviewed": is_common,
+            "review_count": count,
+            "title": title,
+            "threshold": threshold,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/get_commonly_reviewed_books", methods=["GET"])
+def get_commonly_reviewed_books():
+    threshold = request.args.get("threshold", 3, type=int)
+    days = request.args.get("days", 365, type=int)
+
+    cache_key = f"commonly_reviewed_books:{threshold}:{days}"
+    cached = get_cache(cache_key)
+    if cached:
+        return jsonify(cached), 200
+
+    try:
+        cutoff = datetime.now() - timedelta(days=days)
+
+        recent_reviews = Review.collection.filter(
+            "date_received", ">=", cutoff
+        ).fetch()
+
+        book_counts: dict[str, int] = {}
+        for r in recent_reviews:
+            if r.book_title and (r.approved or not r.date_processed):  # approved or pending, not rejected
+                key = r.book_title.strip().lower()
+                book_counts[key] = book_counts.get(key, 0) + 1
+
+        commonly_reviewed = [
+            {"title": title.title(), "review_count": count}
+            for title, count in book_counts.items()
+            if count >= threshold
+        ]
+
+        commonly_reviewed.sort(key=lambda x: x["review_count"], reverse=True)
+
+        payload = {
+            "books": commonly_reviewed,
+            "threshold": threshold,
+            "days": days,
+            "total": len(commonly_reviewed),
+        }
+
+        set_cache(cache_key, payload, ttl=300)
+        return jsonify(payload), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/ask_question", methods=["POST"])
 def ask_question():
     data = request.json
@@ -550,8 +646,8 @@ def submit_review():
     if not decoded_token:
         return jsonify({"error": "Invalid ID token"}), 401
     
-    required = ["first_name", "last_name", "email", "book_title", 
-                "author", "rating", "review", "grade", "recommended_audience_grade", "anonymous"]
+    required = ["first_name", "last_name", "email", "book_title", "school",
+                "author", "rating", "review", "grade", "recommended_audience_grade"]
     for field in required:
         if not data.get(field):
             return jsonify({"error": f"Missing required field: {field}"}), 400

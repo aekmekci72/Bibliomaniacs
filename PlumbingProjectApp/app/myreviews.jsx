@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -22,9 +22,12 @@ export default function MyReviews() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [titleFlagged, setTitleFlagged] = useState(false);
+  const [titleCheckLoading, setTitleCheckLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [rating, setRating] = useState(0);
   const [gradeLevel, setGradeLevel] = useState("");
+  const [school, setSchool] = useState("");
+  const [email, setEmail] = useState("");
   const [anonPref, setAnonPref] = useState("");
   const [recommendedGrades, setRecommendedGrades] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -35,6 +38,8 @@ export default function MyReviews() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [dailyReviewsRemaining, setDailyReviewsRemaining] = useState(2);
   const [dailyReviewsSubmitted, setDailyReviewsSubmitted] = useState(0);
+
+  const debounceTimer = useRef(null);
 
   const statusColor = {
     Approved: "#2b7a4b",
@@ -51,13 +56,13 @@ export default function MyReviews() {
   useEffect(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const todayReviews = reviews.filter(r => {
       const reviewDate = new Date(r.createdAt);
       reviewDate.setHours(0, 0, 0, 0);
       return reviewDate.getTime() === today.getTime();
     }).length;
-    
+
     setDailyReviewsSubmitted(todayReviews);
     setDailyReviewsRemaining(Math.max(0, 2 - todayReviews));
   }, [reviews]);
@@ -87,14 +92,44 @@ export default function MyReviews() {
     window.URL.revokeObjectURL(url);
   };
 
-  const overReviewedBooks = ["Harry Potter", "Percy Jackson", "Jane Eyre", "The Great Gatsby", "To Kill a Mockingbird"];
-
   const handleTitleChange = (text) => {
     setBookTitle(text);
-    const normalized = text.trim().toLowerCase();
-    const isOverReviewed = overReviewedBooks.some((book) => book.toLowerCase() === normalized);
-    setTitleFlagged(isOverReviewed);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setTitleFlagged(false);
+      setTitleCheckLoading(false);
+      return;
+    }
+
+    setTitleCheckLoading(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5001/check_book_popularity?title=${encodeURIComponent(trimmed)}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTitleFlagged(data.commonly_reviewed === true);
+        } else {
+          setTitleFlagged(false);
+        }
+      } catch (err) {
+        console.warn("Title check failed:", err);
+        setTitleFlagged(false);
+      } finally {
+        setTitleCheckLoading(false);
+      }
+    }, 500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
 
   const gradeOptions = ["6", "7", "8", "9", "10", "11", "12"];
   const anonOptions = ["Yes", "No", "First Name Only"];
@@ -142,6 +177,7 @@ export default function MyReviews() {
           first_name: r.first_name,
           last_name: r.last_name,
           email: user.email,
+          school: r.school,
           grade: r.grade,
           recommended_audience_grade: r.recommended_audience_grade,
           anonymous: r.anonymous,
@@ -206,16 +242,16 @@ export default function MyReviews() {
 
       if (snap.exists()) {
         const data = snap.data();
-
         setFirstName(data.first_name ?? "");
         setLastName(data.last_name ?? "");
         setGradeLevel(data.grade ?? "");
+        setEmail(data.email ?? "");
       } else {
         setFirstName("");
         setLastName("");
         setGradeLevel("");
+        setEmail("");
       }
-
     } catch (err) {
       console.error("Failed to load profile:", err);
     } finally {
@@ -261,6 +297,7 @@ export default function MyReviews() {
       first_name: firstName,
       last_name: lastName,
       email: user.email,
+      school: school,
       book_title: bookTitle,
       author: authorName,
       rating: rating,
@@ -287,8 +324,8 @@ export default function MyReviews() {
 
       if (response.ok) {
         console.log("Success:", result);
-        
-        // Update daily counts from response
+
+        // Update daily counts from response if provided
         if (result.daily_reviews_remaining !== undefined) {
           setDailyReviewsRemaining(result.daily_reviews_remaining);
           setDailyReviewsSubmitted(result.daily_reviews_submitted);
@@ -304,6 +341,7 @@ export default function MyReviews() {
                 idToken,
                 sender: `${firstName} ${lastName}`,
                 book: bookTitle,
+                status: "new_review"
               }),
             });
           } catch (notifErr) {
@@ -315,10 +353,8 @@ export default function MyReviews() {
         setIsEditMode(false);
         setEditingReviewId(null);
         alert(isEditMode ? "Review updated!" : "Review submitted!");
-        
         await fetchUserReviews(user);
       } else if (response.status === 429) {
-        // Handle rate limit error
         alert(result.message || "You've reached your daily limit of 2 reviews. Please try again tomorrow!");
       } else {
         alert(result.error || "Submission failed. Please try again.");
@@ -335,6 +371,8 @@ export default function MyReviews() {
 
     setBookTitle(review.bookTitle);
     setAuthorName(review.author || "");
+    setEmail(review.email || "");
+    setSchool(review.school || "");
     setReview(review.review);
     setRating(review.rating);
     setGradeLevel(
@@ -346,6 +384,8 @@ export default function MyReviews() {
     setAnonPref(review.anonymous || "");
     setFirstName(review.first_name || "");
     setLastName(review.last_name || "");
+    setTitleFlagged(false);
+    setTitleCheckLoading(false);
 
     setModalVisible(true);
   };
@@ -546,8 +586,8 @@ export default function MyReviews() {
           <div className="mt-8 flex justify-center gap-4 flex-wrap">
             <button onClick={exportCSV} className="bg-green-900 text-white font-bold py-4 px-8 rounded-lg">Export CSV</button>
             <button onClick={generateCertificate} className="bg-blue-700 text-white font-bold py-4 px-8 rounded-lg">📜 Certificate</button>
-            <button 
-              onClick={() => setModalVisible(true)} 
+            <button
+              onClick={() => setModalVisible(true)}
               className={`bg-green-700 text-white font-bold py-4 px-8 rounded-lg ${dailyReviewsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={dailyReviewsRemaining === 0}
             >
@@ -567,12 +607,17 @@ export default function MyReviews() {
         review={review}
         setReview={setReview}
         titleFlagged={titleFlagged}
+        titleCheckLoading={titleCheckLoading}
         gradeLevel={gradeLevel}
         setGradeLevel={setGradeLevel}
         firstName={firstName}
         setFirstName={setFirstName}
         lastName={lastName}
         setLastName={setLastName}
+        email={email}
+        setEmail={setEmail}
+        school={school}
+        setSchool={setSchool}
         recommendedGrades={recommendedGrades}
         toggleRecommendedGrade={toggleRecommendedGrade}
         anonPref={anonPref}
