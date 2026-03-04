@@ -21,11 +21,16 @@ from email_utils import generate_email_draft, generate_bulk_email_drafts
 app = Flask(__name__)
 CORS(app)
 
-service_key_json = os.environ.get("SERVICE_KEY")
+service_key_json = os.environ.get("FIREBASE_SERVICE_KEY")
 
-cred = credentials.Certificate(service_key_json)
+if service_key_json:
+    with open("serviceKey.json", "w") as f:
+        f.write(service_key_json)
+
+cred = credentials.Certificate("serviceKey.json")
 firebase_admin.initialize_app(cred)
-connection(from_file=service_key_json)
+
+connection(from_file="serviceKey.json")
 db = firestore.client()
 
 class Book(Model):
