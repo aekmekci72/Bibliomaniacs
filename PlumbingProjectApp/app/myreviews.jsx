@@ -289,6 +289,12 @@ export default function MyReviews() {
       return;
     }
 
+    const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 200) {
+      alert(`Your review must be at least 200 words. Current count: ${wordCount} words.`);
+      return;
+    }
+
     const idToken = await user.getIdToken(true);
 
     const reviewData = {
@@ -628,6 +634,7 @@ export default function MyReviews() {
         anonOptions={anonOptions}
         onSubmit={handleSubmitReview}
         isEditMode={isEditMode}
+        reviewWordCount={review.trim().split(/\s+/).filter(Boolean).length}
       />
 
       {showViewModal && selectedReview && (
