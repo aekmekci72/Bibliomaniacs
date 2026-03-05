@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "client": "expo start",
+    "client": "npx expo start",
     "server": "python3 app.py",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "expo start",
