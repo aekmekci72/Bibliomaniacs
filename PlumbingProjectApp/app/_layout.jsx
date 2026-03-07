@@ -141,6 +141,48 @@ export default function Layout() {
     }).start();
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      let isNewUser = false;
+      if (!userSnap.exists()) {
+        isNewUser = true;
+        await setDoc(userRef, { email: user.email, role: "user" });
+      }
+
+      const role = await getUserRole(user);  
+
+      Alert.alert("Login Success", `Welcome ${user.displayName}!`);
+
+      if (isNewUser) {
+        router.replace("/profilesetup");
+      } else if (role == "admin") {
+        router.replace("/adminhomepage");
+      } else {
+        router.replace("/homepage");
+        console.log(user.role);
+      }
+
+    } catch (error) {
+      console.error("LandingPage Google Login Error:", error);
+      Alert.alert("Login Failed", error.message || "Unknown error");
+    }
+  };
+
+  const profileDirect = () => {
+    fetchRole();
+
+    if (role == "no account" || role == null) {
+      handleGoogleSignIn();
+    } else {
+      router.push("/profile");
+    }
+  }
+
 
   function NavItem({ icon, IconSet, label, page, href }) {
     const isActive = getPage() === page;
@@ -204,7 +246,7 @@ export default function Layout() {
 
       <Pressable
         className="iconBtn ml-auto rounded-full"
-        onPress={() => router.push("/profile")}
+        onPress={() => profileDirect()}
       >
         <Ionicons name="person-circle-outline" size={20} color='rgb(71, 71, 71)' />
       </Pressable>
