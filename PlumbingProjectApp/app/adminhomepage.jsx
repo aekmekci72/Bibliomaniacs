@@ -30,15 +30,13 @@ export default function AdminHomePage() {
             <Text className="adminHomeTitle">Welcome, Admin!</Text>
 
             <Text className="adminHomeTagline">
-              Description about admin abilities/responsibilities
+              As a Bibliomaniacs admin, you are granted full access to the admin pages, including the homepage, dashboard, and collection of all reviews. You may also explore the reviews from the user perspective.
             </Text>
 
             <View className="adminHomeBullets">
-              <Text className="adminHomeBullet">• This is a website</Text>
-              <Text className="adminHomeBullet">• We have cool features and stuff</Text>
-              <Text className="adminHomeBullet">
-                • Another feature because it would look uglier with less text
-              </Text>
+              <Text className="adminHomeBullet">• Approve or reject book reviews</Text>
+              <Text className="adminHomeBullet">• Notify volunteers of their review status</Text>
+              <Text className="adminHomeBullet">• Update the book of the week</Text>
             </View>
 
             <View className="adminHomeCtas">

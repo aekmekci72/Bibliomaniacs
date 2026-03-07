@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link, useRouter } from "expo-router";
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, ScrollView, Alert, Dimensions } from "react-native";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, } from "firebase/auth";
+import Carousel from "react-native-reanimated-carousel";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { interpolate, interpolateColor } from 'react-native-reanimated';
 import axios from "axios";
 import { auth, app } from "../firebaseConfig";
 import { RequireAccess } from "../components/requireaccess";
@@ -11,6 +13,33 @@ import { RequireAccess } from "../components/requireaccess";
 export default function LandingPage() {
   const router = useRouter();
   const db = getFirestore(app);
+  const { width } = Dimensions.get("window");
+  const CARD_WIDTH = Math.min(width * 0.7, 340);
+
+  const [index, setIndex] = useState(0);
+
+  const next = () => {
+    setIndex((prev) => (prev + 1) % topRecs.length);
+  };
+
+  const prev = () => {
+    setIndex((prev) => (prev - 1 + topRecs.length) % topRecs.length);
+  };
+
+  const topRecs = [
+    {
+      title: "Harry Potter",
+      meta: "Fantasy · 4.7 ★",
+    },
+    {
+      title: "Atomic Habits",
+      meta: "Non-fiction · 4.6 ★",
+    },
+    {
+      title: "Dark Matter",
+      meta: "Sci-fi · 4.9 ★",
+    },
+  ];
 
   const getUserRole = async (user) => {
     const idToken = await user.getIdToken(true);
@@ -83,9 +112,9 @@ export default function LandingPage() {
               </Text>
 
               <View className="landingBullets">
-                <Text className="landingBullet">• This is a website</Text>
-                <Text className="landingBullet">• We have cool features and stuff</Text>
-                <Text className="landingBullet">• Another feature because it would look uglier with less text</Text>
+                <Text className="landingBullet">• Share your opinions on your favorite books</Text>
+                <Text className="landingBullet">• Explore new works approved by fellow teens</Text>
+                <Text className="landingBullet">• Earn community service hours</Text>
               </View>
             </View>
 
@@ -129,37 +158,79 @@ export default function LandingPage() {
 
       {/* === BOTTOM BAND === */}
       <View className="landingBottomSection">
-        <View className="landingBottomInner">
-          <View className="recsHeaderRow">
-            <Text className="recsTitle">Top Books</Text>
-            <Pressable>
-              <Link href="explorer" className="recsShowMore">Show more</Link>
-            </Pressable>
-          </View>
+        <View className="recsHeaderRow">
+          <Text className="recsTitle">Top Recommendations</Text>
+          <Pressable>
+            <Link href="explorer" className="recsShowMore">Show more</Link>
+          </Pressable>
+        </View>
+        <View style>
+          <Carousel
+            width={width}
+            height={300}
+            data={topRecs}
+            loop
+            autoPlay
+            autoPlayInterval={3000}
+            scrollAnimationDuration={800}
+            mode="custom"
+            customAnimation={(value) => {
+              'worklet';
+              const zIndex = interpolate(
+                value,
+                [-1, -0.5, 0, 0.5, 1],
+                [1, 5, 20, 5, 1]
+              );
 
-          {/* Three large cards that fill the entire width */}
-          <View className="recsRowLarge">
-            {/* Card 1 */}
-            <View className="recCardLarge">
-              <View className="recThumbLarge" />
-              <Text className="recTitleLarge">T'es stupide</Text>
-              <Text className="recMetaLarge">Fantasy · 4.7 ★</Text>
-            </View>
+              const scale = interpolate(
+                value,
+                [-1, 0, 1],
+                [0.8, 1, 0.8]
+              );
 
-            {/* Card 2 */}
-            <View className="recCardLarge">
-              <View className="recThumbLarge" />
-              <Text className="recTitleLarge">Hon Hon Hon</Text>
-              <Text className="recMetaLarge">Non-fiction · 4.6 ★</Text>
-            </View>
+              const opacity = interpolate(
+                value,
+                [-1, -0.5, 0, 0.5, 1],
+                [0.4, 0.8, 1, 0.8, 0.4]
+              );
 
-            {/* Card 3 */}
-            <View className="recCardLarge">
-              <View className="recThumbLarge" />
-              <Text className="recTitleLarge">Feed Me Baguette</Text>
-              <Text className="recMetaLarge">Sci-fi · 4.9 ★</Text>
-            </View>
-          </View>
+              const translateX = interpolate(
+                value,
+                [-1, 0, 1],
+                [-width * 0.25, 0, width * 0.25]
+              );
+
+              return {
+                transform: [
+                  { scale },
+                  { translateX }
+                ],
+                zIndex,
+                opacity,
+              };
+            }}
+            windowSize={3}
+            renderItem={({ item }) => (
+              <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                <View
+                  style={{
+                    width: CARD_WIDTH,
+                    backgroundColor: '#f6faf6',
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    elevation: 5,
+                  }}
+                  className="carouselCard"
+                >
+                  <View className="carouselThumb" />
+                  <Text className="carouselTitle">{item.title}</Text>
+                  <Text className="carouselMeta">{item.meta}</Text>
+                </View>
+              </View>
+            )}
+          />
         </View>
       </View>
 

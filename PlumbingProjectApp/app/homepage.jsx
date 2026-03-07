@@ -56,15 +56,15 @@ export default function LandingPage() {
 
   const topRecs = [
     {
-      title: "T'es stupide",
+      title: "Harry Potter",
       meta: "Fantasy · 4.7 ★",
     },
     {
-      title: "Hon Hon Hon",
+      title: "Atomic Habits",
       meta: "Non-fiction · 4.6 ★",
     },
     {
-      title: "Feed Me Baguette",
+      title: "Dark Matter",
       meta: "Sci-fi · 4.9 ★",
     },
   ];

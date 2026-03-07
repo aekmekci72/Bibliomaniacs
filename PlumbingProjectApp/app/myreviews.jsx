@@ -6,7 +6,7 @@ import {
   ScrollView,
 } from "react-native";
 import ReviewModal from "./reviewmodal";
-
+import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
 import { auth, app } from "../firebaseConfig";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
@@ -458,6 +458,10 @@ export default function MyReviews() {
   }, []);
 
   return (
+    <RequireAccess
+      allowRoles={["user", "admin"]}
+      redirectTo="/notfound"
+    >
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
       <div className="w-full max-w-7xl py-6 mx-auto">
         <div>
@@ -697,5 +701,6 @@ export default function MyReviews() {
         </div>
       )}
     </div>
+    </RequireAccess>
   );
 }

@@ -2,9 +2,10 @@ import "./login";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, app } from "../firebaseConfig";
 import { useState, useRef, useEffect } from "react";
-import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView } from "react-native";
+import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView, Alert } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { signInWithPopup, GoogleAuthProvider} from "firebase/auth";
 import { Ionicons, Octicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import axios from "axios";
 import './global.css';
@@ -13,6 +14,8 @@ export default function Layout() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState(null);
+
+  const db = getFirestore(app);
 
   // Map a route to a simple page name  
   function getPage() {
@@ -42,6 +45,16 @@ export default function Layout() {
   const [loadingNotifs, setLoadingNotifs] = useState(false);
 
   const shouldScroll = notifications.length > 6;
+
+  const getUserRole = async (user) => {
+    const idToken = await user.getIdToken(true);
+  
+    const res = await axios.post("http://localhost:5001/get_user_role", {
+      idToken,
+    });
+  
+    return typeof res.data === "string" ? res.data : res.data.role;
+  };
 
   const handleNotificationPress = (notif) => {
     setNotifOpen(false);
@@ -141,6 +154,48 @@ export default function Layout() {
     }).start();
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      let isNewUser = false;
+      if (!userSnap.exists()) {
+        isNewUser = true;
+        await setDoc(userRef, { email: user.email, role: "user" });
+      }
+
+      const role = await getUserRole(user);  
+
+      Alert.alert("Login Success", `Welcome ${user.displayName}!`);
+
+      if (isNewUser) {
+        router.replace("/profilesetup");
+      } else if (role == "admin") {
+        router.replace("/adminhomepage");
+      } else {
+        router.replace("/homepage");
+        console.log(user.role);
+      }
+
+    } catch (error) {
+      console.error("LandingPage Google Login Error:", error);
+      Alert.alert("Login Failed", error.message || "Unknown error");
+    }
+  };
+
+  const profileDirect = () => {
+    fetchRole();
+
+    if (role == "no account" || role == null) {
+      handleGoogleSignIn();
+    } else {
+      router.push("/profile");
+    }
+  }
+
 
   function NavItem({ icon, IconSet, label, page, href }) {
     const isActive = getPage() === page;
@@ -204,7 +259,7 @@ export default function Layout() {
 
       <Pressable
         className="iconBtn ml-auto rounded-full"
-        onPress={() => router.push("/profile")}
+        onPress={() => profileDirect()}
       >
         <Ionicons name="person-circle-outline" size={20} color='rgb(71, 71, 71)' />
       </Pressable>
@@ -387,9 +442,9 @@ export default function Layout() {
 
           {role === "admin" && (
             <>
-            <NavItem icon="document-text-outline" IconSet={Ionicons} label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
-            <NavItem icon="calendar-outline" IconSet={Ionicons} label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
             <NavItem icon="checkbox-outline" IconSet={Ionicons} label="Admin Homepage" page="adminhomepage" href="/adminhomepage" />
+            <NavItem icon="calendar-outline" IconSet={Ionicons} label="Admin Dashboard" page="admindashboard" href="/admindashboard" />
+            <NavItem icon="document-text-outline" IconSet={Ionicons} label="Admin Reviews" page="admin-reviews" href="/admin-reviews" />
             
             <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
             <NavItem icon="trending-up-outline" IconSet={Ionicons} label="Explorer" page="explorer" href="/explorer" />
