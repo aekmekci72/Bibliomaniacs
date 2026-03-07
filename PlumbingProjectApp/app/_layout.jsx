@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, } from "firebase/auth";
 import { Ionicons, Octicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import axios from "axios";
 import './global.css';
