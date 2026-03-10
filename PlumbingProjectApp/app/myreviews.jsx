@@ -289,6 +289,12 @@ export default function MyReviews() {
       return;
     }
 
+    const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 200) {
+      alert(`Your review must be at least 200 words. Current count: ${wordCount} words.`);
+      return;
+    }
+
     const idToken = await user.getIdToken(true);
 
     const reviewData = {
@@ -457,6 +463,14 @@ export default function MyReviews() {
     return unsubscribe;
   }, []);
 
+  function clampReview(text) {
+    const maxChars = 190;
+    if (!text || text.length <= maxChars) return text;
+  
+    const cut = text.slice(0, maxChars);
+    return cut.slice(0, cut.lastIndexOf(" ")) + "...";
+  }
+
   return (
     <RequireAccess
       allowRoles={["user", "admin"]}
@@ -545,14 +559,14 @@ export default function MyReviews() {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b border-green-100 hover:bg-green-50">
-                    <td className="px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
-                    <td className="px-4 py-4 text-gray-700">{r.review}</td>
-                    <td className="px-4 py-4">⭐ {r.rating}</td>
-                    <td className="px-4 py-4">
+                    <td className="align-top px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
+                    <td className="reviewDisplayCell">{clampReview(r.review)}</td>
+                    <td className="align-top px-4 py-4">⭐ {r.rating}</td>
+                    <td className="align-top px-4 py-4">
                       <span className="font-bold" style={{ color: statusColor[r.status] }}>{r.status}</span>
                     </td>
-                    <td className="px-4 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
-                    <td className="px-4 py-4">
+                    <td className="align-top px-4 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td className="align-top px-4 py-4">
                       <div className="flex gap-3">
                         <button
                           onClick={() => viewReview(r)}
@@ -632,6 +646,7 @@ export default function MyReviews() {
         anonOptions={anonOptions}
         onSubmit={handleSubmitReview}
         isEditMode={isEditMode}
+        reviewWordCount={review.trim().split(/\s+/).filter(Boolean).length}
       />
 
       {showViewModal && selectedReview && (

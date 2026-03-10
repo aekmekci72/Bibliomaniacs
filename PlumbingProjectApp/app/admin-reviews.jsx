@@ -735,10 +735,6 @@ export default function AdminReviews() {
                 </button>
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
-              <div className="text-2xl font-bold text-red-700">{stats.emails_not_sent || 0}</div>
-              <div className="text-xs text-gray-500 font-semibold">Emails Not Sent</div>
-            </div>
           </div>
         )}
 
