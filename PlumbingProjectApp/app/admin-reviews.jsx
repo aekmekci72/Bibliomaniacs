@@ -42,7 +42,7 @@ export default function AdminReviews() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== "All") params.append("status", statusFilter.toLowerCase());
+      // if (statusFilter !== "All") params.append("status", statusFilter.toLowerCase());
       if (gradeFilter !== "All") params.append("grade", gradeFilter);
       if (schoolFilter !== "All") params.append("school", schoolFilter);
       if (emailSentFilter !== "All") params.append("email_sent", emailSentFilter === "Sent" ? "sent" : "not_sent");
@@ -89,14 +89,34 @@ export default function AdminReviews() {
   };
 
   const filtered = reviews.filter((r) => {
+    const status =
+      r.approved === true
+        ? "Approved"
+        : r.approved === false
+        ? "Rejected"
+        : "Pending";
+
+    const matchStatus = statusFilter === "All" || status === statusFilter;
+
     const matchSearch =
       r.book_title?.toLowerCase().includes(search.toLowerCase()) ||
       r.author?.toLowerCase().includes(search.toLowerCase()) ||
       `${r.first_name} ${r.last_name}`.toLowerCase().includes(search.toLowerCase());
+
     const matchFrom = !fromDate || new Date(r.date_received) >= new Date(fromDate);
     const matchTo = !toDate || new Date(r.date_received) <= new Date(toDate);
-    return matchSearch && matchFrom && matchTo;
+
+    return matchStatus && matchSearch && matchFrom && matchTo;
   });
+  // const filtered = reviews.filter((r) => {
+  //   const matchSearch =
+  //     r.book_title?.toLowerCase().includes(search.toLowerCase()) ||
+  //     r.author?.toLowerCase().includes(search.toLowerCase()) ||
+  //     `${r.first_name} ${r.last_name}`.toLowerCase().includes(search.toLowerCase());
+  //   const matchFrom = !fromDate || new Date(r.date_received) >= new Date(fromDate);
+  //   const matchTo = !toDate || new Date(r.date_received) <= new Date(toDate);
+  //   return matchSearch && matchFrom && matchTo;
+  // });
 
   const handleActionClick = (review, newStatus) => {
     const currentStatus = review.approved ? "Approved" : (review.date_processed ? "Rejected" : "Pending");
@@ -502,7 +522,12 @@ export default function AdminReviews() {
                   </thead>
                   <tbody>
                     {filtered.map((r) => {
-                      const status = r.approved ? "Approved" : (r.date_processed ? "Rejected" : "Pending");
+                      const status =
+                      r.approved === true
+                        ? "Approved"
+                        : r.approved === false
+                        ? "Rejected"
+                        : "Pending";
                       const isUpdating = updating === r.id;
 
                       return (
