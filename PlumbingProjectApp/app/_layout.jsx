@@ -7,6 +7,7 @@ import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signInWithPopup, GoogleAuthProvider} from "firebase/auth";
 import { Ionicons, Octicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import axios from "axios";
 import './global.css';
 
@@ -16,6 +17,7 @@ export default function Layout() {
   const [role, setRole] = useState(null);
 
   const db = getFirestore(app);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Map a route to a simple page name  
   function getPage() {
@@ -54,6 +56,19 @@ export default function Layout() {
     });
   
     return typeof res.data === "string" ? res.data : res.data.role;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+      setRole(null);
+      toggleMenu();
+      console.log("Logged out");
+      router.push("/landingpage");
+    } catch (error) {
+      console.log("Logout Failed", error.message);
+    }
   };
 
   const handleNotificationPress = (notif) => {
@@ -170,7 +185,9 @@ export default function Layout() {
       const role = await getUserRole(user);  
 
       Alert.alert("Login Success", `Welcome ${user.displayName}!`);
-
+      if (isOpen) {
+        toggleMenu();
+      }
       if (isNewUser) {
         router.replace("/profilesetup");
       } else if (role == "admin") {
@@ -452,47 +469,22 @@ export default function Layout() {
           )}
 
           <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} />
-          <NavItem icon="question-circle" IconSet={AntDesign} label="About" page="about" href="https://ridgewoodlibrary.org/about/" />
-          <NavItem icon="person" IconSet={Ionicons} label="Logout" page="login" href="/login" />
           
+          <NavItem icon="question-circle" IconSet={AntDesign} label="About" page="about" href="https://ridgewoodlibrary.org/about/" />
+          {role === "no account" ? (
+            <>
+              <Pressable className={"flex-row items-center px-3 py-2 rounded-lg gap-3"} onPress={handleGoogleSignIn}>
+                <Ionicons name="person" size={18} className={"text-gray-500"}/>
+                <Text className={"text-sm text-gray-800"}>Login</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable className={"flex-row items-center px-3 py-2 rounded-lg gap-3"} onPress={handleLogout}>
+              <Ionicons name="person" size={18} className={"text-gray-500"}/>
+              <Text className={"text-sm text-gray-800"}>Logout</Text>
+            </Pressable>
+          )}
         </View>
-
-        {/* Divider */}
-        {/* <View style={{ height: 1, backgroundColor: "#e5e7eb", marginVertical: 20 }} /> */}
-
-        {/* Section Header */}
-        {/* <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>Section Divider</Text>
-        
-      <View style={{ gap: 6 }}>
-
-    {role === "admin" && (
-      <>
-        <NavItem
-          icon="grid-outline"
-          label="Admin Dashboard"
-          page="admin-dashboard"
-          href="/admindashboard"
-        />
-
-        <NavItem
-          icon="list-outline"
-          label="Submitted Reviews"
-          page="admin-reviews"
-          href="/admin-reviews"
-        />
-        
-        <NavItem
-          icon="briefcase-outline"
-          label="Admin Only"
-          page="adminonly"
-          href="/adminonly"
-        />
-      </>
-    )}        <NavItem icon="albums-outline" label="Accounts" href="/" />
-        <NavItem icon="people-outline" label="Contacts" href="/" />
-        <NavItem icon="help-circle-outline" label="Login" page="login" href="/login" /> */}
-
-      {/* </View> */}
       </Animated.View>
     </SafeAreaView>
 
