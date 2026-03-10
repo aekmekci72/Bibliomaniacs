@@ -43,17 +43,23 @@ export default function ReviewModal({
     onSubmit,
     isEditMode,
     titleCheckLoading,
+    reviewWordCount
 }) {
 
     const [requiredError, setRequiredError] = useState(false);
     const [failedSubmit, setFailedSubmit] = useState(false);
 
     const handleSubmit = () => {
-        if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || !lastName.trim() || !review.trim() || !gradeLevel || !recommendedGrades || !rating || !school.trim() || !email.trim()) {
-            setRequiredError(true);
-            setFailedSubmit(true);
-            return;
-        } else {
+        const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
+
+    if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || 
+        !lastName.trim() || !review.trim() || !gradeLevel || 
+        !recommendedGrades || !rating || !school.trim() || 
+        !email.trim() || wordCount < 200) {
+        setRequiredError(true);
+        setFailedSubmit(true);
+        return;
+    } else {
             setRequiredError(false);
             setFailedSubmit(false);
         }
@@ -167,6 +173,15 @@ export default function ReviewModal({
                             onChangeText={setReview}
                         />
 
+                        <Text style={{ 
+                            color: reviewWordCount >= 200 ? "#2b7a4b" : "#cc0000", 
+                            fontSize: 12, 
+                            marginBottom: 8,
+                            marginTop: 4
+                        }}>
+                            {reviewWordCount} / 200 words minimum{reviewWordCount >= 200 ? " ✓" : ""}
+                        </Text>
+
                         <Text className="inputLabel">
                             Grade Level <Text style={{ color: "red" }}>*</Text>
                         </Text>
@@ -253,9 +268,11 @@ export default function ReviewModal({
                             <View className="requiredBox">
                                 <View className="flex-1">
                                     <Text className="requiredTitle">Missing info</Text>
-                                    <Text className="requiredText">
-                                        Please fill all required fields
-                                    </Text>
+                                        <Text className="requiredText">
+                                            Please fill all required fields{reviewWordCount < 200 && reviewWordCount > 0 
+                                                ? ` (review needs ${200 - reviewWordCount} more words)` 
+                                                : ""}
+                                        </Text>
                                 </View>
                             </View>
                         )}
