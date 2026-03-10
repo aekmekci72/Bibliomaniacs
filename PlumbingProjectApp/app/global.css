@@ -279,6 +279,10 @@
     @apply text-lg font-bold text-[#6b7c6b] mt-2;
   }
 
+  .reviewDisplayCell {
+    @apply px-4 py-4 text-gray-700 max-w-md align-top;
+  }
+
   /* Review card container */
   .reviewCard {
     @apply flex flex-row gap-3 p-3 bg-white border border-[#e7eee7] rounded-xl;
