@@ -428,7 +428,7 @@ export default function MyReviews() {
       <body>
         <div class="certificate">
           <div class="header">Certificate of Appreciation</div>
-          <div class="name">${userName}</div>
+          <div class="name">${firstName} ${lastName}</div>
           <div class="hours">${volunteerHours} Volunteer Hours</div>
           <div class="date">Issued on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
