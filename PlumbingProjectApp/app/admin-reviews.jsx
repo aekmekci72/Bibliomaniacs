@@ -89,13 +89,7 @@ export default function AdminReviews() {
   };
 
   const filtered = reviews.filter((r) => {
-    const status =
-      r.approved === true
-        ? "Approved"
-        : r.approved === false
-        ? "Rejected"
-        : "Pending";
-
+    const status = r.approved ? "Approved" : (r.date_processed ? "Rejected" : "Pending");
     const matchStatus = statusFilter === "All" || status === statusFilter;
 
     const matchSearch =
@@ -522,12 +516,7 @@ export default function AdminReviews() {
                   </thead>
                   <tbody>
                     {filtered.map((r) => {
-                      const status =
-                      r.approved === true
-                        ? "Approved"
-                        : r.approved === false
-                        ? "Rejected"
-                        : "Pending";
+                      const status =r.approved ? "Approved" : (r.date_processed ? "Rejected" : "Pending");
                       const isUpdating = updating === r.id;
 
                       return (
