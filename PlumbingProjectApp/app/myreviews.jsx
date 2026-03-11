@@ -28,6 +28,7 @@ export default function MyReviews() {
   const [gradeLevel, setGradeLevel] = useState("");
   const [school, setSchool] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [anonPref, setAnonPref] = useState("");
   const [recommendedGrades, setRecommendedGrades] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -141,6 +142,7 @@ export default function MyReviews() {
       setRecommendedGrades([...recommendedGrades, level]);
     }
   };
+  
 
   const fetchUserReviews = async (user) => {
     try {
@@ -177,6 +179,7 @@ export default function MyReviews() {
           first_name: r.first_name,
           last_name: r.last_name,
           email: user.email,
+          phone_number: r.phone_number,
           school: r.school,
           grade: r.grade,
           recommended_audience_grade: r.recommended_audience_grade,
@@ -246,11 +249,15 @@ export default function MyReviews() {
         setLastName(data.last_name ?? "");
         setGradeLevel(data.grade ?? "");
         setEmail(data.email ?? "");
+        setPhoneNumber(data.phone ?? "");
+        setSchool(data.school ?? "");
       } else {
         setFirstName("");
         setLastName("");
         setGradeLevel("");
         setEmail("");
+        setPhoneNumber("");
+        setSchool("");
       }
     } catch (err) {
       console.error("Failed to load profile:", err);
@@ -303,12 +310,14 @@ export default function MyReviews() {
       first_name: firstName,
       last_name: lastName,
       email: user.email,
+      phone_number: phoneNumber,
       school: school,
       book_title: bookTitle,
       author: authorName,
       rating: rating,
       review: review,
       grade: gradeLevel,
+      school: school,
       recommended_audience_grade: recommendedGrades,
       anonymous: anonPref,
     };
@@ -378,6 +387,7 @@ export default function MyReviews() {
     setBookTitle(review.bookTitle);
     setAuthorName(review.author || "");
     setEmail(review.email || "");
+    setPhoneNumber(review.phone_number || "");
     setSchool(review.school || "");
     setReview(review.review);
     setRating(review.rating);
@@ -634,6 +644,8 @@ export default function MyReviews() {
         setLastName={setLastName}
         email={email}
         setEmail={setEmail}
+        phoneNumber={phoneNumber}
+        setPhoneNumber={setPhoneNumber}
         school={school}
         setSchool={setSchool}
         recommendedGrades={recommendedGrades}

@@ -28,6 +28,8 @@ export default function ReviewModal({
     setSchool,
     email,
     setEmail,
+    phoneNumber,
+    setPhoneNumber,
     firstName,
     setFirstName,
     lastName,
@@ -46,16 +48,26 @@ export default function ReviewModal({
     reviewWordCount
 }) {
 
+    function formatPhoneNumber(text) {
+        const cleaned = text.replace(/\D/g, "");
+
+        if (cleaned.length <= 3) return cleaned;
+        if (cleaned.length <= 6) return `(${cleaned.slice(0,3)}) ${cleaned.slice(3)}`;
+
+        return `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6,10)}`;
+    }
+
     const [requiredError, setRequiredError] = useState(false);
     const [failedSubmit, setFailedSubmit] = useState(false);
 
     const handleSubmit = () => {
         const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
 
+
     if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || 
         !lastName.trim() || !review.trim() || !gradeLevel || 
         !recommendedGrades || !rating || !school.trim() || 
-        !email.trim() || wordCount < 200) {
+        !email.trim() || !phoneNumber.trim() || wordCount < 200) {
         setRequiredError(true);
         setFailedSubmit(true);
         return;
@@ -150,6 +162,21 @@ export default function ReviewModal({
                             placeholder="Email"
                             value={email}
                             onChangeText={setEmail}
+                        />
+                        <Text className="inputLabel">
+                            Phone Number <Text style={{ color: "red" }}>*</Text>
+                        </Text>
+
+                        <TextInput
+                        className="modalInput"
+                        value={phoneNumber}
+                        keyboardType="phone-pad"
+                        maxLength={14}
+                        placeholder="(123) 456-7890"
+                        onChangeText={(text) => {
+                            const formatted = formatPhoneNumber(text);
+                            setPhoneNumber(formatted);
+                        }}
                         />
 
                         <Text className="inputLabel">

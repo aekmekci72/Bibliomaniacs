@@ -261,37 +261,52 @@ def invalidate_review_caches(user_email: str | None = None):
 
 @app.route("/get_user_role", methods=["POST"])
 def get_user_role_route():
+    print("DEBUG: /get_user_role hit")
     data = request.json
-    id_token = data.get("idToken")
+    print("DEBUG: request.json =", data)
 
+    id_token = data.get("idToken") if data else None
     if not id_token:
+        print("DEBUG: Missing ID token")
         return jsonify({"error": "Missing ID token"}), 401
 
+    print("DEBUG: Verifying id token")
     decoded = auth.verify_id_token(id_token)
+    print("DEBUG: Token decoded:", decoded.get("uid"), decoded.get("email"))
+
     uid = decoded["uid"]
     email = decoded.get("email")
 
+    print("DEBUG: Calling get_user_role")
     role = get_user_role(uid, email)
+    print("DEBUG: get_user_role returned:", role)
 
-    return role, 200
+    return jsonify({"role": role}), 200
 
 def get_user_role(uid, email=None):
+    print("DEBUG: get_user_role called with:", uid, email)
     user_ref = db.collection("users").document(uid)
+    print("DEBUG: fetching Firestore document")
     doc = user_ref.get()
+    print("DEBUG: Firestore doc fetched, exists:", doc.exists)
 
     if doc.exists:
         data = doc.to_dict()
+        print("DEBUG: Existing user data:", data)
         if is_user_admin(email) and data.get("role") != "admin":
+            print("DEBUG: upgrading role to admin in Firestore")
             user_ref.update({"role": "admin"})
-            print("DEBUG: Upgraded user to admin")
             return "admin"
-        return data.get("role", "user")
+        role = data.get("role", "user")
+        print("DEBUG: Returning existing role:", role)
+        return role
 
+    print("DEBUG: No doc, deciding initial role")
     role = "admin" if is_user_admin(email) else "user"
     user_ref.set({"email": email, "role": role})
     print("DEBUG: New user assigned role:", role)
-    print(role)
     return role
+
 
 @app.route("/verify_token", methods=["POST"])
 def verify_token():
@@ -890,6 +905,8 @@ def update_user_review(review_id):
             "review",
             "rating",
             "grade",
+            "school",
+            "phone_number",
             "recommended_audience_grade",
             "anonymous",
             "first_name",
@@ -1107,8 +1124,8 @@ def get_user_reviews():
 
     cache_key = user_reviews_cache_key(email)
     cached = get_cache(cache_key)
-    if cached:
-        return jsonify(cached), 200
+    # if cached:
+    #     return jsonify(cached), 200
     
     try:
         reviews = Review.collection.filter('email', '==', email).fetch()
@@ -1124,6 +1141,8 @@ def get_user_reviews():
                 "review": r.review,
                 "rating": r.rating,
                 "grade": r.grade,
+                "school": r.school,
+                "phone_number": r.phone_number,
                 "recommended_audience_grade": r.recommended_audience_grade or [],
                 "anonymous": r.anonymous,
                 "status": "Approved" if r.approved else ("Rejected" if r.date_processed else "Pending"),
@@ -1199,4 +1218,4 @@ def clear_cache():
     return jsonify({"message": "Cache cleared"}), 200
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5001, use_reloader=False)
