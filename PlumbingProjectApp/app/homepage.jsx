@@ -13,6 +13,9 @@ const { width } = Dimensions.get("window");
 const CARD_WIDTH = Math.min(width * 0.7, 340);
 
 export default function LandingPage() {
+  const [authReady, setAuthReady] = useState(false);
+  const [loadingBook, setLoadingBook] = useState(true);
+  const API_BASE_URL = "http://localhost:5001";
 
   useEffect(() => {
     const auth = getAuth();
@@ -43,6 +46,55 @@ export default function LandingPage() {
 
     return unsubscribe;
   }, []);
+  
+  const [bookOfWeek, setBookOfWeek] = useState({
+    title: "",
+    author: "",
+    lastUpdated: "",
+  });
+
+  useEffect(() => {
+    const auth = getAuth();
+    auth.currentUser;
+    
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setAuthReady(true);
+      } else {
+        setAuthReady(false);
+        console.error("User not authenticated");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    if (authReady) {
+      fetchBookOfWeek();
+    }
+  }, [authReady]);
+
+  const fetchBookOfWeek = async () => {
+    try {
+      setLoadingBook(true);
+      const response = await fetch(`${API_BASE_URL}/get_book_of_week`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookOfWeek(data);
+        console.log(bookOFWeek);
+      } else {
+        console.error("Failed to fetch book of the week");
+      }
+    } catch (error) {
+      console.error("Error fetching book of the week:", error);
+    } finally {
+      setLoadingBook(false);
+    }
+  };
 
   const bookOfTheWeek = {
     title: "To Kill a Mockingbird",
@@ -108,7 +160,7 @@ export default function LandingPage() {
           {/* RIGHT COLUMN – Book of the Week */}
           <View className="bookWeekCard">
             <Text className="bookWeekLabel">Book of the Week</Text>
-            <Text className="bookWeekTitle">{bookOfTheWeek.title}</Text>
+            <Text className="bookWeekTitle">{bookOfWeek.title}</Text>
 
             <View className="bookWeekCover" />
 

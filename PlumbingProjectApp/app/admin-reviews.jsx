@@ -4,6 +4,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { Mail, MailCheck, Filter, Scroll } from "lucide-react";
 import { View, Text, ScrollView } from "react-native";
+import { auth, app } from "../firebaseConfig";
 
 export default function AdminReviews() {
   const [search, setSearch] = useState("");
@@ -32,7 +33,6 @@ export default function AdminReviews() {
   }, [statusFilter, gradeFilter, schoolFilter, emailSentFilter, sortBy, sortOrder]);
 
   const getIdToken = async () => {
-    const auth = getAuth();
     const user = auth.currentUser;
     if (!user) throw new Error("User not logged in");
     return await user.getIdToken(true);
