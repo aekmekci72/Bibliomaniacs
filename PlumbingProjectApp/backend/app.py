@@ -33,6 +33,28 @@ firebase_admin.initialize_app(cred)
 connection(from_file="serviceKey.json")
 db = firestore.client()
 
+def load_or_train_model():
+    cache_key = "recommendation_model"
+    cached = get_cache(cache_key)
+    if cached:
+        print("Loading model from cache...")
+        return pickle.loads(base64.b64decode(cached))
+
+    print("Training new model...")
+    embedder = EmbeddingBuilder()
+    book_embeddings = embedder.build_book_embeddings(books_data)
+    recommender = HybridRecommender(book_embeddings, books_data)
+
+    # Cache for 24 hours
+    set_cache(cache_key, base64.b64encode(pickle.dumps((book_embeddings, recommender))).decode('utf-8'), ttl=86400)
+    return (book_embeddings, recommender)
+
+books_data = load_books("./recommendationModel/reviewedBooks.csv")
+books_data = load_reviews("./recommendationModel/bigReviews.csv", books_data)
+    
+book_embeddings, recommender = load_or_train_model()
+print("Model Ready.")
+
 class Book(Model):
     id = IDField()
     title = TextField()
@@ -1202,6 +1224,103 @@ def get_review_stats():
         
         return jsonify(stats), 200
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_recommendations", methods=["POST"])
+def get_recommendations():
+    try:
+        data = request.json
+        id_token = data.get("idToken")
+        
+        if not id_token or not verify_firebase_token(id_token):
+            return jsonify({"error": "Unauthorized"}), 401
+
+        decoded = auth.verify_id_token(id_token)
+        uid = decoded["uid"]
+        email = decoded.get("email")
+        print(email)
+
+        user_doc = db.collection("users").document(uid).get().to_dict() or {}
+        user_grade = user_doc.get("grade", 8) 
+        user_genres = user_doc.get("favoriteGenres", ["fantasy", "adventure"])
+        print(user_grade) 
+        print(user_genres)
+
+        past_reviews_query = Review.collection.filter('email', '==', email).fetch()
+        user_reviews = []
+        print("past ratings")
+
+        for r in past_reviews_query:
+            print(r)
+
+            book_id = r.book_title.lower()
+            print(book_id)
+
+            if book_id in books_data:
+                user_reviews.append({
+                    "book_id": book_id,
+                    "rating": float(r.rating)
+                })
+        print("user reviews:", user_reviews)
+
+        user_profile = recommender.build_user_profile(user_reviews)
+
+
+        if user_profile is None:
+            recommendations = recommender.cold_start_recommend(
+                user_genres=user_genres,
+                user_grade=float(user_grade),
+                top_k=10
+            )
+        else:
+            recommendations = recommender.recommend(
+                user_profile=user_profile,
+                user_reviews=user_reviews,
+                user_genres=user_genres,
+                user_grade=float(user_grade),
+                top_k=10
+            )
+
+        recommendations = sorted(recommendations, key=lambda x: x[1], reverse=True)
+
+        output = []
+        for book_id, score in recommendations:
+            book_info = books_data.get(book_id, {})
+            print(book_info)
+            model_reviews = book_info.get("reviews", [])
+
+            ratings = [
+                float(r["stars"])
+                for r in model_reviews
+                if r.get("stars") is not None
+            ]
+
+            title = book_info.get("title", "").strip().lower()
+
+            firestore_reviews = Review.collection.filter(
+                'approved', '==', True
+            ).fetch()
+
+            for r in firestore_reviews:
+                if r.book_title and r.book_title.strip().lower() == title:
+                    if r.rating is not None:
+                        ratings.append(float(r.rating))
+
+            avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else 0
+
+            output.append({
+                "book_id": book_id,
+                "title": book_info.get("title", "Unknown"),
+                "author": book_info.get("author", "Unknown"),
+                "score": score,
+                "avg_rating": avg_rating
+            })
+
+        return jsonify({"recommendations": output}), 200
+
+    except Exception as e:
+        print("rec error trace:")
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @app.route("/clear_cache", methods=["POST"])
