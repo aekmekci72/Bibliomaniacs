@@ -26,7 +26,6 @@ export default function AllReviews() {
       const data = await res.json();
       setReviews(data);
     } catch (err) {
-      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);

@@ -37,7 +37,7 @@ export default function LandingPage() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing review_status notifications:", err);
+        console.error("Failed clearing review_status notifications");
       }
     });
 

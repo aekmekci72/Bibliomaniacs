@@ -40,7 +40,6 @@ export default function Login() {
           const res = await axios.post("https://bibliomaniacs.onrender.com/verify_token", { idToken });
           setRole(res.data.role);
         } catch (err) {
-          console.error("Failed to fetch role:", err);
           setRole("user");
         }
       } else {
@@ -69,8 +68,7 @@ export default function Login() {
 
       Alert.alert("Login Success", `Welcome ${user.displayName} (${res.data.role})`);
     } catch (error) {
-      console.error("Firebase / Backend error:", error);
-      Alert.alert("Login Failed", error.message || "Unknown error");
+      Alert.alert("Login Failed" || "Unknown error");
     }
   };
 

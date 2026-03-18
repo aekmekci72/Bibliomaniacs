@@ -2,10 +2,10 @@ import "./login";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, app } from "../firebaseConfig";
 import { useState, useRef, useEffect } from "react";
-import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView } from "react-native";
+import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView, Alert } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider} from "firebase/auth";
 import { Ionicons, Octicons, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import axios from "axios";
 import './global.css';
@@ -14,6 +14,8 @@ export default function Layout() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState(null);
+
+  const db = getFirestore(app);
 
   // Map a route to a simple page name  
   function getPage() {
@@ -43,6 +45,16 @@ export default function Layout() {
   const [loadingNotifs, setLoadingNotifs] = useState(false);
 
   const shouldScroll = notifications.length > 6;
+
+  const getUserRole = async (user) => {
+    const idToken = await user.getIdToken(true);
+  
+    const res = await axios.post("http://localhost:5001/get_user_role", {
+      idToken,
+    });
+  
+    return typeof res.data === "string" ? res.data : res.data.role;
+  };
 
   const handleNotificationPress = (notif) => {
     setNotifOpen(false);
@@ -98,7 +110,7 @@ export default function Layout() {
       // Only show most recent 12
       setNotifications(sorted.slice(0, 12));
     } catch (err) {
-      console.error("Error fetching notifications:", err);
+      console.error("Error fetching notifications");
       setNotifications([]);
     } finally {
       setLoadingNotifs(false);
@@ -116,7 +128,7 @@ export default function Layout() {
   
       const idToken = await user.getIdToken(true);
   
-      const res = await axios.post("https://bibliomaniacs.onrender.com/get_user_role", {
+      const res = await axios.post("http://localhost:5001/get_user_role", {
         idToken,
       });
       const roleValue = typeof res.data === "string" ? res.data : res.data.role;
@@ -124,7 +136,6 @@ export default function Layout() {
       setRole(roleValue);
 
     } catch (err) {
-      console.error(err);
     }
   };
 
@@ -165,11 +176,9 @@ export default function Layout() {
         router.replace("/adminhomepage");
       } else {
         router.replace("/homepage");
-        console.log(user.role);
       }
 
     } catch (error) {
-      console.error("LandingPage Google Login Error:", error);
       Alert.alert("Login Failed", error.message || "Unknown error");
     }
   };

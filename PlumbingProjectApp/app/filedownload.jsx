@@ -13,7 +13,6 @@ export default function FileDownload() {
       const text = event.target.result;
       const rows = text.split("\n").map((r) => r.split(","));
       setCsvData(rows);
-      console.log("Imported CSV Data:", rows);
     };
     reader.readAsText(file);
   };

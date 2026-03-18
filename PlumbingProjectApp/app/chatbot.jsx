@@ -52,7 +52,6 @@ export default function ChatbotPage() {
             }, 200);
 
         } catch (e) {
-            console.log(e);
         }
     };
 
