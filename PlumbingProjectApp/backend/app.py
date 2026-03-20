@@ -17,6 +17,10 @@ import time
 from datetime import datetime, timedelta
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
+from parsing import load_books, load_reviews
+from embeddings import EmbeddingBuilder
+from model import HybridRecommender
+from evaluation import RecommenderEvaluator
 
 app = Flask(__name__)
 CORS(app)
