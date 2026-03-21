@@ -37,6 +37,9 @@ firebase_admin.initialize_app(cred)
 connection(from_file="serviceKey.json")
 db = firestore.client()
 
+book_embeddings = None
+recommender = None
+
 def load_or_train_model():
     cache_key = "recommendation_model"
     cached = get_cache(cache_key)
@@ -56,8 +59,15 @@ def load_or_train_model():
 books_data = load_books("./recommendationModel/reviewedBooks.csv")
 books_data = load_reviews("./recommendationModel/bigReviews.csv", books_data)
     
-book_embeddings, recommender = load_or_train_model()
-print("Model Ready.")
+def get_model():
+    global book_embeddings, recommender
+
+    if book_embeddings is None or recommender is None:
+        print("Loading/training model on demand...")
+        book_embeddings, recommender = load_or_train_model()
+        print("Model Ready.")
+
+    return book_embeddings, recommender
 
 class Book(Model):
     id = IDField()
@@ -1267,17 +1277,18 @@ def get_recommendations():
                 })
         print("user reviews:", user_reviews)
 
-        user_profile = recommender.build_user_profile(user_reviews)
+        _, recommender_instance = get_model()
+        user_profile = recommender_instance.build_user_profile(user_reviews)
 
 
         if user_profile is None:
-            recommendations = recommender.cold_start_recommend(
+            recommendations = recommender_instance.cold_start_recommend(
                 user_genres=user_genres,
                 user_grade=float(user_grade),
                 top_k=10
             )
         else:
-            recommendations = recommender.recommend(
+            recommendations = recommender_instance.recommend(
                 user_profile=user_profile,
                 user_reviews=user_reviews,
                 user_genres=user_genres,
