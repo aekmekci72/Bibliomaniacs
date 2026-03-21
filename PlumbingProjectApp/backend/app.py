@@ -21,6 +21,8 @@ from parsing import load_books, load_reviews
 from embeddings import EmbeddingBuilder
 from model import HybridRecommender
 from evaluation import RecommenderEvaluator
+import pickle
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -56,8 +58,8 @@ def load_or_train_model():
     set_cache(cache_key, base64.b64encode(pickle.dumps((book_embeddings, recommender))).decode('utf-8'), ttl=86400)
     return (book_embeddings, recommender)
 
-books_data = load_books("./recommendationModel/reviewedBooks.csv")
-books_data = load_reviews("./recommendationModel/bigReviews.csv", books_data)
+books_data = load_books("../recommendationModel/reviewedBooks.csv")
+books_data = load_reviews("../recommendationModel/bigReviews.csv", books_data)
     
 def get_model():
     global book_embeddings, recommender
