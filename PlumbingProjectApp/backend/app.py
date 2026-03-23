@@ -1213,6 +1213,16 @@ def clear_cache():
 def handler(request):
     return app(request.environ, start_response)
 
+@app.route('/ping')
+def ping():
+    try:
+        return jsonify({
+            "status": "OK",
+            "message": "Ping received",
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # if __name__ == "__main__":
 #     app.run(debug=True, port=5001)
 
