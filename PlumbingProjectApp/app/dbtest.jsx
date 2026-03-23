@@ -53,13 +53,11 @@ export default function App() {
       }
 
       const data = await res.json();
-      console.log("Added book:", data);
       setTitle("");
       fetchBooks();
       alert("Book added successfully!");
     } catch (err) {
-      console.error(err);
-      alert("Failed to add book: " + err.message);
+      alert("Failed to add book");
     } finally {
       setLoading(false);
     }
@@ -85,12 +83,10 @@ export default function App() {
       }
 
       const data = await res.json();
-      console.log("Submitted review:", data);
       alert(`Review submitted successfully!\nID: ${data.id}\nEntry ID: ${data.entry_id}`);
       fetchReviews();
     } catch (err) {
-      console.error(err);
-      alert("Failed to submit review: " + err.message);
+      alert("Failed to submit review");
     } finally {
       setLoading(false);
     }
@@ -102,7 +98,6 @@ export default function App() {
       const data = await res.json();
       setBooks(data);
     } catch (err) {
-      console.error(err);
       alert("Failed to fetch books");
     }
   };
@@ -113,7 +108,6 @@ export default function App() {
       const data = await res.json();
       setReviews(data);
     } catch (err) {
-      console.error(err);
       alert("Failed to fetch reviews");
     }
   };

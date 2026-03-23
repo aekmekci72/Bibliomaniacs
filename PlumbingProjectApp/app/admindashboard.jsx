@@ -44,10 +44,8 @@ const [reviewStats, setReviewStats] = useState({
         return await user.getIdToken();
       }
       
-      console.error("No user is currently signed in");
       return null;
     } catch (error) {
-      console.error("Error getting ID token:", error);
       return null;
     }
   };
@@ -98,7 +96,7 @@ const [reviewStats, setReviewStats] = useState({
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing review_status notifications:", err);
+        console.error("Failed clearing review_status notifications");
       }
     });
 
@@ -111,7 +109,6 @@ const [reviewStats, setReviewStats] = useState({
       const idToken = await getIdToken();
       
       if (!idToken) {
-        console.error("No ID token available");
         setLoadingAdmins(false);
         return;
       }
@@ -129,10 +126,10 @@ const [reviewStats, setReviewStats] = useState({
         setAdmins(data);
       } else {
         const error = await response.json();
-        console.error("Failed to fetch admins:", error);
+        console.error("Failed to fetch admins");
       }
     } catch (error) {
-      console.error("Error fetching admins:", error);
+      console.error("Error fetching admins");
     } finally {
       setLoadingAdmins(false);
     }
@@ -165,10 +162,9 @@ const [reviewStats, setReviewStats] = useState({
           setShowAddAdmin(false);
         } else {
           const error = await response.json();
-          alert(error.error || "Failed to add admin");
+          alert("Failed to add admin");
         }
       } catch (error) {
-        console.error("Error adding admin:", error);
         alert("Failed to add admin");
       }
     }
@@ -205,7 +201,6 @@ const [reviewStats, setReviewStats] = useState({
         alert(error.error || "Failed to remove admin");
       }
     } catch (error) {
-      console.error("Error removing admin:", error);
       alert("Failed to remove admin");
     }
   };
@@ -229,7 +224,7 @@ const [reviewStats, setReviewStats] = useState({
         console.error("Failed to fetch book of the week");
       }
     } catch (error) {
-      console.error("Error fetching book of the week:", error);
+      console.error("Error fetching book of the week");
     } finally {
       setLoadingBook(false);
     }
@@ -277,7 +272,6 @@ const [reviewStats, setReviewStats] = useState({
           alert(error.error || "Failed to update book of the week");
         }
       } catch (error) {
-        console.error("Error updating book of the week:", error);
         alert("Failed to update book of the week");
       }
     }
@@ -307,7 +301,7 @@ const [reviewStats, setReviewStats] = useState({
         console.error("Failed to fetch review stats");
       }
     } catch (error) {
-      console.error("Error fetching review stats:", error);
+      console.error("Error fetching review stats");
     } finally {
       setLoadingStats(false);
     }

@@ -45,12 +45,10 @@ export default function LandingPage() {
         router.replace("/adminhomepage");
       } else {
         router.replace("/homepage");
-        console.log(user.role);
       }
 
     } catch (error) {
-      console.error("LandingPage Google Login Error:", error);
-      Alert.alert("Login Failed", error.message || "Unknown error");
+      Alert.alert("Login Failed" || "Unknown error");
     }
   };
   const bookOfTheWeek = {

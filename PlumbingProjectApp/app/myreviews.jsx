@@ -118,7 +118,6 @@ export default function MyReviews() {
           setTitleFlagged(false);
         }
       } catch (err) {
-        console.warn("Title check failed:", err);
         setTitleFlagged(false);
       } finally {
         setTitleCheckLoading(false);
@@ -160,7 +159,7 @@ export default function MyReviews() {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Backend error:", data);
+        console.error("Backend error");
         return;
       }
 
@@ -186,7 +185,7 @@ export default function MyReviews() {
         }))
       );
     } catch (err) {
-      console.error("Failed to load reviews:", err);
+      console.error("Failed to load reviews");
     } finally {
       setLoading(false);
     }
@@ -231,7 +230,6 @@ export default function MyReviews() {
       alert("Review deleted successfully");
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (err) {
-      console.error("Delete failed:", err);
       alert("Error deleting review");
     }
   };
@@ -254,7 +252,7 @@ export default function MyReviews() {
         setEmail("");
       }
     } catch (err) {
-      console.error("Failed to load profile:", err);
+      console.error("Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -324,7 +322,6 @@ export default function MyReviews() {
       const result = await response.json();
 
       if (response.ok) {
-        console.log("Success:", result);
 
         // Update daily counts from response if provided
         if (result.daily_reviews_remaining !== undefined) {
@@ -346,7 +343,7 @@ export default function MyReviews() {
               }),
             });
           } catch (notifErr) {
-            console.error("Failed to notify admins:", notifErr);
+            console.error("Failed to notify admins");
           }
         }
 
@@ -361,7 +358,6 @@ export default function MyReviews() {
         alert(result.error || "Submission failed. Please try again.");
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       alert("An error occurred while connecting to the server.");
     }
   };
@@ -451,7 +447,6 @@ export default function MyReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing review_status notifications:", err);
       }
     });
 

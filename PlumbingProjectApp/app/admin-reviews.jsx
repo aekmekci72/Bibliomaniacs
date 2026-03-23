@@ -54,7 +54,7 @@ export default function AdminReviews() {
       const data = await response.json();
       setReviews(data);
     } catch (error) {
-      console.error("Failed to fetch reviews:", error);
+      console.error("Failed to fetch reviews");
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export default function AdminReviews() {
       const data = await response.json();
       setStats(data);
     } catch (error) {
-      console.error("Failed to fetch stats:", error);
+      console.error("Failed to fetch stats");
     }
   };
 
@@ -76,7 +76,6 @@ export default function AdminReviews() {
       await fetchReviews();
       await fetchStats();
     } catch (err) {
-      console.error(err);
       fetchReviews();
       fetchStats();
     }
@@ -180,7 +179,7 @@ export default function AdminReviews() {
             });
           }
         } catch (notifErr) {
-          console.error("Failed to send notification:", notifErr);
+          console.error("Failed to send notification");
         }
 
         // Close confirm modal
@@ -201,7 +200,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to update review");
       }
     } catch (error) {
-      console.error("Failed to update review:", error);
       alert("Failed to update review");
     } finally {
       setUpdating(null);
@@ -225,7 +223,7 @@ export default function AdminReviews() {
         await clearCacheAndRefresh();
       }
     } catch (error) {
-      console.error("Failed to toggle email status:", error);
+      console.error("Failed to toggle email status");
     }
   };
 
@@ -251,7 +249,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to generate email draft");
       }
     } catch (error) {
-      console.error("Failed to generate draft:", error);
       alert("Failed to generate email draft");
     } finally {
       setLoadingDraft(null);
@@ -276,7 +273,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to mark email as sent");
       }
     } catch (error) {
-      console.error("Failed to mark email:", error);
       alert("Failed to mark email as sent");
     }
   };
@@ -348,7 +344,7 @@ export default function AdminReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing new_review notifications:", err);
+        console.error("Failed clearing new_review notifications");
       }
     });
 
@@ -377,7 +373,7 @@ export default function AdminReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing new_review notifications:", err);
+        console.error("Failed clearing new_review notifications");
       }
     });
 

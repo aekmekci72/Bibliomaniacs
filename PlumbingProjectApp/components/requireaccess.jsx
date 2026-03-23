@@ -32,7 +32,6 @@ export function RequireAccess({
       const roleValue = typeof res.data === "string" ? res.data : res.data.role;
       setRole(roleValue ?? "user");
     } catch (err) {
-      console.error("fetchRole error:", err);
       setRole("user");
     } finally {
       setLoadingRole(false);

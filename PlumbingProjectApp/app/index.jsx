@@ -34,7 +34,6 @@ export default function Index() {
 
         setRole(roleValue);
       } catch (err) {
-        console.error("Error fetching role:", err);
         setRole(null); // fallback
       } finally {
         setLoading(false);
