@@ -12,7 +12,7 @@ export default function AllReviews() {
 
   // Fetch approved reviews from backend
   useEffect(() => {
-    fetch('http://localhost:5001/clear_cache', { method: 'POST' })
+    fetch('https://bibliomaniacs.onrender.com/clear_cache', { method: 'POST' })
     fetchReviews();
   }, []);
   
@@ -21,12 +21,11 @@ export default function AllReviews() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:5001/get_reviews?status=approved");
+      const res = await fetch("https://bibliomaniacs.onrender.com/get_reviews?status=approved");
       if (!res.ok) throw new Error("Failed to fetch reviews");
       const data = await res.json();
       setReviews(data);
     } catch (err) {
-      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);

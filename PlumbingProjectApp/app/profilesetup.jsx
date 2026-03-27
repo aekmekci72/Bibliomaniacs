@@ -65,12 +65,10 @@ export default function ProfileSetup() {
             if (user.role === "admin") {
                 router.replace("/adminhomepage");
             } else {
-                console.log("user role: ", user.role);
                 router.replace("/homepage");
             }
             
         } catch (err) {
-            console.log("Profile Setup Error:", err);
             Alert.alert("Error", "Could not save profile.");
         }
     };

@@ -5,6 +5,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
+import { RequireAccess } from "../components/requireaccess";
 import ReviewModal from "./reviewmodal";
 
 import { getAuth } from "firebase/auth";
@@ -64,7 +65,7 @@ export default function MyReviews() {
     }).length;
 
     setDailyReviewsSubmitted(todayReviews);
-    setDailyReviewsRemaining(Math.max(0, 2 - todayReviews));
+    setDailyReviewsRemaining(Math.max(0, 2 - todayReviews)); 
   }, [reviews]);
 
   const filtered = reviews
@@ -108,7 +109,7 @@ export default function MyReviews() {
     debounceTimer.current = setTimeout(async () => {
       try {
         const response = await fetch(
-          `http://localhost:5001/check_book_popularity?title=${encodeURIComponent(trimmed)}`
+          `https://bibliomaniacs.onrender.com/check_book_popularity?title=${encodeURIComponent(trimmed)}`
         );
         if (response.ok) {
           const data = await response.json();
@@ -117,7 +118,6 @@ export default function MyReviews() {
           setTitleFlagged(false);
         }
       } catch (err) {
-        console.warn("Title check failed:", err);
         setTitleFlagged(false);
       } finally {
         setTitleCheckLoading(false);
@@ -148,7 +148,7 @@ export default function MyReviews() {
 
       const idToken = await user.getIdToken(true);
 
-      const res = await fetch("http://localhost:5001/get_user_reviews", {
+      const res = await fetch("https://bibliomaniacs.onrender.com/get_user_reviews", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -159,7 +159,7 @@ export default function MyReviews() {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Backend error:", data);
+        console.error("Backend error");
         return;
       }
 
@@ -185,7 +185,7 @@ export default function MyReviews() {
         }))
       );
     } catch (err) {
-      console.error("Failed to load reviews:", err);
+      console.error("Failed to load reviews");
     } finally {
       setLoading(false);
     }
@@ -210,7 +210,7 @@ export default function MyReviews() {
       const idToken = await user.getIdToken(true);
 
       const res = await fetch(
-        `http://localhost:5001/delete_user_review/${reviewId}`,
+        `https://bibliomaniacs.onrender.com/delete_user_review/${reviewId}`,
         {
           method: "DELETE",
           headers: {
@@ -230,7 +230,6 @@ export default function MyReviews() {
       alert("Review deleted successfully");
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (err) {
-      console.error("Delete failed:", err);
       alert("Error deleting review");
     }
   };
@@ -253,7 +252,7 @@ export default function MyReviews() {
         setEmail("");
       }
     } catch (err) {
-      console.error("Failed to load profile:", err);
+      console.error("Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -309,8 +308,8 @@ export default function MyReviews() {
 
     try {
       const url = isEditMode
-        ? `http://localhost:5001/update_user_review/${editingReviewId}`
-        : "http://localhost:5001/submit_review";
+        ? `https://bibliomaniacs.onrender.com/update_user_review/${editingReviewId}`
+        : "https://bibliomaniacs.onrender.com/submit_review";
 
       const method = isEditMode ? "PUT" : "POST";
 
@@ -323,7 +322,6 @@ export default function MyReviews() {
       const result = await response.json();
 
       if (response.ok) {
-        console.log("Success:", result);
 
         // Update daily counts from response if provided
         if (result.daily_reviews_remaining !== undefined) {
@@ -334,7 +332,7 @@ export default function MyReviews() {
         // Only notify admins for new reviews, not edits
         if (!isEditMode) {
           try {
-            await fetch("http://localhost:5001/notify_admins", {
+            await fetch("https://bibliomaniacs.onrender.com/notify_admins", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -345,7 +343,7 @@ export default function MyReviews() {
               }),
             });
           } catch (notifErr) {
-            console.error("Failed to notify admins:", notifErr);
+            console.error("Failed to notify admins");
           }
         }
 
@@ -360,7 +358,6 @@ export default function MyReviews() {
         alert(result.error || "Submission failed. Please try again.");
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
       alert("An error occurred while connecting to the server.");
     }
   };
@@ -450,7 +447,6 @@ export default function MyReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing review_status notifications:", err);
       }
     });
 
@@ -458,6 +454,10 @@ export default function MyReviews() {
   }, []);
 
   return (
+    <RequireAccess
+      allowRoles={["user", "admin"]}
+      redirectTo="/notfound"
+    >
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
       <div className="w-full max-w-7xl py-6 mx-auto">
         <div>
@@ -541,7 +541,9 @@ export default function MyReviews() {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b border-green-100 hover:bg-green-50">
-                    <td className="px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
+                    <td className="px-4 py-4 text-gray-600">
+                      <span className="font-semibold text-gray-800">{r.bookTitle}</span> by {r.author}
+                    </td>
                     <td className="px-4 py-4 text-gray-700">{r.review}</td>
                     <td className="px-4 py-4">⭐ {r.rating}</td>
                     <td className="px-4 py-4">
@@ -697,5 +699,6 @@ export default function MyReviews() {
         </div>
       )}
     </div>
+    </RequireAccess>
   );
 }

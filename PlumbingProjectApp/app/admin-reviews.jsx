@@ -26,7 +26,7 @@ export default function AdminReviews() {
   const [loadingDraft, setLoadingDraft] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5001/clear_cache', { method: 'POST' });
+    fetch('https://bibliomaniacs.onrender.com/clear_cache', { method: 'POST' });
     fetchReviews();
     fetchStats();
   }, [statusFilter, gradeFilter, schoolFilter, emailSentFilter, sortBy, sortOrder]);
@@ -50,11 +50,11 @@ export default function AdminReviews() {
       params.append("sort_by", sortBy);
       params.append("sort_order", sortOrder);
 
-      const response = await fetch(`http://localhost:5001/get_reviews?${params}`);
+      const response = await fetch(`https://bibliomaniacs.onrender.com/get_reviews?${params}`);
       const data = await response.json();
       setReviews(data);
     } catch (error) {
-      console.error("Failed to fetch reviews:", error);
+      console.error("Failed to fetch reviews");
     } finally {
       setLoading(false);
     }
@@ -62,21 +62,20 @@ export default function AdminReviews() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch("http://localhost:5001/get_review_stats");
+      const response = await fetch("https://bibliomaniacs.onrender.com/get_review_stats");
       const data = await response.json();
       setStats(data);
     } catch (error) {
-      console.error("Failed to fetch stats:", error);
+      console.error("Failed to fetch stats");
     }
   };
 
   const clearCacheAndRefresh = async () => {
     try {
-      await fetch('http://localhost:5001/clear_cache', { method: 'POST' });
+      await fetch('https://bibliomaniacs.onrender.com/clear_cache', { method: 'POST' });
       await fetchReviews();
       await fetchStats();
     } catch (err) {
-      console.error(err);
       fetchReviews();
       fetchStats();
     }
@@ -124,7 +123,7 @@ export default function AdminReviews() {
         updateData.date_processed = new Date().toISOString();
       }
 
-      const response = await fetch(`http://localhost:5001/update_review/${reviewId}`, {
+      const response = await fetch(`https://bibliomaniacs.onrender.com/update_review/${reviewId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
@@ -155,7 +154,7 @@ export default function AdminReviews() {
               : "");
       
           // Backend request to look up UID by email
-          const resRecipient = await fetch("http://localhost:5001/get_uid_by_email", {
+          const resRecipient = await fetch("https://bibliomaniacs.onrender.com/get_uid_by_email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: reviewerEmail }),
@@ -167,7 +166,7 @@ export default function AdminReviews() {
             const recipientUid = recipientData.uid;
             
             // Send the notification
-            await fetch("http://localhost:5001/notify_recipients", {
+            await fetch("https://bibliomaniacs.onrender.com/notify_recipients", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -180,7 +179,7 @@ export default function AdminReviews() {
             });
           }
         } catch (notifErr) {
-          console.error("Failed to send notification:", notifErr);
+          console.error("Failed to send notification");
         }
 
         // Close confirm modal
@@ -201,7 +200,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to update review");
       }
     } catch (error) {
-      console.error("Failed to update review:", error);
       alert("Failed to update review");
     } finally {
       setUpdating(null);
@@ -212,7 +210,7 @@ export default function AdminReviews() {
     try {
       const idToken = await getIdToken();
 
-      const response = await fetch(`http://localhost:5001/update_review/${reviewId}`, {
+      const response = await fetch(`https://bibliomaniacs.onrender.com/update_review/${reviewId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -225,7 +223,7 @@ export default function AdminReviews() {
         await clearCacheAndRefresh();
       }
     } catch (error) {
-      console.error("Failed to toggle email status:", error);
+      console.error("Failed to toggle email status");
     }
   };
 
@@ -233,7 +231,7 @@ export default function AdminReviews() {
     setLoadingDraft(reviewId);
     try {
       const idToken = await getIdToken();
-      const response = await fetch(`http://localhost:5001/get_email_draft/${reviewId}`, {
+      const response = await fetch(`https://bibliomaniacs.onrender.com/get_email_draft/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -251,7 +249,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to generate email draft");
       }
     } catch (error) {
-      console.error("Failed to generate draft:", error);
       alert("Failed to generate email draft");
     } finally {
       setLoadingDraft(null);
@@ -262,7 +259,7 @@ export default function AdminReviews() {
     const { reviewId } = emailDraftModal;
     try {
       const idToken = await getIdToken();
-      const response = await fetch(`http://localhost:5001/mark_email_sent/${reviewId}`, {
+      const response = await fetch(`https://bibliomaniacs.onrender.com/mark_email_sent/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -276,7 +273,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to mark email as sent");
       }
     } catch (error) {
-      console.error("Failed to mark email:", error);
       alert("Failed to mark email as sent");
     }
   };
@@ -348,7 +344,7 @@ export default function AdminReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing new_review notifications:", err);
+        console.error("Failed clearing new_review notifications");
       }
     });
 
@@ -377,7 +373,7 @@ export default function AdminReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing new_review notifications:", err);
+        console.error("Failed clearing new_review notifications");
       }
     });
 

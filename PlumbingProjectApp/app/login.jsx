@@ -37,10 +37,9 @@ export default function Login() {
         setCurrentUser(user);
         try {
           const idToken = await user.getIdToken(true);
-          const res = await axios.post("http://localhost:5001/verify_token", { idToken });
+          const res = await axios.post("https://bibliomaniacs.onrender.com/verify_token", { idToken });
           setRole(res.data.role);
         } catch (err) {
-          console.error("Failed to fetch role:", err);
           setRole("user");
         }
       } else {
@@ -64,13 +63,12 @@ export default function Login() {
       }
 
       const idToken = await user.getIdToken(true);
-      const res = await axios.post("http://localhost:5001/verify_token", { idToken });
+      const res = await axios.post("https://bibliomaniacs.onrender.com/verify_token", { idToken });
       setRole(res.data.role);
 
       Alert.alert("Login Success", `Welcome ${user.displayName} (${res.data.role})`);
     } catch (error) {
-      console.error("Firebase / Backend error:", error);
-      Alert.alert("Login Failed", error.message || "Unknown error");
+      Alert.alert("Login Failed" || "Unknown error");
     }
   };
 

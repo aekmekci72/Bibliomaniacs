@@ -25,7 +25,7 @@ export default function Index() {
         // === this is your fetchRole logic inlined ===
         const idToken = await firebaseUser.getIdToken(true);
 
-        const res = await axios.post("http://localhost:5001/get_user_role", {
+        const res = await axios.post("https://bibliomaniacs.onrender.com/get_user_role", {
           idToken,
         });
 
@@ -34,7 +34,6 @@ export default function Index() {
 
         setRole(roleValue);
       } catch (err) {
-        console.error("Error fetching role:", err);
         setRole(null); // fallback
       } finally {
         setLoading(false);

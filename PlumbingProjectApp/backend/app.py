@@ -15,14 +15,21 @@ from review_model import Review, create_review, process_review, calculate_user_h
 import traceback
 import time
 from datetime import datetime, timedelta
-
+import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
 
 app = Flask(__name__)
 CORS(app)
 
+service_key_json = os.environ.get("FIREBASE_SERVICE_KEY")
+
+if service_key_json:
+    with open("serviceKey.json", "w") as f:
+        f.write(service_key_json)
+
 cred = credentials.Certificate("serviceKey.json")
 firebase_admin.initialize_app(cred)
+
 connection(from_file="serviceKey.json")
 db = firestore.client()
 
@@ -285,6 +292,11 @@ def get_user_role(uid, email=None):
             user_ref.update({"role": "admin"})
             print("DEBUG: Upgraded user to admin")
             return "admin"
+        elif not is_user_admin(email) and data.get("role") == "admin":
+            user_ref.update({"role": "user"})
+            print("DEBUG: Demoted user to user")
+            return "user"
+        
         return data.get("role", "user")
 
     role = "admin" if is_user_admin(email) else "user"
@@ -1198,5 +1210,22 @@ def clear_cache():
     invalidate_review_caches()
     return jsonify({"message": "Cache cleared"}), 200
 
+def handler(request):
+    return app(request.environ, start_response)
+
+@app.route('/ping')
+def ping():
+    try:
+        return jsonify({
+            "status": "OK",
+            "message": "Ping received",
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# if __name__ == "__main__":
+#     app.run(debug=True, port=5001)
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

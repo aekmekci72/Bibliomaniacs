@@ -37,7 +37,7 @@ export default function LandingPage() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing review_status notifications:", err);
+        console.error("Failed clearing review_status notifications");
       }
     });
 
@@ -56,15 +56,15 @@ export default function LandingPage() {
 
   const topRecs = [
     {
-      title: "T'es stupide",
+      title: "Wings of Fire",
       meta: "Fantasy · 4.7 ★",
     },
     {
-      title: "Hon Hon Hon",
+      title: "The Boy in the Striped Pajamas",
       meta: "Non-fiction · 4.6 ★",
     },
     {
-      title: "Feed Me Baguette",
+      title: "Dark Matter",
       meta: "Sci-fi · 4.9 ★",
     },
   ];
