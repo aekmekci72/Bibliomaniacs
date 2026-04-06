@@ -15,7 +15,7 @@ from review_model import Review, create_review, process_review, calculate_user_h
 import traceback
 import time
 from datetime import datetime, timedelta
-
+import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
 
 app = Flask(__name__)
@@ -1216,6 +1216,18 @@ def clear_cache():
     """Clear all review caches"""
     invalidate_review_caches()
     return jsonify({"message": "Cache cleared"}), 200
+
+@app.route('/ping')
+def ping():
+    try:
+        return jsonify({
+            "status": "OK",
+            "message": "Ping received",
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001, use_reloader=False)

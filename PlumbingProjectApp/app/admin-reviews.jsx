@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { Mail, MailCheck, Filter, Scroll } from "lucide-react";
 import { View, Text, ScrollView } from "react-native";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 
 export default function AdminReviews() {
   const [search, setSearch] = useState("");

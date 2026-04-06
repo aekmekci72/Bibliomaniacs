@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Pressable, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, TextInput, Modal, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import axios from "axios";

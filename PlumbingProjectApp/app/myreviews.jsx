@@ -8,7 +8,7 @@ import {
 import ReviewModal from "./reviewmodal";
 import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 
 export default function MyReviews() {

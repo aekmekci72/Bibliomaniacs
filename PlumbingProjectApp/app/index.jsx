@@ -2,7 +2,7 @@ import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { auth } from "../backend/firebaseConfig";
 
 export default function Index() {
   const [user, setUser] = useState(undefined);   // undefined = still checking

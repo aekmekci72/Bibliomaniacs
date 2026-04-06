@@ -1,6 +1,6 @@
 import "./login";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { useState, useRef, useEffect } from "react";
 import { Image, Animated, Dimensions, Pressable, Text, View, TextInput, ScrollView, Alert } from "react-native";
 import { Link, Stack, usePathname, useRouter } from "expo-router";

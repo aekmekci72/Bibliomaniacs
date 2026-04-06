@@ -11,7 +11,7 @@ import {
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import axios from "axios";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 
 const db = getFirestore(app);
 

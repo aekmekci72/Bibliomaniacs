@@ -7,7 +7,7 @@ import Carousel from "react-native-reanimated-carousel";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { interpolate, interpolateColor } from 'react-native-reanimated';
 import axios from "axios";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { RequireAccess } from "../components/requireaccess";
 
 export default function LandingPage() {

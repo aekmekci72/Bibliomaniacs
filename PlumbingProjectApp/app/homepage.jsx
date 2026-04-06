@@ -7,7 +7,7 @@ import Carousel from "react-native-reanimated-carousel";
 import { Dimensions } from "react-native";
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = Math.min(width * 0.7, 340);

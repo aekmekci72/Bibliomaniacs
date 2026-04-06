@@ -8,7 +8,7 @@ import {
     ScrollView,
 } from "react-native";
 import { Star } from "lucide-react-native";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 

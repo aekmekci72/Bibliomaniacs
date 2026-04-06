@@ -51,3 +51,7 @@ yarn-error.*
 /share
 /Scripts
 /__pycache__/
+
+.venv311
+../.vscode/
+nativewind-env.d.ts

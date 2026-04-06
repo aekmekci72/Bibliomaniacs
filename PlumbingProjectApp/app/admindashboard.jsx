@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth"; // Import Firebase auth
 import { View, Text, ScrollView } from "react-native";
 import { RequireAccess } from "../components/requireaccess";
 import { getFirestore, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 
 export default function AdminDashboard() {
   const [admins, setAdmins] = useState([]);
