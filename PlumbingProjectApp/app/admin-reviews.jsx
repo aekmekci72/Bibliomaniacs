@@ -4,7 +4,6 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { Mail, MailCheck, Filter, Scroll } from "lucide-react";
 import { View, Text, ScrollView } from "react-native";
-import { auth, app } from "../backend/firebaseConfig";
 
 export default function AdminReviews() {
   const [search, setSearch] = useState("");
@@ -33,6 +32,7 @@ export default function AdminReviews() {
   }, [statusFilter, gradeFilter, schoolFilter, emailSentFilter, sortBy, sortOrder]);
 
   const getIdToken = async () => {
+    const auth = getAuth();
     const user = auth.currentUser;
     if (!user) throw new Error("User not logged in");
     return await user.getIdToken(true);
@@ -42,7 +42,7 @@ export default function AdminReviews() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      // if (statusFilter !== "All") params.append("status", statusFilter.toLowerCase());
+      if (statusFilter !== "All") params.append("status", statusFilter.toLowerCase());
       if (gradeFilter !== "All") params.append("grade", gradeFilter);
       if (schoolFilter !== "All") params.append("school", schoolFilter);
       if (emailSentFilter !== "All") params.append("email_sent", emailSentFilter === "Sent" ? "sent" : "not_sent");
@@ -54,7 +54,7 @@ export default function AdminReviews() {
       const data = await response.json();
       setReviews(data);
     } catch (error) {
-      console.error("Failed to fetch reviews:", error);
+      console.error("Failed to fetch reviews");
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export default function AdminReviews() {
       const data = await response.json();
       setStats(data);
     } catch (error) {
-      console.error("Failed to fetch stats:", error);
+      console.error("Failed to fetch stats");
     }
   };
 
@@ -76,7 +76,6 @@ export default function AdminReviews() {
       await fetchReviews();
       await fetchStats();
     } catch (err) {
-      console.error(err);
       fetchReviews();
       fetchStats();
     }
@@ -89,28 +88,14 @@ export default function AdminReviews() {
   };
 
   const filtered = reviews.filter((r) => {
-    const status = r.approved ? "Approved" : (r.date_processed ? "Rejected" : "Pending");
-    const matchStatus = statusFilter === "All" || status === statusFilter;
-
     const matchSearch =
       r.book_title?.toLowerCase().includes(search.toLowerCase()) ||
       r.author?.toLowerCase().includes(search.toLowerCase()) ||
       `${r.first_name} ${r.last_name}`.toLowerCase().includes(search.toLowerCase());
-
     const matchFrom = !fromDate || new Date(r.date_received) >= new Date(fromDate);
     const matchTo = !toDate || new Date(r.date_received) <= new Date(toDate);
-
-    return matchStatus && matchSearch && matchFrom && matchTo;
+    return matchSearch && matchFrom && matchTo;
   });
-  // const filtered = reviews.filter((r) => {
-  //   const matchSearch =
-  //     r.book_title?.toLowerCase().includes(search.toLowerCase()) ||
-  //     r.author?.toLowerCase().includes(search.toLowerCase()) ||
-  //     `${r.first_name} ${r.last_name}`.toLowerCase().includes(search.toLowerCase());
-  //   const matchFrom = !fromDate || new Date(r.date_received) >= new Date(fromDate);
-  //   const matchTo = !toDate || new Date(r.date_received) <= new Date(toDate);
-  //   return matchSearch && matchFrom && matchTo;
-  // });
 
   const handleActionClick = (review, newStatus) => {
     const currentStatus = review.approved ? "Approved" : (review.date_processed ? "Rejected" : "Pending");
@@ -194,7 +179,7 @@ export default function AdminReviews() {
             });
           }
         } catch (notifErr) {
-          console.error("Failed to send notification:", notifErr);
+          console.error("Failed to send notification");
         }
 
         // Close confirm modal
@@ -215,7 +200,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to update review");
       }
     } catch (error) {
-      console.error("Failed to update review:", error);
       alert("Failed to update review");
     } finally {
       setUpdating(null);
@@ -239,7 +223,7 @@ export default function AdminReviews() {
         await clearCacheAndRefresh();
       }
     } catch (error) {
-      console.error("Failed to toggle email status:", error);
+      console.error("Failed to toggle email status");
     }
   };
 
@@ -265,7 +249,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to generate email draft");
       }
     } catch (error) {
-      console.error("Failed to generate draft:", error);
       alert("Failed to generate email draft");
     } finally {
       setLoadingDraft(null);
@@ -290,7 +273,6 @@ export default function AdminReviews() {
         alert(error.error || "Failed to mark email as sent");
       }
     } catch (error) {
-      console.error("Failed to mark email:", error);
       alert("Failed to mark email as sent");
     }
   };
@@ -362,7 +344,7 @@ export default function AdminReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing new_review notifications:", err);
+        console.error("Failed clearing new_review notifications");
       }
     });
 
@@ -391,7 +373,7 @@ export default function AdminReviews() {
           await updateDoc(userRef, { notifications: filtered });
         }
       } catch (err) {
-        console.error("Failed clearing new_review notifications:", err);
+        console.error("Failed clearing new_review notifications");
       }
     });
 
@@ -516,7 +498,7 @@ export default function AdminReviews() {
                   </thead>
                   <tbody>
                     {filtered.map((r) => {
-                      const status =r.approved ? "Approved" : (r.date_processed ? "Rejected" : "Pending");
+                      const status = r.approved ? "Approved" : (r.date_processed ? "Rejected" : "Pending");
                       const isUpdating = updating === r.id;
 
                       return (
@@ -723,6 +705,10 @@ export default function AdminReviews() {
                   Close
                 </button>
               </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
+              <div className="text-2xl font-bold text-red-700">{stats.emails_not_sent || 0}</div>
+              <div className="text-xs text-gray-500 font-semibold">Emails Not Sent</div>
             </div>
           </div>
         )}

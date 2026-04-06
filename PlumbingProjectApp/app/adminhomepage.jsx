@@ -3,7 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { RequireAccess } from "../components/requireaccess";
 import { useState, useEffect } from "react";
-import { auth, app } from "../backend/firebaseConfig";
+import { auth, app } from "../firebaseConfig";
 import { getAuth } from "firebase/auth";
 
 export default function AdminHomePage() {

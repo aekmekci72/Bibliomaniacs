@@ -1052,7 +1052,7 @@ def get_email_draft_endpoint(review_id):
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route("/mark_email_sent/<review_id>", methods=["POST"])
 def mark_email_sent(review_id):
     """Mark email as sent for a review (admin only)"""
