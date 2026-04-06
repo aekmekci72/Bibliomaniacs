@@ -47,7 +47,6 @@ def get_admin_emails():
             return admin_doc.to_dict().get("emails", [])
         return []
     except Exception as e:
-        print(f"Error fetching admin emails: {e}")
         return []
     
 def get_admin_ids():
@@ -205,7 +204,6 @@ def notify_recipients(sender, recipients, book="", status=""):
                 snap = user_ref.get()
 
                 if not snap.exists:
-                    print(f"Recipient {uid} does not exist in Firestore.")
                     continue
 
                 data = snap.to_dict() or {}
@@ -261,50 +259,35 @@ def invalidate_review_caches(user_email: str | None = None):
 
 @app.route("/get_user_role", methods=["POST"])
 def get_user_role_route():
-    print("DEBUG: /get_user_role hit")
     data = request.json
-    print("DEBUG: request.json =", data)
 
     id_token = data.get("idToken") if data else None
     if not id_token:
-        print("DEBUG: Missing ID token")
         return jsonify({"error": "Missing ID token"}), 401
 
-    print("DEBUG: Verifying id token")
     decoded = auth.verify_id_token(id_token)
-    print("DEBUG: Token decoded:", decoded.get("uid"), decoded.get("email"))
 
     uid = decoded["uid"]
     email = decoded.get("email")
 
-    print("DEBUG: Calling get_user_role")
     role = get_user_role(uid, email)
-    print("DEBUG: get_user_role returned:", role)
 
     return jsonify({"role": role}), 200
 
 def get_user_role(uid, email=None):
-    print("DEBUG: get_user_role called with:", uid, email)
     user_ref = db.collection("users").document(uid)
-    print("DEBUG: fetching Firestore document")
     doc = user_ref.get()
-    print("DEBUG: Firestore doc fetched, exists:", doc.exists)
 
     if doc.exists:
         data = doc.to_dict()
-        print("DEBUG: Existing user data:", data)
         if is_user_admin(email) and data.get("role") != "admin":
-            print("DEBUG: upgrading role to admin in Firestore")
             user_ref.update({"role": "admin"})
             return "admin"
         role = data.get("role", "user")
-        print("DEBUG: Returning existing role:", role)
         return role
 
-    print("DEBUG: No doc, deciding initial role")
     role = "admin" if is_user_admin(email) else "user"
     user_ref.set({"email": email, "role": role})
-    print("DEBUG: New user assigned role:", role)
     return role
 
 
@@ -496,7 +479,6 @@ def add_book():
     uid = decoded_token["uid"]
     email = decoded_token.get("email")
     role = get_user_role(uid, email)
-    print(f"User {email} has role {role}")
 
     if role != "admin":
         return jsonify({"error": "Permission denied"}), 403
