@@ -5,18 +5,18 @@ from flask_cors import CORS
 import asyncio
 from datetime import datetime
 import hashlib
-from PlumbingProjectApp.backend.modelsetup import chat
-from PlumbingProjectApp.backend.cache import get_cache, set_cache, make_prompt_key, delete_cache_prefix
-from PlumbingProjectApp.backend.config import ADMIN_EMAILS
+from modelsetup import chat
+from cache import get_cache, set_cache, make_prompt_key, delete_cache_prefix
+from config import ADMIN_EMAILS
 from fireo import connection
 from fireo.models import Model
 from fireo.fields import TextField, IDField, NumberField, ListField
-from PlumbingProjectApp.backend.review_model import Review, create_review, process_review, calculate_user_hours
+from review_model import Review, create_review, process_review, calculate_user_hours
 import traceback
 import time
 from datetime import datetime, timedelta
 import os
-from PlumbingProjectApp.backend.email_utils import generate_email_draft, generate_bulk_email_drafts
+from email_utils import generate_email_draft, generate_bulk_email_drafts
 
 app = Flask(__name__)
 CORS(app)
