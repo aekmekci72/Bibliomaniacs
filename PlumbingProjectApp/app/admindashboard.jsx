@@ -33,7 +33,7 @@ const [reviewStats, setReviewStats] = useState({
 
   const totalReviews = reviewStats.approved + reviewStats.pending + reviewStats.rejected;
 
-  const API_BASE_URL = "http://localhost:5001";
+  const API_BASE_URL = "https://bibliomaniacs.onrender.com";
 
   const getIdToken = async () => {
     try {
@@ -263,7 +263,7 @@ const [reviewStats, setReviewStats] = useState({
           setNewBookAuthor("");
           setShowUpdateBook(false);
 
-          await fetch("http://localhost:5001/notify_all", {
+          await fetch("https://bibliomaniacs.onrender.com/notify_all", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

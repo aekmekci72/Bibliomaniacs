@@ -18,7 +18,7 @@ export default function LandingPage() {
 
   const [authReady, setAuthReady] = useState(false);
   const [loadingBook, setLoadingBook] = useState(true);
-  const API_BASE_URL = "http://localhost:5001";
+  const API_BASE_URL = "https://bibliomaniacs.onrender.com";
 
 
   const [index, setIndex] = useState(0);
@@ -49,7 +49,7 @@ export default function LandingPage() {
   const getUserRole = async (user) => {
     const idToken = await user.getIdToken(true);
   
-    const res = await axios.post("http://localhost:5001/get_user_role", {
+    const res = await axios.post("https://bibliomaniacs.onrender.com/get_user_role", {
       idToken,
     });
   
