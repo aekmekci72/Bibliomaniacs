@@ -1030,7 +1030,7 @@ def get_email_draft_endpoint(review_id):
         return jsonify({"error": "Permission denied"}), 403
     
     try:
-        review = Review.collection.get(review_id)
+        review = Review.collection.get(f"reviews/{review_id}")
 
         if not review:
             return "Missing review_id", 400
