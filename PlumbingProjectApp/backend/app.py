@@ -17,6 +17,7 @@ import time
 from datetime import datetime, timedelta
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
+from fireo.key import Key
 
 app = Flask(__name__)
 CORS(app)
@@ -1110,7 +1111,10 @@ def delete_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        review = Review.collection.get(r_id)
+        key = Key(Review, r_id)
+        print(f"Key type: {type(key)}, Key value: {key}")
+        review = Review.collection.get(key)
+        # review = Review.collection.get(r_id)
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
