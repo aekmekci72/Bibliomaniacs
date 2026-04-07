@@ -954,7 +954,7 @@ def update_review(review_id):
         return jsonify({"error": "Permission denied"}), 403
     
     try:
-        review = Review.collection.get(review_id)
+        review = Review.collection.get(f"reviews/{review_id}")
         old_approved_status = review.approved
         old_date_processed = review.date_processed
         
