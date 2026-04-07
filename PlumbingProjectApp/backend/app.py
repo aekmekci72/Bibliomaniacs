@@ -1036,16 +1036,13 @@ def get_email_draft_endpoint(review_id):
     if role != "admin":
         return jsonify({"error": "Permission denied"}), 403
     
+    if not review_id:
+        return jsonify({"error": "review_id is null"})
+    
     print("Review #2: " + review_id)
 
     try:
-        review = Review.collection.get(f"reviews/{review_id}")
-        print("Review 3.1: ", review)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 600
-    
-    try:
-        review = Review.collection.get(review_id)
+        review = db.collection("reviews").document(review_id).get()
         print("Review #3: ", review)
         
         # Determine status
