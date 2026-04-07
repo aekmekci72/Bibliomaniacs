@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Review(Model):
 
-    id = IDField()
+    id = IDField(primary_key=True)
     
     date_received = DateTime()  # When review was submitted
     date_processed = DateTime()  # When admin approved/rejected
