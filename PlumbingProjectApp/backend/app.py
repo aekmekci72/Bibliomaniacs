@@ -1039,13 +1039,7 @@ def get_email_draft_endpoint(review_id):
     print("Review #2: " + review_id)
 
     try:
-        review = Review.collection.get(f"reviews/{review_id}")
-        print("Review 3.1: ", review)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 600
-    
-    try:
-        review = Review.collection.get(review_id)
+        review = Review.collections.get(review_id)
         print("Review #3: ", review)
         
         # Determine status
@@ -1104,6 +1098,7 @@ def mark_email_sent(review_id):
 def delete_user_review(review_id):
     data = request.json
     id_token = data.get("idToken")
+    r_id = data.get("id")
 
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
@@ -1132,6 +1127,7 @@ def delete_user_review(review_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route("/get_user_reviews", methods=["POST"])
 def get_user_reviews():
     data = request.json
