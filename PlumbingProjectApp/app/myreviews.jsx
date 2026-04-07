@@ -329,6 +329,8 @@ export default function MyReviews() {
 
       const method = isEditMode ? "PUT" : "POST";
 
+      console.log("Review ID:", editingReviewId);
+      console.log("Data:", JSON.stringify(reviewData))
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
