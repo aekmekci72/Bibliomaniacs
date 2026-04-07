@@ -898,9 +898,9 @@ def update_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        console.log(review_id)
+        print(review_id)
         review = Review.collection.get(review_id)
-        console.log(review)
+        print(review)
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
@@ -956,9 +956,9 @@ def update_review(review_id):
         return jsonify({"error": "Permission denied"}), 403
     
     try:
-        console.log(review_id)
+        print(review_id)
         review = Review.collection.get(review_id)
-        console.log(review)
+        print(review)
         old_approved_status = review.approved
         old_date_processed = review.date_processed
         
