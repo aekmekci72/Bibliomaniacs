@@ -1115,7 +1115,8 @@ def delete_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        review = Review.collection.get(review_id)
+        # review = Review.collection.get(review_id)
+        review = Review.collection.document(review_id).get()
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
@@ -1123,7 +1124,8 @@ def delete_user_review(review_id):
         if review.approved or review.date_processed:
             return jsonify({"error": "Only pending reviews can be deleted"}), 400
 
-        Review.collection.delete(review_id)
+        # Review.collection.delete(review_id)
+        Review.collection.document(review_id).delete()
         invalidate_review_caches(user_email=review.email)
 
         return jsonify({"message": "Review deleted successfully"}), 200
