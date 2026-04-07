@@ -886,7 +886,7 @@ def get_reviews():
 @app.route("/update_user_review/<review_id>", methods=["PUT"])
 def update_user_review(review_id):
     data = request.json
-    id = data.get("id")
+    r_id = data.get("id")
 
     id_token = data.get("idToken")
 
@@ -900,8 +900,8 @@ def update_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        print(id)
-        review = Review.collection.get(id)
+        print(r_id)
+        review = Review.collection.get(r_id)
         print(review)
 
         if review.email != email:
@@ -942,6 +942,7 @@ def update_review(review_id):
     """Update review details (admin only) - generates email draft for status changes"""
     data = request.json
     id_token = data.get("idToken")
+    r_id = data.get("id")
     
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
@@ -958,8 +959,8 @@ def update_review(review_id):
         return jsonify({"error": "Permission denied"}), 403
     
     try:
-        print(review_id)
-        review = Review.collection.get(review_id)
+        print(r_id)
+        review = Review.collection.get(r_id)
         print(review)
         old_approved_status = review.approved
         old_date_processed = review.date_processed
@@ -1097,6 +1098,7 @@ def mark_email_sent(review_id):
 def delete_user_review(review_id):
     data = request.json
     id_token = data.get("idToken")
+    r_id = data.get("id")
 
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
@@ -1108,7 +1110,7 @@ def delete_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        review = Review.collection.get(review_id)
+        review = Review.collection.get(r_id)
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
@@ -1116,7 +1118,7 @@ def delete_user_review(review_id):
         if review.approved or review.date_processed:
             return jsonify({"error": "Only pending reviews can be deleted"}), 400
 
-        Review.collection.delete(review_id)
+        Review.collection.delete(r_id)
         invalidate_review_caches(user_email=review.email)
 
         return jsonify({"message": "Review deleted successfully"}), 200
