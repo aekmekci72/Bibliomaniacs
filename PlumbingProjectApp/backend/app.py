@@ -898,7 +898,7 @@ def update_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        review = Review.collection.get(review_id)
+        review = Review.get(review_id)
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
