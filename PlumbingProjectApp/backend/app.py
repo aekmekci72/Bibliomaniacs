@@ -1130,7 +1130,6 @@ def delete_user_review(review_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route("/get_user_reviews", methods=["POST"])
 def get_user_reviews():
     data = request.json
