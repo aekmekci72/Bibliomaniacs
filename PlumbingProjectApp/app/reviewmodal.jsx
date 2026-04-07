@@ -67,7 +67,7 @@ export default function ReviewModal({
     if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || 
         !lastName.trim() || !review.trim() || !gradeLevel || 
         !recommendedGrades || !rating || !school.trim() || 
-        !email.trim() || !phoneNumber.trim() || wordCount < 200) {
+        !email.trim() || !phoneNumber.trim() || !anonPref.trim() ||wordCount < 200) {
         setRequiredError(true);
         setFailedSubmit(true);
         return;

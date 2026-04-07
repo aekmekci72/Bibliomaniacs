@@ -898,7 +898,9 @@ def update_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        review = Review.get(review_id)
+        console.log(review_id)
+        review = Review.collection.get(review_id)
+        console.log(review)
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
@@ -954,7 +956,9 @@ def update_review(review_id):
         return jsonify({"error": "Permission denied"}), 403
     
     try:
+        console.log(review_id)
         review = Review.collection.get(review_id)
+        console.log(review)
         old_approved_status = review.approved
         old_date_processed = review.date_processed
         
@@ -1031,9 +1035,6 @@ def get_email_draft_endpoint(review_id):
     
     try:
         review = Review.collection.get(review_id)
-
-        if not review:
-            return "Missing review_id", 400
         
         # Determine status
         if review.date_processed is None:
