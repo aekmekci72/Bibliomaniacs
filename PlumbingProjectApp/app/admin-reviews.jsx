@@ -231,7 +231,7 @@ export default function AdminReviews() {
     setLoadingDraft(reviewId);
     try {
       const idToken = await getIdToken();
-      console.log(reviewId);
+      console.log("Review #1: " + reviewId);
       const response = await fetch(`https://bibliomaniacs.onrender.com/get_email_draft/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

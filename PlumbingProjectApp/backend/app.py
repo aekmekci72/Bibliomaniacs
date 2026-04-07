@@ -1033,11 +1033,11 @@ def get_email_draft_endpoint(review_id):
     if role != "admin":
         return jsonify({"error": "Permission denied"}), 403
     
-    print(review_id)
+    print("Review #2: " + review_id)
     
     try:
         review = Review.collection.get(review_id)
-        print(review)
+        print("Review #3: " + review)
         
         # Determine status
         if review.date_processed is None:
