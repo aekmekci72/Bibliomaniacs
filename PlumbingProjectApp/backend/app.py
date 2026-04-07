@@ -1031,6 +1031,9 @@ def get_email_draft_endpoint(review_id):
     
     try:
         review = Review.collection.get(review_id)
+
+        if not review:
+            return "Missing review_id", 400
         
         # Determine status
         if review.date_processed is None:
