@@ -886,6 +886,8 @@ def get_reviews():
 @app.route("/update_user_review/<review_id>", methods=["PUT"])
 def update_user_review(review_id):
     data = request.json
+    id = data.get("id")
+
     id_token = data.get("idToken")
 
     if not id_token:
@@ -898,8 +900,8 @@ def update_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        print(review_id)
-        review = Review.collection.get(review_id)
+        print(id)
+        review = Review.collection.get(id)
         print(review)
 
         if review.email != email:
