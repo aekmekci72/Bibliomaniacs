@@ -1042,7 +1042,7 @@ def get_email_draft_endpoint(review_id):
         review = Review.collection.get(f"reviews/{review_id}")
         print("Review 3.1: ", review)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 600
     
     try:
         review = Review.collection.get(review_id)
