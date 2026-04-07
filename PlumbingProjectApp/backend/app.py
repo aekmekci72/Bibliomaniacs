@@ -1101,6 +1101,7 @@ def mark_email_sent(review_id):
 def delete_user_review(review_id):
     data = request.json
     id_token = data.get("idToken")
+    r_id = data.get("id")
 
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
@@ -1112,7 +1113,7 @@ def delete_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        review = Review.collection.get(review_id)
+        review = Review.collection.get(r_id)
 
         if review.email != email:
             return jsonify({"error": "Not authorized"}), 403
@@ -1120,13 +1121,14 @@ def delete_user_review(review_id):
         if review.approved or review.date_processed:
             return jsonify({"error": "Only pending reviews can be deleted"}), 400
 
-        Review.collection.delete(review_id)
+        Review.collection.delete(r_id)
         invalidate_review_caches(user_email=review.email)
 
         return jsonify({"message": "Review deleted successfully"}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route("/get_user_reviews", methods=["POST"])
 def get_user_reviews():
     data = request.json
