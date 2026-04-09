@@ -886,8 +886,6 @@ def get_reviews():
 @app.route("/update_user_review/<review_id>", methods=["PUT"])
 def update_user_review(review_id):
     data = request.json
-    r_id = data.get("id")
-
     id_token = data.get("idToken")
 
     if not id_token:
@@ -900,14 +898,18 @@ def update_user_review(review_id):
     email = decoded.get("email")
 
     try:
-        print(r_id)
-        review = Review.collection.get(r_id)
-        print(review)
+        review_ref = db.collection("reviews").document(review_id)
+        review_doc = review_ref.get()
 
-        if review.email != email:
+        if not review_doc.exists:
+            return jsonify({"error": "Review not found"}), 404
+
+        review = review_doc.to_dict()
+
+        if review.get("email") != email:
             return jsonify({"error": "Not authorized"}), 403
 
-        if review.approved or review.date_processed:
+        if review.get("approved") or review.get("date_processed"):
             return jsonify({"error": "Review can no longer be edited"}), 400
 
         editable_fields = [
@@ -924,13 +926,14 @@ def update_user_review(review_id):
             "last_name",
         ]
 
+        updates = {}
         for field in editable_fields:
             if field in data:
-                setattr(review, field, data[field])
+                updates[field] = data[field]
 
-        review.update()
-        invalidate_review_caches()
-        set_cache(user_reviews_cache_key(review.email), None, ttl=1)
+        review_ref.update(updates)
+
+        invalidate_review_caches(user_email=email)
 
         return jsonify({"message": "Review updated"}), 200
 
@@ -942,158 +945,157 @@ def update_review(review_id):
     """Update review details (admin only) - generates email draft for status changes"""
     data = request.json
     id_token = data.get("idToken")
-    r_id = data.get("id")
-    
+
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
-    
-    decoded_token = verify_firebase_token(id_token)
-    if not decoded_token:
+
+    decoded = verify_firebase_token(id_token)
+    if not decoded:
         return jsonify({"error": "Invalid ID token"}), 401
-    
-    uid = decoded_token["uid"]
-    email = decoded_token.get("email")
-    role = get_user_role(uid, email)
-    
+
+    role = get_user_role(decoded["uid"], decoded.get("email"))
     if role != "admin":
         return jsonify({"error": "Permission denied"}), 403
-    
+
     try:
-        print(r_id)
-        review = Review.collection.get(r_id)
-        print(review)
-        old_approved_status = review.approved
-        old_date_processed = review.date_processed
-        
+        review_ref = db.collection("reviews").document(review_id)
+        review_doc = review_ref.get()
+
+        if not review_doc.exists:
+            return jsonify({"error": "Review not found"}), 404
+
+        review = review_doc.to_dict()
+        old_date_processed = review.get("date_processed")
+
         allowed_fields = [
-            "approved", "comment_to_user", "notes_to_admin",
-            "added_to_reviewed_book_list", "call_number", "qr_code",
-            "label_created", "label_applied", "sent_confirmation_email",
-            "on_volgistics", "recommended_audience_grade"
+            "approved",
+            "comment_to_user",
+            "notes_to_admin",
+            "added_to_reviewed_book_list",
+            "call_number",
+            "qr_code",
+            "label_created",
+            "label_applied",
+            "sent_confirmation_email",
+            "on_volgistics",
+            "recommended_audience_grade",
         ]
-        
+
+        updates = {}
         for field in allowed_fields:
             if field in data:
-                setattr(review, field, data[field])
-        
-        # Check if status changed (pending -> approved/rejected)
+                updates[field] = data[field]
+
         status_changed = False
-        new_status = None
         email_draft = None
-        
+
         if "approved" in data:
-            review.date_processed = datetime.now()
-            calculate_user_hours(review.email)
-            
-            # Determine if status actually changed
-            if old_date_processed is None:  # Was pending
+            updates["date_processed"] = datetime.now()
+
+            if not old_date_processed:
                 status_changed = True
                 new_status = "approved" if data["approved"] else "rejected"
-                
-                # Generate email draft
-                email_draft = generate_email_draft(
-                    recipient_email=review.email,
-                    recipient_name=f"{review.first_name} {review.last_name}",
-                    book_title=review.book_title,
-                    author=review.author,
-                    status=new_status,
-                    comment=review.comment_to_user
-                )
-        
-        review.update()
-        invalidate_review_caches(user_email=review.email)
 
-        response_data = {
+                email_draft = generate_email_draft(
+                    recipient_email=review["email"],
+                    recipient_name=f"{review['first_name']} {review['last_name']}",
+                    book_title=review["book_title"],
+                    author=review["author"],
+                    status=new_status,
+                    comment=updates.get("comment_to_user", review.get("comment_to_user"))
+                )
+
+        review_ref.update(updates)
+        invalidate_review_caches(user_email=review.get("email"))
+
+        return jsonify({
             "message": "Review updated successfully",
-            "status_changed": status_changed
-        }
-        
-        # Include email draft if one was generated
-        if email_draft:
-            response_data["email_draft"] = email_draft
-            
-        return jsonify(response_data), 200
+            "status_changed": status_changed,
+            "email_draft": email_draft
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route("/get_email_draft/<review_id>", methods=["POST"])
 def get_email_draft_endpoint(review_id):
     """Generate email draft for a review (admin only)"""
     data = request.json
     id_token = data.get("idToken")
-    
+
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
-    
-    decoded_token = verify_firebase_token(id_token)
-    if not decoded_token:
+
+    decoded = verify_firebase_token(id_token)
+    if not decoded:
         return jsonify({"error": "Invalid ID token"}), 401
-    
-    uid = decoded_token["uid"]
-    email = decoded_token.get("email")
-    role = get_user_role(uid, email)
-    
+
+    role = get_user_role(decoded["uid"], decoded.get("email"))
     if role != "admin":
         return jsonify({"error": "Permission denied"}), 403
-    
-    print("Review #2: " + review_id)
 
     try:
-        review = Review.collections.get(review_id)
-        print("Review #3: ", review)
-        
-        # Determine status
-        if review.date_processed is None:
+        review_doc = db.collection("reviews").document(review_id).get()
+
+        if not review_doc.exists:
+            return jsonify({"error": "Review not found"}), 404
+
+        review = review_doc.to_dict()
+
+        if not review.get("date_processed"):
             return jsonify({"error": "Cannot generate email for pending review"}), 400
-        
-        status = "approved" if review.approved else "rejected"
-        
-        # Generate email draft
+
+        status = "approved" if review.get("approved") else "rejected"
+
         email_draft = generate_email_draft(
-            recipient_email=review.email,
-            recipient_name=f"{review.first_name} {review.last_name}",
-            book_title=review.book_title,
-            author=review.author,
+            recipient_email=review["email"],
+            recipient_name=f"{review['first_name']} {review['last_name']}",
+            book_title=review["book_title"],
+            author=review["author"],
             status=status,
-            comment=review.comment_to_user
+            comment=review.get("comment_to_user")
         )
-        
+
         return jsonify({"email_draft": email_draft}), 200
-            
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 @app.route("/mark_email_sent/<review_id>", methods=["POST"])
 def mark_email_sent(review_id):
     """Mark email as sent for a review (admin only)"""
     data = request.json
     id_token = data.get("idToken")
-    
+
     if not id_token:
         return jsonify({"error": "Missing ID token"}), 401
-    
-    decoded_token = verify_firebase_token(id_token)
-    if not decoded_token:
+
+    decoded = verify_firebase_token(id_token)
+    if not decoded:
         return jsonify({"error": "Invalid ID token"}), 401
-    
-    uid = decoded_token["uid"]
-    email = decoded_token.get("email")
-    role = get_user_role(uid, email)
-    
+
+    role = get_user_role(decoded["uid"], decoded.get("email"))
     if role != "admin":
         return jsonify({"error": "Permission denied"}), 403
-    
+
     try:
-        review = Review.collection.get(review_id)
-        review.sent_confirmation_email = True
-        review.update()
-        invalidate_review_caches(user_email=review.email)
-        
+        review_ref = db.collection("reviews").document(review_id)
+        review_doc = review_ref.get()
+
+        if not review_doc.exists:
+            return jsonify({"error": "Review not found"}), 404
+
+        review = review_doc.to_dict()
+
+        review_ref.update({
+            "sent_confirmation_email": True
+        })
+
+        invalidate_review_caches(user_email=review.get("email"))
+
         return jsonify({"message": "Email marked as sent"}), 200
-            
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route("/delete_user_review/<review_id>", methods=["DELETE"])
 def delete_user_review(review_id):
     data = request.json
