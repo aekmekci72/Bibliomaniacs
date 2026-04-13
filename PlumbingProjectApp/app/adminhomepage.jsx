@@ -2,9 +2,16 @@ import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { RequireAccess } from "../components/requireaccess";
+import { useState, useEffect } from "react";
+import { auth, app } from "../firebaseConfig";
+import { getAuth } from "firebase/auth";
 
 export default function AdminHomePage() {
   const router = useRouter();
+
+  const [authReady, setAuthReady] = useState(false);
+  const [loadingBook, setLoadingBook] = useState(true);
+  const API_BASE_URL = "http://localhost:5001";
 
   const bookOfTheWeek = {
     title: "To Kill a Mockingbird",
@@ -14,6 +21,55 @@ export default function AdminHomePage() {
     descr: "Quick Read",
     blurb:
       "The conscience of a town steeped in prejudice, violence and hypocrisy is pricked by the stamina of one man's struggle for justice. But the weight of history will only tolerate so much.",
+  };
+
+  const [bookOfWeek, setBookOfWeek] = useState({
+    title: "",
+    author: "",
+    lastUpdated: "",
+  });
+
+  useEffect(() => {
+    const auth = getAuth();
+    auth.currentUser;
+    
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setAuthReady(true);
+      } else {
+        setAuthReady(false);
+        console.error("User not authenticated");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    if (authReady) {
+      fetchBookOfWeek();
+    }
+  }, [authReady]);
+
+  const fetchBookOfWeek = async () => {
+    try {
+      setLoadingBook(true);
+      const response = await fetch(`${API_BASE_URL}/get_book_of_week`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookOfWeek(data);
+        console.log(bookOFWeek);
+      } else {
+        console.error("Failed to fetch book of the week");
+      }
+    } catch (error) {
+      console.error("Error fetching book of the week:", error);
+    } finally {
+      setLoadingBook(false);
+    }
   };
 
   return (
@@ -30,15 +86,13 @@ export default function AdminHomePage() {
             <Text className="adminHomeTitle">Welcome, Admin!</Text>
 
             <Text className="adminHomeTagline">
-              Description about admin abilities/responsibilities
+              As a Bibliomaniacs admin, you are granted full access to the admin pages, including the homepage, dashboard, and collection of all reviews. You may also explore the reviews from the user perspective.
             </Text>
 
             <View className="adminHomeBullets">
-              <Text className="adminHomeBullet">• This is a website</Text>
-              <Text className="adminHomeBullet">• We have cool features and stuff</Text>
-              <Text className="adminHomeBullet">
-                • Another feature because it would look uglier with less text
-              </Text>
+              <Text className="adminHomeBullet">• Approve or reject book reviews</Text>
+              <Text className="adminHomeBullet">• Notify volunteers of their review status</Text>
+              <Text className="adminHomeBullet">• Update the book of the week</Text>
             </View>
 
             <View className="adminHomeCtas">
@@ -56,7 +110,7 @@ export default function AdminHomePage() {
           <View className="adminHomeRight">
             <View className="adminHomeBookCard">
               <Text className="adminHomeBookLabel">Book of the Week</Text>
-              <Text className="adminHomeBookTitle">{bookOfTheWeek.title}</Text>
+              <Text className="adminHomeBookTitle">{bookOfWeek.title}</Text>
 
               <View className="adminHomeBookCover" />
 

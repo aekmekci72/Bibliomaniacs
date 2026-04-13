@@ -1,8 +1,10 @@
 import redis
 import hashlib
 import json
+import os
 
 cache = redis.Redis(host="localhost", port=6380, db=0)
+# cache = redis.Redis(host="localhost", port=6380, db=0)
 
 def get_cache(key):
     cached = cache.get(key)

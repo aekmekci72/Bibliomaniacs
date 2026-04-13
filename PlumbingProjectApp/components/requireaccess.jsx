@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Redirect, usePathname } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { auth } from "../firebaseConfig";
+import { auth } from "../backend/firebaseConfig";
 
 export function RequireAccess({
   allowRoles,

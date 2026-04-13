@@ -8,7 +8,7 @@ import {
     ScrollView,
 } from "react-native";
 import { Star } from "lucide-react-native";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 
@@ -28,6 +28,8 @@ export default function ReviewModal({
     setSchool,
     email,
     setEmail,
+    phoneNumber,
+    setPhoneNumber,
     firstName,
     setFirstName,
     lastName,
@@ -42,17 +44,34 @@ export default function ReviewModal({
     anonOptions,
     onSubmit,
     isEditMode,
+    titleCheckLoading,
+    reviewWordCount
 }) {
+
+    function formatPhoneNumber(text) {
+        const cleaned = text.replace(/\D/g, "");
+
+        if (cleaned.length <= 3) return cleaned;
+        if (cleaned.length <= 6) return `(${cleaned.slice(0,3)}) ${cleaned.slice(3)}`;
+
+        return `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6,10)}`;
+    }
 
     const [requiredError, setRequiredError] = useState(false);
     const [failedSubmit, setFailedSubmit] = useState(false);
 
     const handleSubmit = () => {
-        if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || !lastName.trim() || !review.trim() || !gradeLevel || !recommendedGrades || !rating || !school.trim() || !email.trim()) {
-            setRequiredError(true);
-            setFailedSubmit(true);
-            return;
-        } else {
+        const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
+
+
+    if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || 
+        !lastName.trim() || !review.trim() || !gradeLevel || 
+        !recommendedGrades || !rating || !school.trim() || 
+        !email.trim() || !phoneNumber.trim() || !anonPref.trim() ||wordCount < 200) {
+        setRequiredError(true);
+        setFailedSubmit(true);
+        return;
+    } else {
             setRequiredError(false);
             setFailedSubmit(false);
         }
@@ -89,16 +108,20 @@ export default function ReviewModal({
                             onChangeText={handleTitleChange}
                         />
 
-                        {titleFlagged && (
-                            <View className="warningBox">
-                                <View className="flex-1">
-                                    <Text className="warningTitle">Already popular title</Text>
-                                    <Text className="warningText">
-                                        This book has already been reviewed many times. Consider
-                                        reviewing a different book.
-                                    </Text>
-                                </View>
+                        {titleCheckLoading && (
+                        <Text className="text-xs text-gray-400 mb-2">Checking title...</Text>
+                        )}
+
+                        {titleFlagged && !titleCheckLoading && (
+                        <View className="warningBox">
+                            <View className="flex-1">
+                            <Text className="warningTitle">Already popular title</Text>
+                            <Text className="warningText">
+                                This book has already been reviewed many times. Consider
+                                reviewing a different book.
+                            </Text>
                             </View>
+                        </View>
                         )}
 
 <                       Text className="inputLabel">
@@ -140,6 +163,21 @@ export default function ReviewModal({
                             value={email}
                             onChangeText={setEmail}
                         />
+                        <Text className="inputLabel">
+                            Phone Number <Text style={{ color: "red" }}>*</Text>
+                        </Text>
+
+                        <TextInput
+                        className="modalInput"
+                        value={phoneNumber}
+                        keyboardType="phone-pad"
+                        maxLength={14}
+                        placeholder="(123) 456-7890"
+                        onChangeText={(text) => {
+                            const formatted = formatPhoneNumber(text);
+                            setPhoneNumber(formatted);
+                        }}
+                        />
 
                         <Text className="inputLabel">
                             School <Text style={{ color: "red" }}>*</Text>
@@ -161,6 +199,15 @@ export default function ReviewModal({
                             value={review}
                             onChangeText={setReview}
                         />
+
+                        <Text style={{ 
+                            color: reviewWordCount >= 200 ? "#2b7a4b" : "#cc0000", 
+                            fontSize: 12, 
+                            marginBottom: 8,
+                            marginTop: 4
+                        }}>
+                            {reviewWordCount} / 200 words minimum{reviewWordCount >= 200 ? " ✓" : ""}
+                        </Text>
 
                         <Text className="inputLabel">
                             Grade Level <Text style={{ color: "red" }}>*</Text>
@@ -248,9 +295,11 @@ export default function ReviewModal({
                             <View className="requiredBox">
                                 <View className="flex-1">
                                     <Text className="requiredTitle">Missing info</Text>
-                                    <Text className="requiredText">
-                                        Please fill all required fields
-                                    </Text>
+                                        <Text className="requiredText">
+                                            Please fill all required fields{reviewWordCount < 200 && reviewWordCount > 0 
+                                                ? ` (review needs ${200 - reviewWordCount} more words)` 
+                                                : ""}
+                                        </Text>
                                 </View>
                             </View>
                         )}

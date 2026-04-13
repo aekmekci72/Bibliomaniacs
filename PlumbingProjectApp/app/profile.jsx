@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, TextInput, Modal, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, TextInput, Modal, ScrollView, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { auth, app } from "../firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
+import { auth, app } from "../backend/firebaseConfig";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
+import axios from "axios";
   
 
 export default function ProfilePage() {
@@ -14,6 +15,7 @@ export default function ProfilePage() {
     const [userUid, setUserUid] = useState(null);
 
     const [role, setRole] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
 
     const [first_name, setFirstName] = useState("");
     const [last_name, setLastName] = useState("");
@@ -157,6 +159,38 @@ export default function ProfilePage() {
         return unsubscribe;
     }, []);
 
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            setCurrentUser(user);
+            try {
+              const idToken = await user.getIdToken(true);
+              const res = await axios.post("http://localhost:5001/verify_token", { idToken });
+              setRole(res.data.role);
+            } catch (err) {
+              console.error("Failed to fetch role:", err);
+              setRole("user");
+            }
+          } else {
+            setCurrentUser(null);
+            setRole(null);
+          }
+        });
+        return unsubscribe;
+      }, []);
+    
+      const handleLogout = async () => {
+        try {
+          await signOut(auth);
+          setCurrentUser(null);
+          setRole(null);
+          console.log("Logged out");
+          router.push("/landingpage");
+        } catch (error) {
+          console.log("Logout Failed", error.message);
+        }
+      };
+
     return (
         <View className="flex-1 bg-[#f5fdf5] px-5 py-6">
             <Text className="profileH1">Profile</Text>
@@ -203,10 +237,17 @@ export default function ProfilePage() {
                     )}
                 </View>
             </View>
+            <View className="profileCtaRow">
+                <Pressable className="primaryBtn editBtn" onPress={openModal}>
+                    <Text className="primaryText text-center">Edit Profile</Text>
+                </Pressable>
 
-            <Pressable className="primaryBtn editBtn" onPress={openModal}>
-                <Text className="primaryText text-center">Edit Profile</Text>
-            </Pressable>
+                <Pressable
+                    className="landingSecondaryBtn editBtnOut"
+                    onPress={handleLogout}>
+                    <Text className="landingSecondaryText text-center">Log Out</Text>
+                </Pressable>
+            </View>
 
             <Modal
                 transparent

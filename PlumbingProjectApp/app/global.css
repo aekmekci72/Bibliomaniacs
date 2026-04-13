@@ -93,6 +93,10 @@
     @apply mt-auto pt-6 flex-row gap-3 self-start;
   }
 
+  .profileCtaRow {
+    @apply flex flex-row mt-6 gap-3 justify-center;
+  }
+
   .landingTitle {
     @apply text-[40px] font-extrabold text-[#224c2f];
   }
@@ -273,6 +277,10 @@
   /* Section titles */
   .explorerSection {
     @apply text-lg font-bold text-[#6b7c6b] mt-2;
+  }
+
+  .reviewDisplayCell {
+    @apply px-4 py-4 text-gray-700 max-w-md align-top;
   }
 
   /* Review card container */
@@ -541,6 +549,10 @@
     }
 
     .editBtn {
+      @apply mt-5 self-center w-[200px];
+    }
+
+    .editBtnOut {
       @apply mt-5 self-center w-[200px];
     }
 

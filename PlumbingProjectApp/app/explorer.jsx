@@ -99,6 +99,7 @@ export default function AllReviews() {
       : `${selectedReview.first_name} ${selectedReview.last_name}`;
 
     return (
+      <ScrollView>
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Back Button */}
@@ -183,8 +184,10 @@ export default function AllReviews() {
           </div>
         </div>
       </div>
+      </ScrollView>
     );
   }
+  
 
   // Main Reviews Grid View
   return (

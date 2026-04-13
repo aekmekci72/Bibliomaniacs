@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,9 +6,9 @@ import {
   ScrollView,
 } from "react-native";
 import ReviewModal from "./reviewmodal";
-
+import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
-import { auth, app } from "../firebaseConfig";
+import { auth, app } from "../backend/firebaseConfig";
 import { getFirestore, doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 
 export default function MyReviews() {
@@ -22,11 +22,13 @@ export default function MyReviews() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [titleFlagged, setTitleFlagged] = useState(false);
+  const [titleCheckLoading, setTitleCheckLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [rating, setRating] = useState(0);
   const [gradeLevel, setGradeLevel] = useState("");
   const [school, setSchool] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [anonPref, setAnonPref] = useState("");
   const [recommendedGrades, setRecommendedGrades] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -37,6 +39,8 @@ export default function MyReviews() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [dailyReviewsRemaining, setDailyReviewsRemaining] = useState(2);
   const [dailyReviewsSubmitted, setDailyReviewsSubmitted] = useState(0);
+
+  const debounceTimer = useRef(null);
 
   const statusColor = {
     Approved: "#2b7a4b",
@@ -53,13 +57,13 @@ export default function MyReviews() {
   useEffect(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const todayReviews = reviews.filter(r => {
       const reviewDate = new Date(r.createdAt);
       reviewDate.setHours(0, 0, 0, 0);
       return reviewDate.getTime() === today.getTime();
     }).length;
-    
+
     setDailyReviewsSubmitted(todayReviews);
     setDailyReviewsRemaining(Math.max(0, 2 - todayReviews));
   }, [reviews]);
@@ -89,14 +93,44 @@ export default function MyReviews() {
     window.URL.revokeObjectURL(url);
   };
 
-  const overReviewedBooks = ["Harry Potter", "Percy Jackson", "Jane Eyre", "The Great Gatsby", "To Kill a Mockingbird"];
-
   const handleTitleChange = (text) => {
     setBookTitle(text);
-    const normalized = text.trim().toLowerCase();
-    const isOverReviewed = overReviewedBooks.some((book) => book.toLowerCase() === normalized);
-    setTitleFlagged(isOverReviewed);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setTitleFlagged(false);
+      setTitleCheckLoading(false);
+      return;
+    }
+
+    setTitleCheckLoading(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5001/check_book_popularity?title=${encodeURIComponent(trimmed)}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTitleFlagged(data.commonly_reviewed === true);
+        } else {
+          setTitleFlagged(false);
+        }
+      } catch (err) {
+        console.warn("Title check failed:", err);
+        setTitleFlagged(false);
+      } finally {
+        setTitleCheckLoading(false);
+      }
+    }, 500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
 
   const gradeOptions = ["6", "7", "8", "9", "10", "11", "12"];
   const anonOptions = ["Yes", "No", "First Name Only"];
@@ -108,6 +142,7 @@ export default function MyReviews() {
       setRecommendedGrades([...recommendedGrades, level]);
     }
   };
+  
 
   const fetchUserReviews = async (user) => {
     try {
@@ -144,6 +179,7 @@ export default function MyReviews() {
           first_name: r.first_name,
           last_name: r.last_name,
           email: user.email,
+          phone_number: r.phone_number,
           school: r.school,
           grade: r.grade,
           recommended_audience_grade: r.recommended_audience_grade,
@@ -209,18 +245,20 @@ export default function MyReviews() {
 
       if (snap.exists()) {
         const data = snap.data();
-
         setFirstName(data.first_name ?? "");
         setLastName(data.last_name ?? "");
         setGradeLevel(data.grade ?? "");
         setEmail(data.email ?? "");
+        setPhoneNumber(data.phone ?? "");
+        setSchool(data.school ?? "");
       } else {
         setFirstName("");
         setLastName("");
         setGradeLevel("");
         setEmail("");
+        setPhoneNumber("");
+        setSchool("");
       }
-
     } catch (err) {
       console.error("Failed to load profile:", err);
     } finally {
@@ -258,6 +296,12 @@ export default function MyReviews() {
       return;
     }
 
+    const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 200) {
+      alert(`Your review must be at least 200 words. Current count: ${wordCount} words.`);
+      return;
+    }
+
     const idToken = await user.getIdToken(true);
 
     const reviewData = {
@@ -266,12 +310,14 @@ export default function MyReviews() {
       first_name: firstName,
       last_name: lastName,
       email: user.email,
+      phone_number: phoneNumber,
       school: school,
       book_title: bookTitle,
       author: authorName,
       rating: rating,
       review: review,
       grade: gradeLevel,
+      school: school,
       recommended_audience_grade: recommendedGrades,
       anonymous: anonPref,
     };
@@ -283,6 +329,8 @@ export default function MyReviews() {
 
       const method = isEditMode ? "PUT" : "POST";
 
+      console.log("Review ID:", editingReviewId);
+      console.log("Data:", JSON.stringify(reviewData))
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -293,8 +341,8 @@ export default function MyReviews() {
 
       if (response.ok) {
         console.log("Success:", result);
-        
-        // Update daily counts from response
+
+        // Update daily counts from response if provided
         if (result.daily_reviews_remaining !== undefined) {
           setDailyReviewsRemaining(result.daily_reviews_remaining);
           setDailyReviewsSubmitted(result.daily_reviews_submitted);
@@ -322,10 +370,8 @@ export default function MyReviews() {
         setIsEditMode(false);
         setEditingReviewId(null);
         alert(isEditMode ? "Review updated!" : "Review submitted!");
-        
         await fetchUserReviews(user);
       } else if (response.status === 429) {
-        // Handle rate limit error
         alert(result.message || "You've reached your daily limit of 2 reviews. Please try again tomorrow!");
       } else {
         alert(result.error || "Submission failed. Please try again.");
@@ -343,6 +389,7 @@ export default function MyReviews() {
     setBookTitle(review.bookTitle);
     setAuthorName(review.author || "");
     setEmail(review.email || "");
+    setPhoneNumber(review.phone_number || "");
     setSchool(review.school || "");
     setReview(review.review);
     setRating(review.rating);
@@ -355,6 +402,8 @@ export default function MyReviews() {
     setAnonPref(review.anonymous || "");
     setFirstName(review.first_name || "");
     setLastName(review.last_name || "");
+    setTitleFlagged(false);
+    setTitleCheckLoading(false);
 
     setModalVisible(true);
   };
@@ -381,7 +430,7 @@ export default function MyReviews() {
       <body>
         <div class="certificate">
           <div class="header">Certificate of Appreciation</div>
-          <div class="name">${userName}</div>
+          <div class="name">${firstName} ${lastName}</div>
           <div class="hours">${volunteerHours} Volunteer Hours</div>
           <div class="date">Issued on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
@@ -426,7 +475,19 @@ export default function MyReviews() {
     return unsubscribe;
   }, []);
 
+  function clampReview(text) {
+    const maxChars = 190;
+    if (!text || text.length <= maxChars) return text;
+  
+    const cut = text.slice(0, maxChars);
+    return cut.slice(0, cut.lastIndexOf(" ")) + "...";
+  }
+
   return (
+    <RequireAccess
+      allowRoles={["user", "admin"]}
+      redirectTo="/notfound"
+    >
     <div className="flex flex-col pb-12 px-6 bg-gray-50 min-h-screen overflow-y-auto">
       <div className="w-full max-w-7xl py-6 mx-auto">
         <div>
@@ -510,14 +571,14 @@ export default function MyReviews() {
               <tbody>
                 {filtered.map((r) => (
                   <tr key={r.id} className="border-b border-green-100 hover:bg-green-50">
-                    <td className="px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
-                    <td className="px-4 py-4 text-gray-700">{r.review}</td>
-                    <td className="px-4 py-4">⭐ {r.rating}</td>
-                    <td className="px-4 py-4">
+                    <td className="align-top px-4 py-4 font-medium">{r.bookTitle}: {r.author}</td>
+                    <td className="reviewDisplayCell">{clampReview(r.review)}</td>
+                    <td className="align-top px-4 py-4">⭐ {r.rating}</td>
+                    <td className="align-top px-4 py-4">
                       <span className="font-bold" style={{ color: statusColor[r.status] }}>{r.status}</span>
                     </td>
-                    <td className="px-4 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
-                    <td className="px-4 py-4">
+                    <td className="align-top px-4 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td className="align-top px-4 py-4">
                       <div className="flex gap-3">
                         <button
                           onClick={() => viewReview(r)}
@@ -555,8 +616,8 @@ export default function MyReviews() {
           <div className="mt-8 flex justify-center gap-4 flex-wrap">
             <button onClick={exportCSV} className="bg-green-900 text-white font-bold py-4 px-8 rounded-lg">Export CSV</button>
             <button onClick={generateCertificate} className="bg-blue-700 text-white font-bold py-4 px-8 rounded-lg">📜 Certificate</button>
-            <button 
-              onClick={() => setModalVisible(true)} 
+            <button
+              onClick={() => setModalVisible(true)}
               className={`bg-green-700 text-white font-bold py-4 px-8 rounded-lg ${dailyReviewsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={dailyReviewsRemaining === 0}
             >
@@ -576,6 +637,7 @@ export default function MyReviews() {
         review={review}
         setReview={setReview}
         titleFlagged={titleFlagged}
+        titleCheckLoading={titleCheckLoading}
         gradeLevel={gradeLevel}
         setGradeLevel={setGradeLevel}
         firstName={firstName}
@@ -584,6 +646,8 @@ export default function MyReviews() {
         setLastName={setLastName}
         email={email}
         setEmail={setEmail}
+        phoneNumber={phoneNumber}
+        setPhoneNumber={setPhoneNumber}
         school={school}
         setSchool={setSchool}
         recommendedGrades={recommendedGrades}
@@ -596,6 +660,7 @@ export default function MyReviews() {
         anonOptions={anonOptions}
         onSubmit={handleSubmitReview}
         isEditMode={isEditMode}
+        reviewWordCount={review.trim().split(/\s+/).filter(Boolean).length}
       />
 
       {showViewModal && selectedReview && (
@@ -665,5 +730,6 @@ export default function MyReviews() {
         </div>
       )}
     </div>
+    </RequireAccess>
   );
 }

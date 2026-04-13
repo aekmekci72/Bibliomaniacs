@@ -12,7 +12,7 @@ class Review(Model):
     # Reviewer Info
     last_name = TextField()
     first_name = TextField()
-    grade = NumberField()
+    grade = TextField()
     school = TextField()
     email = TextField()
     phone_number = TextField()
