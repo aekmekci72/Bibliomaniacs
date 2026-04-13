@@ -26,7 +26,7 @@ export default function AdminReviews() {
   const [loadingDraft, setLoadingDraft] = useState(null);
 
   useEffect(() => {
-    fetch('https://bibliomaniacs.onrender.com/clear_cache', { method: 'POST' });
+    fetch('http://localhost:5001/clear_cache', { method: 'POST' });
     fetchReviews();
     fetchStats();
   }, [statusFilter, gradeFilter, schoolFilter, emailSentFilter, sortBy, sortOrder]);
@@ -50,7 +50,7 @@ export default function AdminReviews() {
       params.append("sort_by", sortBy);
       params.append("sort_order", sortOrder);
 
-      const response = await fetch(`https://bibliomaniacs.onrender.com/get_reviews?${params}`);
+      const response = await fetch(`http://localhost:5001/get_reviews?${params}`);
       const data = await response.json();
       setReviews(data);
     } catch (error) {
@@ -62,7 +62,7 @@ export default function AdminReviews() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch("https://bibliomaniacs.onrender.com/get_review_stats");
+      const response = await fetch("http://localhost:5001/get_review_stats");
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -72,7 +72,7 @@ export default function AdminReviews() {
 
   const clearCacheAndRefresh = async () => {
     try {
-      await fetch('https://bibliomaniacs.onrender.com/clear_cache', { method: 'POST' });
+      await fetch('http://localhost:5001/clear_cache', { method: 'POST' });
       await fetchReviews();
       await fetchStats();
     } catch (err) {
@@ -123,7 +123,7 @@ export default function AdminReviews() {
         updateData.date_processed = new Date().toISOString();
       }
 
-      const response = await fetch(`https://bibliomaniacs.onrender.com/update_review/${reviewId}`, {
+      const response = await fetch(`http://localhost:5001/update_review/${reviewId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
@@ -154,7 +154,7 @@ export default function AdminReviews() {
               : "");
       
           // Backend request to look up UID by email
-          const resRecipient = await fetch("https://bibliomaniacs.onrender.com/get_uid_by_email", {
+          const resRecipient = await fetch("http://localhost:5001/get_uid_by_email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: reviewerEmail }),
@@ -166,7 +166,7 @@ export default function AdminReviews() {
             const recipientUid = recipientData.uid;
             
             // Send the notification
-            await fetch("https://bibliomaniacs.onrender.com/notify_recipients", {
+            await fetch("http://localhost:5001/notify_recipients", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -210,7 +210,7 @@ export default function AdminReviews() {
     try {
       const idToken = await getIdToken();
 
-      const response = await fetch(`https://bibliomaniacs.onrender.com/update_review/${reviewId}`, {
+      const response = await fetch(`http://localhost:5001/update_review/${reviewId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -232,7 +232,7 @@ export default function AdminReviews() {
     try {
       const idToken = await getIdToken();
       console.log("Review #1: " + reviewId);
-      const response = await fetch(`https://bibliomaniacs.onrender.com/get_email_draft/${reviewId}`, {
+      const response = await fetch(`http://localhost:5001/get_email_draft/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -260,7 +260,7 @@ export default function AdminReviews() {
     const { reviewId } = emailDraftModal;
     try {
       const idToken = await getIdToken();
-      const response = await fetch(`https://bibliomaniacs.onrender.com/mark_email_sent/${reviewId}`, {
+      const response = await fetch(`http://localhost:5001/mark_email_sent/${reviewId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
