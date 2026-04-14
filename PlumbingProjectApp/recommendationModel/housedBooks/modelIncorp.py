@@ -22,11 +22,11 @@ import redis
 import json
 from typing import List, Tuple
 from housedBooks.availability import avail
+import time
 
 class AvailabilityCache:
-    def __init__(self, redis_host="localhost", redis_port=6379, ttl_seconds=36000):
+    def __init__(self, redis_host="localhost", redis_port=6379):
         self.redis = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
-        self.ttl = ttl_seconds
 
     def _key(self, title: str) -> str:
         return f"availability:{title.lower()}"
@@ -35,39 +35,49 @@ class AvailabilityCache:
         value = self.redis.get(self._key(title))
         if value is None:
             return None
-        return value == "1"
+        
+        data = json.loads(value)
+        return data
 
-    def set(self, title: str, value: bool):
-        self.redis.setex(
-            self._key(title),
-            self.ttl,
-            "1" if value else "0"
-        )
+    def set(self, title: str, available: bool):
+        data = {
+            "available": available,
+            "timestamp": time.time()
+        }
+        self.redis.set(self._key(title), json.dumps(data))
 
+    def is_stale(self, title: str, max_age_hours=24):
+        data = self.get(title)
+        if data is None:
+            return True
+        
+        age = time.time() - data["timestamp"]
+        return age > max_age_hours * 3600
 
 class AvailabilityService:
     def __init__(self, cache: AvailabilityCache):
         self.cache = cache
 
-    def check(self, title: str) -> bool:
-        cached = self.cache.get(title)
-        if cached is not None:
-            print(f"CACHED: Title {title} is {cached} for availability")
-            return cached
+    def check(self, title: str):
+        data = self.cache.get(title)
 
-        is_available = avail(title)
-        print(f"Title {title} is {is_available} for availability")
-        self.cache.set(title, is_available)
-        return is_available
+        if data is None:
+            return None  # unknown
 
-    def check_bulk(self, titles: List[str]) -> dict:
+        return data["available"]
+
+    def check_bulk(self, titles):
         results = {}
 
         for title in titles:
-            results[title] = self.check(title)
+            data = self.cache.get(title)
+
+            if data is None:
+                results[title] = None
+            else:
+                results[title] = data["available"]
 
         return results
-
 
 class ContextAwareRecommender:
     def __init__(self, base_recommender, books, availability_service, initial_pool=50, expansion_step=50, max_pool=300):
@@ -108,13 +118,15 @@ class ContextAwareRecommender:
             adjusted = []
 
             for (book_id, score), title in zip(candidates, titles):
-                is_available = availability_map.get(title)
+                availability = availability_map.get(title)
 
-                if is_available:
-                    adjusted_score = score + 0.1   # boost
+                if availability is True:
+                    adjusted_score = score + 0.1
+                elif availability is False:
+                    adjusted_score = score - 0.15
                 else:
-                    adjusted_score = score - 0.2   # penalty
-
+                    adjusted_score = score 
+                
                 adjusted.append((book_id, adjusted_score))
 
             adjusted.sort(key=lambda x: x[1], reverse=True)
