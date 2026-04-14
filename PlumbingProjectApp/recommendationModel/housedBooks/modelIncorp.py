@@ -74,8 +74,24 @@ class AvailabilityService:
 
             if data is None:
                 results[title] = None
+                continue
+
+            if isinstance(data, dict):
+                results[title] = data.get("available")
+
+            elif isinstance(data, int):
+                results[title] = bool(data)
+
+            elif isinstance(data, str):
+                if data in ["1", "true", "True"]:
+                    results[title] = True
+                elif data in ["0", "false", "False"]:
+                    results[title] = False
+                else:
+                    results[title] = None
+
             else:
-                results[title] = data["available"]
+                results[title] = None
 
         return results
 

@@ -7,7 +7,6 @@ from housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, Con
 cache = AvailabilityCache(
     redis_host="localhost",
     redis_port=6380,
-    ttl_seconds=3600
 )
 
 availability_service = AvailabilityService(cache)
