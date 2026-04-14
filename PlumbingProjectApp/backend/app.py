@@ -601,6 +601,128 @@ def get_commonly_reviewed_books():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/get_community_rating/<book_id>", methods=["GET"])
+def get_community_rating(book_id):
+    try:
+        book_ref = db.collection("reviews").document(book_id)
+        book_doc = book_ref.get()
+
+        if not book_doc.exists:
+            return jsonify({"average_rating": None, "rating_count": 0}), 200
+
+        data = book_doc.to_dict()
+        comm_rating = data.get("commRating")
+
+        if not comm_rating:
+            return jsonify({"average_rating": None, "rating_count": 0}), 200
+
+        return jsonify({
+            "average_rating": comm_rating.get("avgRating"),
+            "rating_count": comm_rating.get("total")
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching community rating: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/get_users_community_rating/<book_id>", methods=["POST"])
+def get_users_community_rating(book_id):
+    try:
+        data = request.get_json()
+        id_token = data.get("idToken")
+        decoded_token = verify_firebase_token(id_token)
+        if not decoded_token:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        uid = decoded_token["uid"]
+
+        # 1. Find user document by email (consistent with rest of codebase)
+        user_ref = db.collection("users").document(uid)
+        user_docs = user_ref.get()
+
+        if not user_docs:
+            return jsonify({"rating": None}), 200
+
+        user_data = user_docs.to_dict() or {}
+        general_ratings = user_data.get("generalRatings", [])
+
+        for r in general_ratings:
+            if r.get("bookId") == book_id:
+                return jsonify({"rating": r.get("rating")}), 200
+
+        return jsonify({"rating": None}), 200
+
+    except Exception as e:
+        print(f"Error fetching user community rating: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/submit_community_rating", methods=["POST"])
+def submit_community_rating():
+    try:
+        data = request.get_json()
+        id_token = data.get("idToken")
+        book_id = data.get("book_id")
+        rating = data.get("rating")
+
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded_token = verify_firebase_token(id_token)
+        if not decoded_token:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        uid = decoded_token["uid"]
+
+        # 1. Find user document by email (consistent with rest of codebase)
+        user_ref = db.collection("users").document(uid)
+        user_doc = user_ref.get()
+
+        if not user_doc:
+            return jsonify({"error": "User not found"}), 404
+
+        user_data = user_doc.to_dict() or {}
+        general_ratings = user_data.get("generalRatings", [])
+
+        # Sanitize any legacy nested arrays
+        general_ratings = [r for r in general_ratings if isinstance(r, dict)]
+
+        # Update if already rated, otherwise append
+        existing = next((r for r in general_ratings if r.get("bookId") == book_id), None)
+        if existing:
+            general_ratings = [r for r in general_ratings if r.get("bookId") != book_id]
+
+        general_ratings.append({"bookId": book_id, "rating": rating})
+        user_ref.update({"generalRatings": general_ratings})
+
+        # 2. Recalculate and update commRating on the review document
+        book_ref = db.collection("reviews").document(book_id)
+        book_doc = book_ref.get()
+        book_data = book_doc.to_dict() or {}
+        comm_rating = book_data.get("commRating", {"avgRating": 0, "total": 0})
+
+        old_avg = comm_rating.get("avgRating", 0)
+        old_total = comm_rating.get("total", 0)
+
+        if existing:
+            old_rating = existing["rating"]
+            new_avg = ((old_avg * old_total) - old_rating + rating) / old_total
+            new_total = old_total
+        else:
+            new_total = old_total + 1
+            new_avg = ((old_avg * old_total) + rating) / new_total
+
+        book_ref.update({"commRating": {"avgRating": round(new_avg, 2), "total": new_total}})
+
+        return jsonify({"new_average": round(new_avg, 2), "total": new_total}), 200
+
+    except Exception as e:
+        print(f"Error submitting community rating: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/ask_question", methods=["POST"])
 def ask_question():
