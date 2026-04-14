@@ -21,6 +21,8 @@ from email_utils import generate_email_draft, generate_bulk_email_drafts
 from recommendationModel.parsing import load_books, load_reviews
 from recommendationModel.embeddings import EmbeddingBuilder
 from recommendationModel.model import HybridRecommender
+from recommendationModel.evaluation import RecommenderEvaluator
+from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
 import pickle
 import base64
 
@@ -40,25 +42,48 @@ connection(from_file="serviceKey.json")
 db = firestore.client()
 
 def load_or_train_model():
-    cache_key = "recommendation_model"
+    cache_key = "book_embeddings"
     cached = get_cache(cache_key)
-    if cached:
-        print("Loading model from cache...")
-        return pickle.loads(base64.b64decode(cached))
 
-    print("Training new model...")
-    embedder = EmbeddingBuilder()
-    book_embeddings = embedder.build_book_embeddings(books_data)
+    if cached:
+        print("Loading embeddings from cache...")
+        book_embeddings = pickle.loads(base64.b64decode(cached))
+    else:
+        print("Training new model...")
+
+        embedder = EmbeddingBuilder()
+        book_embeddings = embedder.build_book_embeddings(books_data)
+
+        set_cache(
+            cache_key,
+            base64.b64encode(pickle.dumps(book_embeddings)).decode("utf-8"),
+            ttl=86400
+        )
+
     recommender = HybridRecommender(book_embeddings, books_data)
 
-    # Cache for 24 hours
-    set_cache(cache_key, base64.b64encode(pickle.dumps((book_embeddings, recommender))).decode('utf-8'), ttl=86400)
-    return (book_embeddings, recommender)
+    context_recommender = ContextAwareRecommender(
+        base_recommender=recommender,
+        books=books_data,
+        availability_service=availability_service,
+        initial_pool=50,
+        expansion_step=50,
+        max_pool=300
+    )
+
+    return book_embeddings, recommender, context_recommender
+
+cache = AvailabilityCache(
+    redis_host="localhost",
+    redis_port=6380,
+)
+
+availability_service = AvailabilityService(cache)
 
 books_data = load_books("./backend/recommendationModel/reviewedBooks.csv")
 books_data = load_reviews("./backend/recommendationModel/bigReviews.csv", books_data)
-    
-book_embeddings, recommender = load_or_train_model()
+
+book_embeddings, recommender, context_recommender = load_or_train_model()
 print("Model Ready.")
 
 
@@ -1288,7 +1313,7 @@ def get_recommendations():
                     "rating": float(r.rating)
                 })
         print("user reviews:", user_reviews)
-
+        
         user_profile = recommender.build_user_profile(user_reviews)
 
 
@@ -1299,11 +1324,11 @@ def get_recommendations():
                 top_k=10
             )
         else:
-            recommendations = recommender.recommend(
+            recommendations = context_recommender.recommend(
                 user_profile=user_profile,
                 user_reviews=user_reviews,
                 user_genres=user_genres,
-                user_grade=float(user_grade),
+                user_grade=user_grade,
                 top_k=10
             )
 
