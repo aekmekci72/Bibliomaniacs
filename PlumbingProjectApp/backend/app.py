@@ -17,7 +17,8 @@ import time
 from datetime import datetime, timedelta
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
-
+from better_profanity import profanity
+import logging
 from recommendationModel.parsing import load_books, load_reviews
 from recommendationModel.embeddings import EmbeddingBuilder
 from recommendationModel.model import HybridRecommender
@@ -40,6 +41,8 @@ firebase_admin.initialize_app(cred)
 
 connection(from_file="serviceKey.json")
 db = firestore.client()
+
+profanity.load_censor_words()  
 
 def load_or_train_model():
     cache_key = "book_embeddings"
@@ -144,6 +147,93 @@ def get_all_users():
             uids.append(doc.id)
 
     return uids
+
+@app.route("/check_content", methods=["POST"])
+def check_content():
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"ok": True, "flags": []}), 200
+
+    flags = []
+
+    if profanity.contains_profanity(text):
+        flags.append({
+            "type": "profanity",
+            "message": "Your review contains inappropriate language. Please revise before submitting."
+        })
+
+        censored = profanity.censor(text)
+        original_words = text.split()
+        censored_words = censored.split()
+
+        bad_words = [
+            orig for orig, cens in zip(original_words, censored_words)
+            if orig != cens
+        ]
+
+        logging.warning(f"Profanity detected: {bad_words}")
+
+    words = text.split()
+    word_count = len(words)
+
+    if word_count >= 20:
+        from collections import Counter
+        freq = Counter(w.lower() for w in words)
+        most_common_word, most_common_count = freq.most_common(1)[0]
+        if most_common_count / word_count > 0.20 and most_common_word not in {"the","a","an","and","is","of","to","in","it","was","i"}:
+            flags.append({
+                "type": "spam_repetition",
+                "message": f'Your review repeats the word "{most_common_word}" too many times. Please write a more varied review.'
+            })
+
+    if word_count >= 10:
+        alpha_words = [w for w in words if w.isalpha()]
+        if alpha_words:
+            caps_ratio = sum(1 for w in alpha_words if w.isupper() and len(w) > 1) / len(alpha_words)
+            if caps_ratio > 0.6:
+                flags.append({
+                    "type": "spam_caps",
+                    "message": "Your review appears to be written in excessive capital letters. Please use normal casing."
+                })
+
+    if word_count >= 10:
+        avg_len = sum(len(w) for w in words) / word_count
+        if avg_len < 2.5:
+            flags.append({
+                "type": "spam_gibberish",
+                "message": "Your review doesn't appear to contain real words. Please write a genuine review."
+            })
+
+    letters = [c.lower() for c in text if c.isalpha()]
+    if len(letters) > 40:
+        vowels = sum(1 for c in letters if c in "aeiou")
+        if vowels / len(letters) < 0.1:
+            flags.append({
+                "type": "spam_gibberish",
+                "message": "Your review doesn't appear to contain real words. Please write a genuine review."
+            })
+
+    if len(text) > 30:
+        symbol_ratio = sum(1 for c in text if not c.isalnum() and not c.isspace()) / len(text)
+        if symbol_ratio > 0.35:
+            flags.append({
+                "type": "spam_symbols",
+                "message": "Your review contains too many special characters or symbols."
+            })
+
+    seen = set()
+    unique_flags = []
+    for f in flags:
+        if f["type"] not in seen:
+            seen.add(f["type"])
+            unique_flags.append(f)
+
+    return jsonify({
+        "ok": len(unique_flags) == 0,
+        "flags": unique_flags
+    }), 200
 
 
 @app.route("/notify_admins", methods=["POST"])
@@ -736,7 +826,10 @@ def submit_review():
         invalidate_review_caches(user_email=review.email)
         
         remaining = 2 - (daily_count + 1)
-        
+        review_text = data.get("review", "")
+        if profanity.contains_profanity(review_text):
+            return jsonify({"error": "Review contains inappropriate language."}), 400
+
         return jsonify({
             "message": "Review submitted successfully",
             "id": review.id,
