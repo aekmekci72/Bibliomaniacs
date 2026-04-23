@@ -698,7 +698,6 @@ def submit_community_rating():
         general_ratings.append({"bookId": book_id, "rating": rating})
         user_ref.update({"generalRatings": general_ratings})
 
-        # 2. Recalculate and update commRating on the review document
         book_ref = db.collection("reviews").document(book_id)
         book_doc = book_ref.get()
         book_data = book_doc.to_dict() or {}
@@ -716,6 +715,20 @@ def submit_community_rating():
             new_avg = ((old_avg * old_total) + rating) / new_total
 
         book_ref.update({"commRating": {"avgRating": round(new_avg, 2), "total": new_total}})
+
+        rating_doc_id = f"{uid}_{book_id}"
+        rating_ref = db.collection("ratings").document(rating_doc_id)
+
+        rating_payload = {
+            "bookId": book_id,
+            "title": book_data.get("title", ""),
+            "author": book_data.get("author", ""),
+            "userEmail": user_data.get("email", ""),
+            "rating": rating
+        }
+
+        # set() works for both new and existing docs
+        rating_ref.set(rating_payload)
 
         return jsonify({"new_average": round(new_avg, 2), "total": new_total}), 200
 
