@@ -3,7 +3,7 @@ import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from flask_cors import CORS
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from modelsetup import chat
 from cache import get_cache, set_cache, make_prompt_key, delete_cache_prefix
@@ -17,6 +17,15 @@ import time
 from datetime import datetime, timedelta
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
+from better_profanity import profanity
+import logging
+from recommendationModel.parsing import load_books, load_reviews
+from recommendationModel.embeddings import EmbeddingBuilder
+from recommendationModel.model import HybridRecommender
+from recommendationModel.evaluation import RecommenderEvaluator
+from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
+import pickle
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -32,6 +41,55 @@ firebase_admin.initialize_app(cred)
 
 connection(from_file="serviceKey.json")
 db = firestore.client()
+
+profanity.load_censor_words()  
+
+def load_or_train_model():
+    cache_key = "book_embeddings"
+    cached = get_cache(cache_key)
+
+    if cached:
+        print("Loading embeddings from cache...")
+        book_embeddings = pickle.loads(base64.b64decode(cached))
+    else:
+        print("Training new model...")
+
+        embedder = EmbeddingBuilder()
+        book_embeddings = embedder.build_book_embeddings(books_data)
+
+        set_cache(
+            cache_key,
+            base64.b64encode(pickle.dumps(book_embeddings)).decode("utf-8"),
+            ttl=86400
+        )
+
+    recommender = HybridRecommender(book_embeddings, books_data)
+
+    context_recommender = ContextAwareRecommender(
+        base_recommender=recommender,
+        books=books_data,
+        availability_service=availability_service,
+        initial_pool=50,
+        expansion_step=50,
+        max_pool=300
+    )
+
+    return book_embeddings, recommender, context_recommender
+
+cache = AvailabilityCache(
+    redis_host="localhost",
+    redis_port=6380,
+)
+
+availability_service = AvailabilityService(cache)
+
+books_data = load_books("./backend/recommendationModel/reviewedBooks.csv")
+books_data = load_reviews("./backend/recommendationModel/bigReviews.csv", books_data)
+
+book_embeddings, recommender, context_recommender = load_or_train_model()
+print("Model Ready.")
+
+
 
 class Book(Model):
     id = IDField()
@@ -89,6 +147,93 @@ def get_all_users():
             uids.append(doc.id)
 
     return uids
+
+@app.route("/check_content", methods=["POST"])
+def check_content():
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"ok": True, "flags": []}), 200
+
+    flags = []
+
+    if profanity.contains_profanity(text):
+        flags.append({
+            "type": "profanity",
+            "message": "Your review contains inappropriate language. Please revise before submitting."
+        })
+
+        censored = profanity.censor(text)
+        original_words = text.split()
+        censored_words = censored.split()
+
+        bad_words = [
+            orig for orig, cens in zip(original_words, censored_words)
+            if orig != cens
+        ]
+
+        logging.warning(f"Profanity detected: {bad_words}")
+
+    words = text.split()
+    word_count = len(words)
+
+    if word_count >= 20:
+        from collections import Counter
+        freq = Counter(w.lower() for w in words)
+        most_common_word, most_common_count = freq.most_common(1)[0]
+        if most_common_count / word_count > 0.20 and most_common_word not in {"the","a","an","and","is","of","to","in","it","was","i"}:
+            flags.append({
+                "type": "spam_repetition",
+                "message": f'Your review repeats the word "{most_common_word}" too many times. Please write a more varied review.'
+            })
+
+    if word_count >= 10:
+        alpha_words = [w for w in words if w.isalpha()]
+        if alpha_words:
+            caps_ratio = sum(1 for w in alpha_words if w.isupper() and len(w) > 1) / len(alpha_words)
+            if caps_ratio > 0.6:
+                flags.append({
+                    "type": "spam_caps",
+                    "message": "Your review appears to be written in excessive capital letters. Please use normal casing."
+                })
+
+    if word_count >= 10:
+        avg_len = sum(len(w) for w in words) / word_count
+        if avg_len < 2.5:
+            flags.append({
+                "type": "spam_gibberish",
+                "message": "Your review doesn't appear to contain real words. Please write a genuine review."
+            })
+
+    letters = [c.lower() for c in text if c.isalpha()]
+    if len(letters) > 40:
+        vowels = sum(1 for c in letters if c in "aeiou")
+        if vowels / len(letters) < 0.1:
+            flags.append({
+                "type": "spam_gibberish",
+                "message": "Your review doesn't appear to contain real words. Please write a genuine review."
+            })
+
+    if len(text) > 30:
+        symbol_ratio = sum(1 for c in text if not c.isalnum() and not c.isspace()) / len(text)
+        if symbol_ratio > 0.35:
+            flags.append({
+                "type": "spam_symbols",
+                "message": "Your review contains too many special characters or symbols."
+            })
+
+    seen = set()
+    unique_flags = []
+    for f in flags:
+        if f["type"] not in seen:
+            seen.add(f["type"])
+            unique_flags.append(f)
+
+    return jsonify({
+        "ok": len(unique_flags) == 0,
+        "flags": unique_flags
+    }), 200
 
 
 @app.route("/notify_admins", methods=["POST"])
@@ -816,7 +961,10 @@ def submit_review():
         invalidate_review_caches(user_email=review.email)
         
         remaining = 2 - (daily_count + 1)
-        
+        review_text = data.get("review", "")
+        if profanity.contains_profanity(review_text):
+            return jsonify({"error": "Review contains inappropriate language."}), 400
+
         return jsonify({
             "message": "Review submitted successfully",
             "id": review.id,
@@ -1355,6 +1503,105 @@ def get_review_stats():
         return jsonify(stats), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/get_recommendations", methods=["POST"])
+def get_recommendations():
+    try:
+        data = request.json
+        id_token = data.get("idToken")
+        
+        if not id_token or not verify_firebase_token(id_token):
+            return jsonify({"error": "Unauthorized"}), 401
+
+        decoded = auth.verify_id_token(id_token)
+        uid = decoded["uid"]
+        email = decoded.get("email")
+        print(email)
+
+        user_doc = db.collection("users").document(uid).get().to_dict() or {}
+        user_grade = user_doc.get("grade", 8) 
+        user_genres = user_doc.get("favoriteGenres", ["fantasy", "adventure"])
+        print(user_grade) 
+        print(user_genres)
+
+        past_reviews_query = Review.collection.filter('email', '==', email).fetch()
+        user_reviews = []
+        print("past ratings")
+
+        for r in past_reviews_query:
+            print(r)
+
+            book_id = r.book_title.lower()
+            print(book_id)
+
+            if book_id in books_data:
+                user_reviews.append({
+                    "book_id": book_id,
+                    "rating": float(r.rating)
+                })
+        print("user reviews:", user_reviews)
+        
+        user_profile = recommender.build_user_profile(user_reviews)
+
+
+        if user_profile is None:
+            recommendations = recommender.cold_start_recommend(
+                user_genres=user_genres,
+                user_grade=float(user_grade),
+                top_k=10
+            )
+        else:
+            recommendations = context_recommender.recommend(
+                user_profile=user_profile,
+                user_reviews=user_reviews,
+                user_genres=user_genres,
+                user_grade=user_grade,
+                top_k=10
+            )
+
+        recommendations = sorted(recommendations, key=lambda x: x[1], reverse=True)
+
+        output = []
+        for book_id, score in recommendations:
+            book_info = books_data.get(book_id, {})
+            print(book_info)
+            model_reviews = book_info.get("reviews", [])
+
+            ratings = [
+                float(r["stars"])
+                for r in model_reviews
+                if r.get("stars") is not None
+            ]
+
+            title = book_info.get("title", "").strip().lower()
+
+            firestore_reviews = Review.collection.filter(
+                'approved', '==', True
+            ).fetch()
+
+            for r in firestore_reviews:
+                if r.book_title and r.book_title.strip().lower() == title:
+                    if r.rating is not None:
+                        ratings.append(float(r.rating))
+
+            avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else 0
+
+            output.append({
+                "book_id": book_id,
+                "title": book_info.get("title", "Unknown"),
+                "author": book_info.get("author", "Unknown"),
+                "score": score,
+                "avg_rating": avg_rating
+            })
+
+        return jsonify({"recommendations": output}), 200
+
+    except Exception as e:
+        print("rec error trace:")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/clear_cache", methods=["POST"])
 def clear_cache():

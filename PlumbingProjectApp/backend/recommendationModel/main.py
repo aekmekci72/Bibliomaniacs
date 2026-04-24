@@ -1,8 +1,8 @@
-from parsing import load_books, load_reviews
-from embeddings import EmbeddingBuilder
-from model import HybridRecommender
-from evaluation import RecommenderEvaluator
-from housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
+from recommendationModel.parsing import load_books, load_reviews
+from recommendationModel.embeddings import EmbeddingBuilder
+from recommendationModel.model import HybridRecommender
+from recommendationModel.evaluation import RecommenderEvaluator
+from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
 
 cache = AvailabilityCache(
     redis_host="localhost",
