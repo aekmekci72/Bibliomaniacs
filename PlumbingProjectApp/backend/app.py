@@ -17,10 +17,13 @@ import time
 from datetime import datetime, timedelta
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
-
+from better_profanity import profanity
+import logging
 from recommendationModel.parsing import load_books, load_reviews
 from recommendationModel.embeddings import EmbeddingBuilder
 from recommendationModel.model import HybridRecommender
+from recommendationModel.evaluation import RecommenderEvaluator
+from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
 import pickle
 import base64
 
@@ -39,26 +42,51 @@ firebase_admin.initialize_app(cred)
 connection(from_file="serviceKey.json")
 db = firestore.client()
 
-def load_or_train_model():
-    cache_key = "recommendation_model"
-    cached = get_cache(cache_key)
-    if cached:
-        print("Loading model from cache...")
-        return pickle.loads(base64.b64decode(cached))
+profanity.load_censor_words()  
 
-    print("Training new model...")
-    embedder = EmbeddingBuilder()
-    book_embeddings = embedder.build_book_embeddings(books_data)
+def load_or_train_model():
+    cache_key = "book_embeddings"
+    cached = get_cache(cache_key)
+
+    if cached:
+        print("Loading embeddings from cache...")
+        book_embeddings = pickle.loads(base64.b64decode(cached))
+    else:
+        print("Training new model...")
+
+        embedder = EmbeddingBuilder()
+        book_embeddings = embedder.build_book_embeddings(books_data)
+
+        set_cache(
+            cache_key,
+            base64.b64encode(pickle.dumps(book_embeddings)).decode("utf-8"),
+            ttl=86400
+        )
+
     recommender = HybridRecommender(book_embeddings, books_data)
 
-    # Cache for 24 hours
-    set_cache(cache_key, base64.b64encode(pickle.dumps((book_embeddings, recommender))).decode('utf-8'), ttl=86400)
-    return (book_embeddings, recommender)
+    context_recommender = ContextAwareRecommender(
+        base_recommender=recommender,
+        books=books_data,
+        availability_service=availability_service,
+        initial_pool=50,
+        expansion_step=50,
+        max_pool=300
+    )
+
+    return book_embeddings, recommender, context_recommender
+
+cache = AvailabilityCache(
+    redis_host="localhost",
+    redis_port=6380,
+)
+
+availability_service = AvailabilityService(cache)
 
 books_data = load_books("./backend/recommendationModel/reviewedBooks.csv")
 books_data = load_reviews("./backend/recommendationModel/bigReviews.csv", books_data)
-    
-book_embeddings, recommender = load_or_train_model()
+
+book_embeddings, recommender, context_recommender = load_or_train_model()
 print("Model Ready.")
 
 
@@ -119,6 +147,93 @@ def get_all_users():
             uids.append(doc.id)
 
     return uids
+
+@app.route("/check_content", methods=["POST"])
+def check_content():
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"ok": True, "flags": []}), 200
+
+    flags = []
+
+    if profanity.contains_profanity(text):
+        flags.append({
+            "type": "profanity",
+            "message": "Your review contains inappropriate language. Please revise before submitting."
+        })
+
+        censored = profanity.censor(text)
+        original_words = text.split()
+        censored_words = censored.split()
+
+        bad_words = [
+            orig for orig, cens in zip(original_words, censored_words)
+            if orig != cens
+        ]
+
+        logging.warning(f"Profanity detected: {bad_words}")
+
+    words = text.split()
+    word_count = len(words)
+
+    if word_count >= 20:
+        from collections import Counter
+        freq = Counter(w.lower() for w in words)
+        most_common_word, most_common_count = freq.most_common(1)[0]
+        if most_common_count / word_count > 0.20 and most_common_word not in {"the","a","an","and","is","of","to","in","it","was","i"}:
+            flags.append({
+                "type": "spam_repetition",
+                "message": f'Your review repeats the word "{most_common_word}" too many times. Please write a more varied review.'
+            })
+
+    if word_count >= 10:
+        alpha_words = [w for w in words if w.isalpha()]
+        if alpha_words:
+            caps_ratio = sum(1 for w in alpha_words if w.isupper() and len(w) > 1) / len(alpha_words)
+            if caps_ratio > 0.6:
+                flags.append({
+                    "type": "spam_caps",
+                    "message": "Your review appears to be written in excessive capital letters. Please use normal casing."
+                })
+
+    if word_count >= 10:
+        avg_len = sum(len(w) for w in words) / word_count
+        if avg_len < 2.5:
+            flags.append({
+                "type": "spam_gibberish",
+                "message": "Your review doesn't appear to contain real words. Please write a genuine review."
+            })
+
+    letters = [c.lower() for c in text if c.isalpha()]
+    if len(letters) > 40:
+        vowels = sum(1 for c in letters if c in "aeiou")
+        if vowels / len(letters) < 0.1:
+            flags.append({
+                "type": "spam_gibberish",
+                "message": "Your review doesn't appear to contain real words. Please write a genuine review."
+            })
+
+    if len(text) > 30:
+        symbol_ratio = sum(1 for c in text if not c.isalnum() and not c.isspace()) / len(text)
+        if symbol_ratio > 0.35:
+            flags.append({
+                "type": "spam_symbols",
+                "message": "Your review contains too many special characters or symbols."
+            })
+
+    seen = set()
+    unique_flags = []
+    for f in flags:
+        if f["type"] not in seen:
+            seen.add(f["type"])
+            unique_flags.append(f)
+
+    return jsonify({
+        "ok": len(unique_flags) == 0,
+        "flags": unique_flags
+    }), 200
 
 
 @app.route("/notify_admins", methods=["POST"])
@@ -631,6 +746,141 @@ def get_commonly_reviewed_books():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/get_community_rating/<book_id>", methods=["GET"])
+def get_community_rating(book_id):
+    try:
+        book_ref = db.collection("reviews").document(book_id)
+        book_doc = book_ref.get()
+
+        if not book_doc.exists:
+            return jsonify({"average_rating": None, "rating_count": 0}), 200
+
+        data = book_doc.to_dict()
+        comm_rating = data.get("commRating")
+
+        if not comm_rating:
+            return jsonify({"average_rating": None, "rating_count": 0}), 200
+
+        return jsonify({
+            "average_rating": comm_rating.get("avgRating"),
+            "rating_count": comm_rating.get("total")
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching community rating: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/get_users_community_rating/<book_id>", methods=["POST"])
+def get_users_community_rating(book_id):
+    try:
+        data = request.get_json()
+        id_token = data.get("idToken")
+        decoded_token = verify_firebase_token(id_token)
+        if not decoded_token:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        uid = decoded_token["uid"]
+
+        # 1. Find user document by email (consistent with rest of codebase)
+        user_ref = db.collection("users").document(uid)
+        user_docs = user_ref.get()
+
+        if not user_docs:
+            return jsonify({"rating": None}), 200
+
+        user_data = user_docs.to_dict() or {}
+        general_ratings = user_data.get("generalRatings", [])
+
+        for r in general_ratings:
+            if r.get("bookId") == book_id:
+                return jsonify({"rating": r.get("rating")}), 200
+
+        return jsonify({"rating": None}), 200
+
+    except Exception as e:
+        print(f"Error fetching user community rating: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/submit_community_rating", methods=["POST"])
+def submit_community_rating():
+    try:
+        data = request.get_json()
+        id_token = data.get("idToken")
+        book_id = data.get("book_id")
+        rating = data.get("rating")
+
+        if not id_token:
+            return jsonify({"error": "Missing ID token"}), 401
+
+        decoded_token = verify_firebase_token(id_token)
+        if not decoded_token:
+            return jsonify({"error": "Invalid ID token"}), 401
+
+        uid = decoded_token["uid"]
+
+        # 1. Find user document by email (consistent with rest of codebase)
+        user_ref = db.collection("users").document(uid)
+        user_doc = user_ref.get()
+
+        if not user_doc:
+            return jsonify({"error": "User not found"}), 404
+
+        user_data = user_doc.to_dict() or {}
+        general_ratings = user_data.get("generalRatings", [])
+
+        # Sanitize any legacy nested arrays
+        general_ratings = [r for r in general_ratings if isinstance(r, dict)]
+
+        # Update if already rated, otherwise append
+        existing = next((r for r in general_ratings if r.get("bookId") == book_id), None)
+        if existing:
+            general_ratings = [r for r in general_ratings if r.get("bookId") != book_id]
+
+        general_ratings.append({"bookId": book_id, "rating": rating})
+        user_ref.update({"generalRatings": general_ratings})
+
+        book_ref = db.collection("reviews").document(book_id)
+        book_doc = book_ref.get()
+        book_data = book_doc.to_dict() or {}
+        comm_rating = book_data.get("commRating", {"avgRating": 0, "total": 0})
+
+        old_avg = comm_rating.get("avgRating", 0)
+        old_total = comm_rating.get("total", 0)
+
+        if existing:
+            old_rating = existing["rating"]
+            new_avg = ((old_avg * old_total) - old_rating + rating) / old_total
+            new_total = old_total
+        else:
+            new_total = old_total + 1
+            new_avg = ((old_avg * old_total) + rating) / new_total
+
+        book_ref.update({"commRating": {"avgRating": round(new_avg, 2), "total": new_total}})
+
+        rating_doc_id = f"{uid}_{book_id}"
+        rating_ref = db.collection("ratings").document(rating_doc_id)
+
+        rating_payload = {
+            "bookId": book_id,
+            "title": book_data.get("title", ""),
+            "author": book_data.get("author", ""),
+            "userEmail": user_data.get("email", ""),
+            "rating": rating
+        }
+
+        # set() works for both new and existing docs
+        rating_ref.set(rating_payload)
+
+        return jsonify({"new_average": round(new_avg, 2), "total": new_total}), 200
+
+    except Exception as e:
+        print(f"Error submitting community rating: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/ask_question", methods=["POST"])
 def ask_question():
@@ -711,7 +961,10 @@ def submit_review():
         invalidate_review_caches(user_email=review.email)
         
         remaining = 2 - (daily_count + 1)
-        
+        review_text = data.get("review", "")
+        if profanity.contains_profanity(review_text):
+            return jsonify({"error": "Review contains inappropriate language."}), 400
+
         return jsonify({
             "message": "Review submitted successfully",
             "id": review.id,
@@ -1288,7 +1541,7 @@ def get_recommendations():
                     "rating": float(r.rating)
                 })
         print("user reviews:", user_reviews)
-
+        
         user_profile = recommender.build_user_profile(user_reviews)
 
 
@@ -1299,11 +1552,11 @@ def get_recommendations():
                 top_k=10
             )
         else:
-            recommendations = recommender.recommend(
+            recommendations = context_recommender.recommend(
                 user_profile=user_profile,
                 user_reviews=user_reviews,
                 user_genres=user_genres,
-                user_grade=float(user_grade),
+                user_grade=user_grade,
                 top_k=10
             )
 
