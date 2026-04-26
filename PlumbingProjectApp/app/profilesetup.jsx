@@ -16,6 +16,8 @@ export default function ProfileSetup() {
     const [grade, setGrade] = useState("");
     const [school, setSchool] = useState("");
     const [genres, setGenres] = useState([]);
+    const [role, setRole] = useState(null);
+
 
     const GENRE_OPTIONS = [
         "Fantasy",
@@ -62,7 +64,7 @@ export default function ProfileSetup() {
         try {
             await updateDoc(userRef, updates);
             Alert.alert("Profile Saved", "Your profile is now complete!");
-            if (user.role === "admin") {
+            if (role === "admin") {
                 router.replace("/adminhomepage");
             } else {
                 console.log("user role: ", user.role);
@@ -76,16 +78,23 @@ export default function ProfileSetup() {
     };
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setEmail(user.email);
-            } else {
-                setEmail("");
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            setEmail(user.email);
+            try {
+                const idToken = await user.getIdToken(true);
+                const res = await axios.post("http://localhost:5001/verify_token", { idToken });
+                setRole(res.data.role);
+            } catch {
+                setRole("user");
             }
-        });
-
-        return unsubscribe;
-    }, []);
+        } else {
+            setEmail("");
+            setRole(null);
+        }
+    });
+    return unsubscribe;
+}, []);
 
     return (
         <ScrollView className="w-full min-h-screen bg-[#eef1ee] px-6 py-10">
@@ -142,7 +151,8 @@ export default function ProfileSetup() {
                         setPhone(formatted);
                     }}
                 />
-
+{role !== "admin" && (
+  <>
                 <Text className="inputLabel">Grade Level</Text>
                 <ScrollView
                     horizontal
@@ -204,6 +214,8 @@ export default function ProfileSetup() {
                             ))}
                         </ScrollView>
                     </View>
+                )}
+</>
                 )}
 
                 <Pressable onPress={handleSubmit} className="primaryBtn mt-6 self-center w-[200px]">

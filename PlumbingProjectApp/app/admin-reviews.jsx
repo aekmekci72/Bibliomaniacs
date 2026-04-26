@@ -753,7 +753,7 @@ export default function AdminReviews() {
             <div className="bg-white rounded-xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
               {/* Header - Fixed */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-800">📧 Email Draft Preview</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Email Draft Preview</h2>
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${emailDraftModal.draft.status === 'approved'
                     ? 'bg-green-100 text-green-800'
                     : 'bg-red-100 text-red-800'

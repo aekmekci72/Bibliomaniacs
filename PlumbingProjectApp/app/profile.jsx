@@ -140,58 +140,48 @@ export default function ProfilePage() {
         setModalVisible(false);
     };
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                setUserUid(null);
-                setEmail("");
-                setLoading(false);
-                setRole("no account"); // TEMP FIX
-                return;
-            }
-
-            setUserUid(user.uid);
-            setRole(user.role);
-            setEmail(user.email ?? "");
-            await loadProfile(user.uid);
-        });
-
-        return unsubscribe;
-    }, []);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            setCurrentUser(user);
-            try {
-              const idToken = await user.getIdToken(true);
-              const res = await axios.post("http://localhost:5001/verify_token", { idToken });
-              setRole(res.data.role);
-            } catch (err) {
-              console.error("Failed to fetch role:", err);
-              setRole("user");
-            }
-          } else {
+useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            setUserUid(null);
+            setEmail("");
+            setLoading(false);
             setCurrentUser(null);
             setRole(null);
-          }
-        });
-        return unsubscribe;
-      }, []);
-    
-      const handleLogout = async () => {
-        try {
-          await signOut(auth);
-          setCurrentUser(null);
-          setRole(null);
-          console.log("Logged out");
-          router.push("/landingpage");
-        } catch (error) {
-          console.log("Logout Failed", error.message);
+            return;
         }
-      };
 
-    return (
+        setUserUid(user.uid);
+        setCurrentUser(user);
+        setEmail(user.email ?? "");
+        await loadProfile(user.uid);
+
+        try {
+            const idToken = await user.getIdToken(true);
+            const res = await axios.post("http://localhost:5001/verify_token", { idToken });
+            setRole(res.data.role);
+        } catch (err) {
+            console.error("Failed to fetch role:", err);
+            setRole("user");
+        }
+    });
+
+    return unsubscribe;
+}, []);
+
+const handleLogout = async () => {
+    try {
+        await signOut(auth);
+        setCurrentUser(null);
+        setRole(null);
+        console.log("Logged out");
+        router.push("/landingpage");
+    } catch (error) {
+        console.log("Logout Failed", error.message);
+    }
+};
+
+return (
         <View className="flex-1 bg-[#f5fdf5] px-5 py-6">
             <Text className="profileH1">Profile</Text>
 
@@ -199,7 +189,9 @@ export default function ProfilePage() {
                 <View className="flex-1">
                     <Text className="profileName">{`${first_name} ${last_name}`.trim()|| "Unnamed User"}</Text>
                     <Text className="profileEmail">{email || "--"}</Text>
-                    <Text className="profileRole">Bibliomaniacs Reviewer</Text>
+                    <Text className="profileRole">
+                    {role === "admin" ? "Bibliomaniacs Admin" : "Bibliomaniacs Reviewer"}
+                    </Text>
                 </View>
             </View>
 
@@ -210,32 +202,34 @@ export default function ProfilePage() {
                     <Text className="infoLabel">Phone Number</Text>
                     <Text className="infoValue">{phone || "--"}</Text>
                 </View>
+{role !== "admin" && (
+  <>
+    <View className="infoRow">
+      <Text className="infoLabel">Grade</Text>
+      <Text className="infoValue">{grade || "--"}</Text>
+    </View>
 
-                <View className="infoRow">
-                    <Text className="infoLabel">Grade</Text>
-                    <Text className="infoValue">{grade || "--"}</Text>
-                </View>
+    <View className="infoRow">
+      <Text className="infoLabel">School</Text>
+      <Text className="infoValue">{school || "--"}</Text>
+    </View>
 
-                <View className="infoRow">
-                    <Text className="infoLabel">School</Text>
-                    <Text className="infoValue">{school || "--"}</Text>
-                </View>
-
-                <View className="infoRow">
-                    <Text className="infoLabel">Favorite Genres</Text>
-
-                    {genres.length === 0 ? (
-                        <Text className="infoValue text-neutral-500">None selected</Text>
-                    ) : (
-                        <View className="genresContainer">
-                            {genres.map((g) => (
-                                <View key={g} className="genreChip">
-                                    <Text className="genreChipText">{g}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-                </View>
+    <View className="infoRow">
+      <Text className="infoLabel">Favorite Genres</Text>
+      {genres.length === 0 ? (
+        <Text className="infoValue text-neutral-500">None selected</Text>
+      ) : (
+        <View className="genresContainer">
+          {genres.map((g) => (
+            <View key={g} className="genreChip">
+              <Text className="genreChipText">{g}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  </>
+)}
             </View>
             <View className="profileCtaRow">
                 <Pressable className="primaryBtn editBtn" onPress={openModal}>
@@ -289,7 +283,6 @@ export default function ProfilePage() {
                                     focusable={false}
                                 />
                             </View>
-
                             <Text className="inputLabel">Phone Number</Text>
                             <TextInput
                                 className="modalInput"
@@ -298,75 +291,76 @@ export default function ProfilePage() {
                                 maxLength={14}
                                 onChangeText={(text) => {
                                     const cleaned = text.replace(/\D/g, "");
-
                                     let formatted = cleaned;
-
                                     if (cleaned.length > 3 && cleaned.length <= 6) {
                                         formatted = `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
                                     } else if (cleaned.length > 6) {
                                         formatted = `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
                                     }
-
                                     setEditPhone(formatted);
                                 }}
                             />
 
-                            <Text className="inputLabel">Grade Level</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                className="gradeRow"
-                            >
-                                {gradeOptions.map((level) => (
-                                <Pressable
-                                    key={level}
-                                    className={`gradeOption ${editGrade === level ? "gradeOptionActive" : ""}`}
-                                    onPress={() => setEditGrade(level)}
-                                >
-                                    <Text className={`gradeText ${editGrade === level ? "gradeTextActive" : ""}`}>
-                                    {level}
-                                    </Text>
-                                </Pressable>
-                                ))}
-                            </ScrollView>
-
-                            <Text className="inputLabel">School</Text>
-                            <TextInput
-                                className="modalInput"
-                                value={editSchool}
-                                onChangeText={setEditSchool}
-                            />
-
-                            <Text className="inputLabel">Favorite Genres</Text>
-                            <Pressable
-                                className="dropdownBtn"
-                                onPress={() => setGenreDropdownOpen(!genreDropdownOpen)}
-                            >
-                                <Text className="dropdownBtnText">
-                                    {editGenres.length ? editGenres.join(", ") : "Select genres"}
-                                </Text>
-                            </Pressable>
-
-                            {genreDropdownOpen && (
-                                <View className="dropdownList">
-                                    <ScrollView className="dropdownScroll">
-                                        {GENRE_OPTIONS.map((genre) => (
+                            {role !== "admin" && (
+                                <>
+                                    <Text className="inputLabel">Grade Level</Text>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        className="gradeRow"
+                                    >
+                                        {gradeOptions.map((level) => (
                                             <Pressable
-                                                key={genre}
-                                                className="dropdownItem"
-                                                onPress={() => toggleGenre(genre)}
+                                                key={level}
+                                                className={`gradeOption ${editGrade === level ? "gradeOptionActive" : ""}`}
+                                                onPress={() => setEditGrade(level)}
                                             >
-                                                <Text className="dropdownItemText">{genre}</Text>
-                                                <View
-                                                    className={`checkbox ${editGenres.includes(genre)
-                                                        ? "checkboxChecked"
-                                                        : "checkboxUnchecked"
-                                                        }`}
-                                                />
+                                                <Text className={`gradeText ${editGrade === level ? "gradeTextActive" : ""}`}>
+                                                    {level}
+                                                </Text>
                                             </Pressable>
                                         ))}
                                     </ScrollView>
-                                </View>
+
+                                    <Text className="inputLabel">School</Text>
+                                    <TextInput
+                                        className="modalInput"
+                                        value={editSchool}
+                                        onChangeText={setEditSchool}
+                                    />
+
+                                    <Text className="inputLabel">Favorite Genres</Text>
+                                    <Pressable
+                                        className="dropdownBtn"
+                                        onPress={() => setGenreDropdownOpen(!genreDropdownOpen)}
+                                    >
+                                        <Text className="dropdownBtnText">
+                                            {editGenres.length ? editGenres.join(", ") : "Select genres"}
+                                        </Text>
+                                    </Pressable>
+
+                                    {genreDropdownOpen && (
+                                        <View className="dropdownList">
+                                            <ScrollView className="dropdownScroll">
+                                                {GENRE_OPTIONS.map((genre) => (
+                                                    <Pressable
+                                                        key={genre}
+                                                        className="dropdownItem"
+                                                        onPress={() => toggleGenre(genre)}
+                                                    >
+                                                        <Text className="dropdownItemText">{genre}</Text>
+                                                        <View
+                                                            className={`checkbox ${editGenres.includes(genre)
+                                                                ? "checkboxChecked"
+                                                                : "checkboxUnchecked"
+                                                                }`}
+                                                        />
+                                                    </Pressable>
+                                                ))}
+                                            </ScrollView>
+                                        </View>
+                                    )}
+                                </>
                             )}
 
                             <View className="buttonRow mt-4">

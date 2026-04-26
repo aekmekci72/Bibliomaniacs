@@ -441,7 +441,8 @@ export default function MyReviews() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `volunteer_certificate_${userName.replace(/\s+/g, '_')}.html`;
+    // ✅ FIXED: Use actual firstName + lastName instead of hardcoded userName
+    a.download = `volunteer_certificate_${`${firstName} ${lastName}`.trim().replace(/\s+/g, '_')}.html`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
