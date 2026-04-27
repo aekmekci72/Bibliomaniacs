@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     View,
     Text,
@@ -59,26 +59,54 @@ export default function ReviewModal({
 
     const [requiredError, setRequiredError] = useState(false);
     const [failedSubmit, setFailedSubmit] = useState(false);
+    const [contentFlags, setContentFlags] = useState([]);
+    const [contentChecking, setContentChecking] = useState(false);
+    const debounceRef = useRef(null);
+    useEffect(() => {
+        if (!review.trim()) {
+            setContentFlags([]);
+            return;
+        }
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            setContentChecking(true);
+            try {
+                const res = await fetch("http://localhost:5001/check_content", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: review }),
+                });
+                const data = await res.json();
+                setContentFlags(data.flags || []);
+            } catch {
+                setContentFlags([]);
+            } finally {
+                setContentChecking(false);
+            }
+        }, 800); // debounce 800ms
+    }, [review]);
 
-    const handleSubmit = () => {
-        const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
+const handleSubmit = () => {
+    const wordCount = review.trim().split(/\s+/).filter(Boolean).length;
 
-
-    if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() || 
-        !lastName.trim() || !review.trim() || !gradeLevel || 
-        !recommendedGrades || !rating || !school.trim() || 
-        !email.trim() || !phoneNumber.trim() || !anonPref.trim() ||wordCount < 200) {
+    if (!bookTitle.trim() || !authorName.trim() || !firstName.trim() ||
+        !lastName.trim() || !review.trim() || !gradeLevel ||
+        !recommendedGrades || !rating || !school.trim() ||
+        !email.trim() || !phoneNumber.trim() || !anonPref.trim() || wordCount < 200) {
         setRequiredError(true);
         setFailedSubmit(true);
         return;
-    } else {
-            setRequiredError(false);
-            setFailedSubmit(false);
-        }
-    
-        setRequiredError(false);
-        onSubmit();
-    };
+    }
+
+    if (contentFlags.length > 0) {
+        setFailedSubmit(true);
+        return;
+    }
+
+    setRequiredError(false);
+    setFailedSubmit(false);
+    onSubmit();
+};
 
     return (
         <Modal
@@ -199,6 +227,30 @@ export default function ReviewModal({
                             value={review}
                             onChangeText={setReview}
                         />
+                        {contentChecking && (
+                        <Text style={{ color: "#888", fontSize: 12, marginBottom: 4 }}>
+                            Checking review content...
+                        </Text>
+                    )}
+
+                    {contentFlags.map((flag) => (
+                        <View key={flag.type} style={{
+                            backgroundColor: "#fff3cd",
+                            borderColor: "#ffc107",
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            padding: 10,
+                            marginBottom: 8,
+                        }}>
+                            <Text style={{ fontWeight: "700", color: "#856404", fontSize: 13 }}>
+                                Content Issue
+                            </Text>
+                            <Text style={{ color: "#856404", fontSize: 12, marginTop: 2 }}>
+                                {flag.message}
+                            </Text>
+                        </View>
+                    ))}
+
 
                         <Text style={{ 
                             color: reviewWordCount >= 200 ? "#2b7a4b" : "#cc0000", 
@@ -291,18 +343,20 @@ export default function ReviewModal({
                             ))}
                         </View>
 
-                        {requiredError && failedSubmit && (
-                            <View className="requiredBox">
-                                <View className="flex-1">
-                                    <Text className="requiredTitle">Missing info</Text>
-                                        <Text className="requiredText">
-                                            Please fill all required fields{reviewWordCount < 200 && reviewWordCount > 0 
-                                                ? ` (review needs ${200 - reviewWordCount} more words)` 
-                                                : ""}
-                                        </Text>
-                                </View>
+                    {(requiredError || contentFlags.length > 0) && failedSubmit && (
+                        <View className="requiredBox">
+                            <View className="flex-1">
+                                <Text className="requiredTitle">Cannot submit</Text>
+                                <Text className="requiredText">
+                                    {contentFlags.length > 0
+                                        ? "Please fix the content issues flagged above before submitting."
+                                        : `Please fill all required fields${reviewWordCount < 200 && reviewWordCount > 0
+                                            ? ` (review needs ${200 - reviewWordCount} more words)`
+                                            : ""}`}
+                                </Text>
                             </View>
-                        )}
+                        </View>
+                    )}
 
                         <View className="buttonRow mt-1">
                             <Pressable
