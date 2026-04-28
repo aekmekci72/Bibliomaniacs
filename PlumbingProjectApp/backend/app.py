@@ -24,6 +24,7 @@ from recommendationModel.embeddings import EmbeddingBuilder
 from recommendationModel.model import HybridRecommender
 from recommendationModel.evaluation import RecommenderEvaluator
 from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
+from recommendationModel.parsing import make_book_id, normalize_text
 import pickle
 import base64
 
@@ -42,8 +43,97 @@ firebase_admin.initialize_app(cred)
 connection(from_file="serviceKey.json")
 db = firestore.client()
 
-profanity.load_censor_words()  
+profanity.load_censor_words()
 
+def firestore_reviews_to_model_format(firestore_reviews, books):
+    from recommendationModel.parsing import make_book_id, normalize_text
+    from recommendationModel.sentiment import ReviewSentimentAnalyzer
+
+    analyzer = ReviewSentimentAnalyzer()
+
+    for r in firestore_reviews:
+        if not r.approved:
+            continue
+
+        title = r.book_title
+        author = r.author
+
+        if not title or not author:
+            continue
+
+        book_id = make_book_id(title, author)
+
+        if book_id not in books:
+            books[book_id] = {
+                "title": title,
+                "author": author,
+                "genres": [],
+                "reviews": []
+            }
+        
+        try:
+            stars = int(r.rating)
+        except:
+            stars = None
+
+        raw_grades = r.recommended_audience_grade or []
+        clean_grades = []
+
+        if isinstance(raw_grades, list):
+            for g in raw_grades:
+                try:
+                    clean_grades.append(int(g))
+                except:
+                    continue
+        else:
+            try:
+                clean_grades.append(int(raw_grades))
+            except:
+                pass
+
+        seen = set()
+
+        key = (book_id, normalize_text(r.review or ""))
+
+        if key in seen:
+            continue
+        seen.add(key)
+
+        sentiment = analyzer.score(r.review) if r.review else 0.5
+
+        books[book_id]["reviews"].append({
+            "stars": int(r.rating) if r.rating else None,
+            "text": normalize_text(r.review or ""),
+            "recommended_grades": clean_grades,
+            "sentiment": sentiment
+        })
+
+    return books
+def firestore_ratings_to_book_data(ratings_docs, books):
+    for r in ratings_docs:
+        book_id = r.get("bookId")
+        rating = r.get("rating")
+
+        if not book_id or rating is None:
+            continue
+
+        if book_id not in books:
+            continue
+
+        try:
+            stars = int(rating)
+        except:
+            continue
+
+        # basically create synthetic review
+        books[book_id]["reviews"].append({
+            "stars": stars,
+            "text": "", 
+            "recommended_grades": [],
+            "sentiment": stars / 5 
+        })
+
+    return books
 def load_or_train_model():
     cache_key = "book_embeddings"
     cached = get_cache(cache_key)
@@ -85,7 +175,10 @@ availability_service = AvailabilityService(cache)
 
 books_data = load_books("./backend/recommendationModel/reviewedBooks.csv")
 books_data = load_reviews("./backend/recommendationModel/bigReviews.csv", books_data)
-
+firestore_reviews = list(Review.collection.fetch())
+books_data = firestore_reviews_to_model_format(firestore_reviews, books_data)
+ratings_docs = [doc.to_dict() for doc in db.collection("ratings").stream()]
+books_data = firestore_ratings_to_book_data(ratings_docs, books_data)
 book_embeddings, recommender, context_recommender = load_or_train_model()
 print("Model Ready.")
 
@@ -866,7 +959,7 @@ def submit_community_rating():
 
         rating_payload = {
             "bookId": book_id,
-            "title": book_data.get("title", ""),
+            "title": book_data.get("book_title", ""),
             "author": book_data.get("author", ""),
             "userEmail": user_data.get("email", ""),
             "rating": rating
@@ -1526,21 +1619,50 @@ def get_recommendations():
         print(user_genres)
 
         past_reviews_query = Review.collection.filter('email', '==', email).fetch()
+        
         user_reviews = []
-        print("past ratings")
 
         for r in past_reviews_query:
-            print(r)
-
-            book_id = r.book_title.lower()
-            print(book_id)
+            if not r.book_title or r.rating is None:
+                continue
+            book_id = make_book_id(r.book_title, r.author)
 
             if book_id in books_data:
                 user_reviews.append({
                     "book_id": book_id,
-                    "rating": float(r.rating)
+                    "rating": float(r.rating),
+                    "source": "review"
                 })
-        print("user reviews:", user_reviews)
+
+        ratings_query = db.collection("ratings").where("userEmail", "==", email).stream()
+
+        for doc in ratings_query:
+            r = doc.to_dict()
+
+            book_id = (r.get("title") or "").lower().strip()
+            rating = r.get("rating")
+
+            if not book_id or rating is None:
+                continue
+
+            if book_id in books_data:
+                user_reviews.append({
+                    "book_id": book_id,
+                    "rating": float(rating),
+                    "source": "rating"
+                })
+        
+        deduped = {}
+        for r in user_reviews:
+            bid = r["book_id"]
+
+            if bid not in deduped:
+                deduped[bid] = r
+            else:
+                if r["source"] == "review":
+                    deduped[bid] = r
+
+        user_reviews = list(deduped.values())
         
         user_profile = recommender.build_user_profile(user_reviews)
 

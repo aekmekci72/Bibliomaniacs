@@ -181,7 +181,7 @@ export default function LandingPage() {
                 className="landingPrimaryBtn self-start"
                 onPress={() => navigation?.navigate?.("explorer")}
               >
-                <Text className="landingPrimaryText">Start Logging</Text>
+                <Text className="landingPrimaryText">Add a Review</Text>
               </Pressable>
             </View>
 
