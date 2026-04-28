@@ -290,44 +290,33 @@ export default function LandingPage() {
 
           <View className="flex flex-row flex-wrap justify-between gap-10">
 
-            {/* Brand */}
-            <View className="w-40">
-              <Text className="footerBrand">Bibliomaniacs</Text>
-              <Text className="footerText">
-                Building better reading habits for the Ridgewood community.
-              </Text>
-            </View>
+            <View className="w-60">
+                <Text className="footerBrand">Bibliomaniacs</Text>
+                <Text className="footerText">
+                  Building better reading habits for the Ridgewood community.
+                </Text>
+              </View>
 
-            {/* Contact */}
-            <View className="w-40">
-              <Text className="footerTitle">Contact Us</Text>
-              <Text className="footerText">Email: support@bibliomaniacs.fake</Text>
-              <Text className="footerText">Phone: (555) 123-4567</Text>
-              <Text className="footerText">123 Library Lane, Ridgewood, NJ</Text>
-            </View>
+              <View className="w-60">
+                <Text className="footerTitle">Contact Us</Text>
+                <Text className="footerText">Email: ask@ridgewoodlibrary.org</Text>
+                <Text className="footerText">Phone: (201) 670-5600</Text>
+                <Text className="footerText">125 North Maple Ave. Ridgewood, NJ 07450</Text>
+              </View>
 
-            {/* Links */}
-            <View className="w-40">
-              <Text className="footerTitle">Quick Links</Text>
-              <Text className="footerText">About Us</Text>
-              <Text className="footerText">FAQ</Text>
-              <Text className="footerText">Privacy Policy</Text>
-            </View>
-
-            {/* Socials */}
-            <View className="w-40">
-              <Text className="footerTitle">Follow Us</Text>
-              <Text className="footerText">Instagram</Text>
-              <Text className="footerText">Twitter</Text>
-              <Text className="footerText">Facebook</Text>
-            </View>
+              <View className="w-60">
+                <Text className="footerTitle">Follow Us</Text>
+                <Link href="https://www.youtube.com/channel/UC7o0gxy5ZpOkq3eU2dNYQIg" className="footerText">Youtube</Link>
+                <Link href="https://www.instagram.com/ridgewoodlibrary/?hl=en" className="footerText">Instagram</Link>
+                <Link href="https://www.facebook.com/ridgewoodlibrarynj/#" className="footerText">Facebook</Link>
+              </View>
 
           </View>
 
           <View className="footerDivider" />
 
           <Text className="footerCopyright">
-            © {new Date().getFullYear()} Bibliomaniacs. All rights reserved.
+            @{new Date().getFullYear()} Ridgewood Public Library. All Rights Reserved
           </Text>
 
         </View>
