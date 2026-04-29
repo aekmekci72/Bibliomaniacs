@@ -24,6 +24,9 @@ export default function AdminReviews() {
   const [updating, setUpdating] = useState(null);
   const [emailDraftModal, setEmailDraftModal] = useState({ show: false, draft: null, reviewId: null });
   const [loadingDraft, setLoadingDraft] = useState(null);
+  const [hoveredUser, setHoveredUser] = useState(null);
+  const [hoverHours, setHoverHours] = useState({});
+  const [hoveredRow, setHoveredRow] = useState(null);
 
   useEffect(() => {
     fetch('http://localhost:5001/clear_cache', { method: 'POST' });
@@ -67,6 +70,29 @@ export default function AdminReviews() {
       setStats(data);
     } catch (error) {
       console.error("Failed to fetch stats");
+    }
+  };
+
+  const fetchUserHours = async (email) => {
+    if (hoverHours[email]) return;
+
+    try {
+      const res = await fetch("http://localhost:5001/get_user_hours_by_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      setHoverHours(prev => ({
+        ...prev,
+        [email]: data.total_hours || 0
+      }));
+    } catch (err) {
+      console.error("Failed to fetch user hours");
     }
   };
 
@@ -507,8 +533,27 @@ export default function AdminReviews() {
                           <td className="px-3 py-3 text-sm text-gray-600">
                             {new Date(r.date_received).toLocaleDateString()}
                           </td>
-                          <td className="px-3 py-3 text-sm font-semibold text-gray-800">
-                            {r.first_name} {r.last_name}
+                          <td className="px-3 py-3 text-sm font-semibold text-gray-800 relative">
+                            <span
+                              onMouseEnter={() => {
+                                setHoveredRow(r.id);
+                                fetchUserHours(r.email);
+                              }}
+                              onMouseLeave={() => setHoveredRow(null)}
+                              className="cursor-pointer hover:underline"
+                            >
+                              {r.first_name} {r.last_name}
+                            </span>
+
+                            {hoveredRow === r.id && (
+                              <div className="absolute z-50 top-8 left-0 bg-black text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap animate-fade-in">
+                                {r.first_name} {r.last_name} has{" "}
+                                <span className="font-bold text-green-400">
+                                  {hoverHours[r.email] ?? "..."}
+                                </span>{" "}
+                                total volunteer hours
+                              </div>
+                            )}
                           </td>
                           <td className="px-3 py-3 text-sm text-gray-700">{r.grade}</td>
                           <td className="px-3 py-3 text-sm font-medium text-gray-800">{r.book_title}</td>
