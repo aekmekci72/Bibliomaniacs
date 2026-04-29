@@ -1377,6 +1377,28 @@ def update_review(review_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/get_user_hours_by_email", methods=["POST"])
+def get_user_hours_by_email():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Missing email"}), 400
+
+    try:
+        reviews = Review.collection.filter('email', '==', email).fetch()
+
+        total_hours = sum(0.5 for r in reviews if r.approved)
+
+        return jsonify({
+            "email": email,
+            "total_hours": total_hours
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/get_email_draft/<review_id>", methods=["POST"])
 def get_email_draft_endpoint(review_id):
     """Generate email draft for a review (admin only)"""
