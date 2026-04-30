@@ -26,33 +26,7 @@ export default function ArchiveScreen() {
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [openRows, setOpenRows] = useState({});
-
-    const data = [
-        {
-        id: 1,
-        date: "3/12/25",
-        hours: "2.0",
-        books: [
-            { title: "Book 1", author: "Author A" },
-            { title: "Book 2", author: "Author B" },
-            { title: "Book 3", author: "Author C" },
-        ],
-        },
-        {
-        id: 2,
-        date: "1/12/25",
-        hours: "0.5",
-        books: [{ title: "Book 4", author: "Author D" }],
-        },
-        {
-        id: 3,
-        date: "8/06/24",
-        hours: "1.5",
-        books: [],
-        },
-    ];
-
-    
+    const [pastCertificates, setPastCertificates] = useState([]);    
 
     const debounceTimer = useRef(null);
 
@@ -67,17 +41,53 @@ export default function ArchiveScreen() {
     const approvedReviews = reviews.filter(r => r.status === "Approved").length;
     const volunteerHours = (approvedReviews * 0.5).toFixed(1);
 
+    const parseDate = (d) => {
+        console.log(d);
+        if (!d) return null;
+        if (d.seconds !== undefined) return new Date(d.seconds * 1000);
+        return new Date(d);
+      };
+    
+    const latestCertDate = pastCertificates.length > 0
+    ? parseDate(pastCertificates[pastCertificates.length - 1].date)
+    : null;
+
     const filtered = reviews
-        .filter((r) => {
-        const matchStatus = r.status === "Approved";
+    .filter((r) => {
+        if (r.status !== "Approved") return false;
+        if (!r.date_received) return false;
+        if (latestCertDate && parseDate(r.date_processed) <= latestCertDate) return false;
         const matchSearch = r.bookTitle.toLowerCase().includes(search.toLowerCase());
-        return matchSearch && matchStatus;
-        })
-        .sort((a, b) => {
+        return matchSearch;
+    })
+    .sort((a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
         return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
-        });
+    });
+
+    const data = pastCertificates.map((cert, index) => {
+        const certReviewIds = cert.reviews ?? [];
+        
+        const certBooks = certReviewIds
+            .map(id => reviews.find(r => r.id === id))
+            .filter(Boolean)
+            .map(r => ({ title: r.bookTitle, author: r.author }));
+    
+        const hours = (certBooks.length * 0.5).toFixed(1);
+    
+        const date = parseDate(cert.date);
+        const dateStr = date
+            ? `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`
+            : "Unknown";
+    
+        return {
+            id: index + 1,
+            date: dateStr,
+            hours,
+            books: certBooks,
+        };
+    });
 
     useEffect(() => {
         return () => {
@@ -115,6 +125,7 @@ export default function ArchiveScreen() {
             rating: r.rating,
             status: r.status,
             status: r.status,
+            date_processed: r.date_processed,
             createdAt: r.date_received,
             comment: r.comment_to_user,
             timeEarned: r.time_earned,
@@ -149,6 +160,7 @@ export default function ArchiveScreen() {
             setEmail(data.email ?? "");
             setPhoneNumber(data.phone ?? "");
             setSchool(data.school ?? "");
+            setPastCertificates(data.past_certificates ?? []);
         } else {
             setFirstName("");
             setLastName("");
@@ -156,6 +168,7 @@ export default function ArchiveScreen() {
             setEmail("");
             setPhoneNumber("");
             setSchool("");
+            setPastCertificates([]);
         }
         } catch (err) {
         console.error("Failed to load profile:", err);
@@ -189,7 +202,7 @@ export default function ArchiveScreen() {
 
 
 
-    const generateCertificate = () => {
+    const generateCertificate = async () => {
         const certificateHTML = `
         <!DOCTYPE html>
         <html>
@@ -221,6 +234,34 @@ export default function ArchiveScreen() {
         a.download = `volunteer_certificate_${`${firstName} ${lastName}`.trim().replace(/\s+/g, '_')}.html`;
         a.click();
         window.URL.revokeObjectURL(url);
+
+        try {
+            const auth = getAuth();
+            const user = auth.currentUser;
+            if (!user) return;
+        
+            const idToken = await user.getIdToken(true);
+        
+            const res = await fetch("http://localhost:5001/update_certificate", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ idToken }),
+            });
+        
+            const data = await res.json();
+        
+            if (!res.ok) {
+              console.error("Backend error:", data);
+              return;
+            }
+        
+          } catch (err) {
+            console.error("Failed to update certificate:", err);
+          } finally {
+            setLoading(false);
+        }
     };
 
     const archive = [
@@ -245,12 +286,12 @@ export default function ArchiveScreen() {
                 <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
                     <div className="bg-white rounded-lg shadow-sm p-4">
                     <div className="text-s text-gray-700 font-[500]">TOTAL REVIEWS</div>
-                    <div className="text-3xl font-bold text-gray-700">{approvedReviews}</div>
+                    <div className="text-3xl font-bold text-gray-700">{filtered.length}</div>
                     <div className="text-xs text-gray-500 font-[500]">Undocumented</div>
                     </div>
                     <div className="bg-white rounded-lg shadow-sm p-4">
                     <div className="text-s text-gray-700 font-[500]">TOTAL HOURS</div>
-                    <div className="text-3xl font-bold text-gray-700">{volunteerHours}</div>
+                    <div className="text-3xl font-bold text-gray-700">{filtered.length*0.5}</div>
                     <div className="text-xs text-gray-500 font-[500]">Undocumented</div>
                     </div>
                 </div>
@@ -289,7 +330,7 @@ export default function ArchiveScreen() {
                                     {filtered.length === 0 && (
                                     <tr>
                                         <td colSpan="9" className="text-center py-12 text-gray-500">
-                                        No reviews match your filters.
+                                        No undocumented reviews
                                         </td>
                                     </tr>
                                     )}
@@ -300,7 +341,9 @@ export default function ArchiveScreen() {
                 </div>
                 <div className="mt-6 flex justify-center">
                     <button
-                        className="bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md"
+                        className={`bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md ${filtered.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={generateCertificate}
+                        disabled={filtered.length === 0}
                     >
                         Generate Certificate
                     </button>
