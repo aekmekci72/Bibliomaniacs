@@ -234,7 +234,10 @@ export default function ArchiveScreen() {
         a.download = `volunteer_certificate_${`${firstName} ${lastName}`.trim().replace(/\s+/g, '_')}.html`;
         a.click();
         window.URL.revokeObjectURL(url);
+    };
 
+    const create_new_certificate = async () => {
+        generateCertificate();
         try {
             const auth = getAuth();
             const user = auth.currentUser;
@@ -262,7 +265,7 @@ export default function ArchiveScreen() {
           } finally {
             setLoading(false);
         }
-    };
+    }
 
     const archive = [
         { date: "3/12/25", hrs: "2.0", books: ["Book 1", "Book 2", "Book 3"] },
@@ -342,7 +345,7 @@ export default function ArchiveScreen() {
                 <div className="mt-6 flex justify-center">
                     <button
                         className={`bg-green-900 hover:bg-green-950 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors shadow-md ${filtered.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={generateCertificate}
+                        onClick={create_new_certificate}
                         disabled={filtered.length === 0}
                     >
                         Generate Certificate
@@ -360,6 +363,7 @@ export default function ArchiveScreen() {
                         <tr>
                             <th className="px-4 py-3 text-left text-sm font-bold">Date</th>
                             <th className="px-4 py-3 text-left text-sm font-bold">Hours</th>
+                            <th></th>
                         </tr>
                         </thead>
 
@@ -372,9 +376,20 @@ export default function ArchiveScreen() {
                                 className="cursor-pointer border-b hover:bg-gray-50 transition"
                             >
                                 <td className="px-4 py-3 font-medium text-gray-800">
-                                {openRows[row.id] ? "▼" : "▶"} {row.date}
+                                    {openRows[row.id] ? "▼" : "▶"} {row.date}
                                 </td>
                                 <td className="px-4 py-3 text-gray-700">{row.hours}</td>
+                                <td className="px-4 py-3">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // prevent row toggle
+                                            generateCertificate();
+                                        }}
+                                        className="text-green-700 font-bold hover:underline text-sm"
+                                    >
+                                        ⬇
+                                    </button>
+                                </td>
                             </tr>
 
                             {/* Dropdown Rows */}
