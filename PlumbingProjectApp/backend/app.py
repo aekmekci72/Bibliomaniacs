@@ -45,6 +45,18 @@ db = firestore.client()
 
 profanity.load_censor_words()
 
+REJECTION_REASON_TEMPLATES = {
+    "below_ya": """This book is categorized as Children's or Middle Grade. Please submit YA or above titles only.""",
+
+    "duplicate": """A review has already been submitted for this book. Please check the submitted reviews list before submitting.""",
+
+    "plagiarism": """Your review appears to contain copied material. All reviews must be original and written by the submitter.""",
+
+    "location": """We only accept submissions from Ridgewood, NJ students or those attending school in the area.""",
+
+    "limit": """You have exceeded the daily limit of two reviews. Please submit again on the next day."""
+}
+
 def firestore_reviews_to_model_format(firestore_reviews, books):
     from recommendationModel.parsing import make_book_id, normalize_text
     from recommendationModel.sentiment import ReviewSentimentAnalyzer
@@ -426,7 +438,7 @@ def notify_recipients(sender, recipients, book="", status=""):
             message = f"Your review of {book} was {status}"
         elif status == "rejected":
             icon = "x-circle"
-            message = f"Your review of {book} was {status}"
+            message = f"Your review of {book} was rejected. Tap to see feedback."
         elif status == "new_review":
             icon = "book"
             message = f"{sender} submitted a new review of {book}"
@@ -1331,6 +1343,7 @@ def update_review(review_id):
         allowed_fields = [
             "approved",
             "comment_to_user",
+            "rejection_reason_key",
             "notes_to_admin",
             "added_to_reviewed_book_list",
             "call_number",
@@ -1350,21 +1363,34 @@ def update_review(review_id):
         status_changed = False
         email_draft = None
 
-        if "approved" in data:
-            updates["date_processed"] = datetime.now()
+        final_comment = updates.get("comment_to_user", review.get("comment_to_user"))
 
-            if not old_date_processed:
-                status_changed = True
-                new_status = "approved" if data["approved"] else "rejected"
+        updates["date_processed"] = datetime.now()
+        new_status = "approved" if data.get("approved") else "rejected"
 
-                email_draft = generate_email_draft(
-                    recipient_email=review["email"],
-                    recipient_name=f"{review['first_name']} {review['last_name']}",
-                    book_title=review["book_title"],
-                    author=review["author"],
-                    status=new_status,
-                    comment=updates.get("comment_to_user", review.get("comment_to_user"))
-                )
+        if not old_date_processed:
+            status_changed = True
+
+        if not data["approved"]:
+            reason_key = updates.get("rejection_reason_key")
+
+            template_text = REJECTION_REASON_TEMPLATES.get(reason_key)
+
+            if template_text:
+                if final_comment:
+                    final_comment = f"{template_text}\n\nAdditional notes:\n{final_comment}"
+                else:
+                    final_comment = template_text
+
+        email_draft = generate_email_draft(
+            recipient_email=review["email"],
+            recipient_name=f"{review['first_name']} {review['last_name']}",
+            book_title=review["book_title"],
+            author=review["author"],
+            status=new_status,
+            comment=updates.get("comment_to_user"),
+            rejection_reason_key=updates.get("rejection_reason_key")
+        )
 
         review_ref.update(updates)
         invalidate_review_caches(user_email=review.get("email"))
@@ -1429,13 +1455,26 @@ def get_email_draft_endpoint(review_id):
 
         status = "approved" if review.get("approved") else "rejected"
 
+        comment = review.get("comment_to_user")
+
+        if status == "rejected":
+            reason_key = review.get("rejection_reason_key")
+            template_text = REJECTION_REASON_TEMPLATES.get(reason_key)
+
+            if template_text:
+                if comment:
+                    comment = f"{template_text}\n\nAdditional notes:\n{comment}"
+                else:
+                    comment = template_text
+
         email_draft = generate_email_draft(
             recipient_email=review["email"],
             recipient_name=f"{review['first_name']} {review['last_name']}",
             book_title=review["book_title"],
             author=review["author"],
             status=status,
-            comment=review.get("comment_to_user")
+            comment=review.get("comment_to_user"),
+            rejection_reason_key=review.get("rejection_reason_key")
         )
 
         return jsonify({"email_draft": email_draft}), 200
