@@ -66,7 +66,8 @@ export default function ArchiveScreen() {
         return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
     });
 
-    const data = pastCertificates.map((cert, index) => {
+    const data = pastCertificates
+    .map((cert, index) => {
         const certReviewIds = cert.reviews ?? [];
         
         const certBooks = certReviewIds
@@ -84,10 +85,17 @@ export default function ArchiveScreen() {
         return {
             id: index + 1,
             date: dateStr,
+            parsedDate: date,
             hours,
             books: certBooks,
         };
-    });
+    })
+    .sort((a, b) => {
+        if (!a.parsedDate) return 1;
+        if (!b.parsedDate) return -1;
+        return b.parsedDate - a.parsedDate;
+    })
+    .map((cert, index) => ({ ...cert, id: index + 1, parsedDate: undefined }));
 
     useEffect(() => {
         return () => {
