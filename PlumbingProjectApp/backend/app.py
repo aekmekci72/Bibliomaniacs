@@ -1374,9 +1374,6 @@ def update_certificate():
                 continue
 
             eligible_review_ids.append(r.id)
-            print(r)
-        print("stop 1")
-        print(eligible_review_ids)
 
         if not eligible_review_ids:
             return
@@ -1389,8 +1386,6 @@ def update_certificate():
             "timestamp": now_ts,    # numeric, used for comparisons
             "reviews": eligible_review_ids,
         }
-        print("New Certificate")
-        print(new_certificate)
 
         past_certificates.append(new_certificate)
         user_ref.update({"past_certificates": past_certificates})
@@ -1402,7 +1397,6 @@ def update_certificate():
 
     except Exception as e:
         print("update_certificate error:")
-        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
     
 
