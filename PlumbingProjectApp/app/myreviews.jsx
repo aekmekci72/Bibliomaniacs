@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, SafeAreaContext, TouchableOpacity } from "react-native";
 import ReviewModal from "./reviewmodal";
 import { RequireAccess } from "../components/requireaccess";
 import { getAuth } from "firebase/auth";
@@ -535,6 +530,21 @@ export default function MyReviews() {
             </div>
           </div>
 
+          {/* Action Buttons */}
+          {/* <div className="flex flex-wrap gap-3 mb-6 justify-center bg-white p-6 rounded-lg shadow-sm">
+          <div className="flex flex-wrap justify-center gap-4">
+            <button onClick={exportCSV} className="bg-green-900 text-white font-bold py-4 px-8 rounded-lg">Export CSV</button>
+            <button onClick={generateCertificate} className="bg-blue-700 text-white font-bold py-4 px-8 rounded-lg">📜 Certificate</button>
+            <button
+              onClick={() => setModalVisible(true)}
+              className={`bg-green-700 text-white font-bold py-4 px-8 rounded-lg ${dailyReviewsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={dailyReviewsRemaining === 0}
+            >
+              + Add New Review {dailyReviewsRemaining > 0 && `(${dailyReviewsRemaining} left today)`}
+            </button>
+          </div>
+          </div> */}
+
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-6 justify-center bg-white p-6 rounded-lg shadow-sm">
             <input
@@ -612,21 +622,27 @@ export default function MyReviews() {
               </tbody>
             </table>
           </div>
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex justify-center gap-4 flex-wrap">
-            <button onClick={exportCSV} className="bg-green-900 text-white font-bold py-4 px-8 rounded-lg">Export CSV</button>
-            <button onClick={generateCertificate} className="bg-blue-700 text-white font-bold py-4 px-8 rounded-lg">📜 Certificate</button>
-            <button
-              onClick={() => setModalVisible(true)}
-              className={`bg-green-700 text-white font-bold py-4 px-8 rounded-lg ${dailyReviewsRemaining === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={dailyReviewsRemaining === 0}
-            >
-              + Add New Review {dailyReviewsRemaining > 0 && `(${dailyReviewsRemaining} left today)`}
-            </button>
-          </div>
         </div>
       </div>
+
+      <button
+        onClick={() => {
+          if (dailyReviewsRemaining === 0) {
+            alert("You've reached your daily limit of 2 reviews. Please try again tomorrow!");
+            return;
+          }
+          setIsEditMode(false);
+          setEditingReviewId(null);
+          setBookTitle(""); setAuthorName(""); setReview(""); setRating(0);
+          setRecommendedGrades([]); setAnonPref(""); setTitleFlagged(false);
+          setModalVisible(true);
+        }}
+        title={dailyReviewsRemaining === 0 ? "Daily limit reached" : `Add review (${dailyReviewsRemaining} left today)`}
+        className={`fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full text-white text-3xl font-bold shadow-lg flex items-center justify-center transition-opacity
+          ${dailyReviewsRemaining === 0 ? "bg-gray-400 cursor-not-allowed opacity-60" : "bg-green-700 hover:bg-green-800 cursor-pointer"}`}
+      >
+        +
+      </button>
 
       <ReviewModal
         modalVisible={modalVisible}
