@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from flask_cors import CORS
@@ -15,6 +15,12 @@ from review_model import Review, create_review, process_review, calculate_user_h
 import traceback
 import time
 from datetime import datetime, timedelta, timezone
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas as pdf_canvas
+from reportlab.lib.utils import ImageReader
+import io
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
 from better_profanity import profanity
@@ -1611,6 +1617,182 @@ def get_user_reviews():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/generate_certificate", methods=["POST"])
+def generate_certificate():
+    data = request.json
+    id_token = data.get("idToken")
+    cert_date = data.get("certDate")
+    cert_hours = data.get("certHours")
+
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 401
+    decoded_token = verify_firebase_token(id_token)
+    if not decoded_token:
+        return jsonify({"error": "Invalid ID token"}), 401
+
+    first_name = data.get("firstName", "")
+    last_name = data.get("lastName", "")
+
+    from datetime import datetime
+    date_obj = datetime.fromisoformat(cert_date) if cert_date else datetime.now()
+    day = date_obj.day
+    month = date_obj.strftime("%B")
+    year = date_obj.year
+
+    W, H = landscape(letter)  # 792 x 612
+    buffer = io.BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=landscape(letter))
+
+    # White background
+    c.setFillColor(colors.white)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    c.setStrokeColor(colors.HexColor('#333333'))
+    c.setLineWidth(3)
+    c.rect(25, 25, W - 50, H - 50)
+    c.setLineWidth(1)
+    c.rect(35, 35, W - 70, H - 70)
+
+    # 2. TOP LOGO & HEADER
+    # Positioned slightly higher and centered as a group
+    logo_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'logo.png')
+    logo = ImageReader(logo_path)
+    orig_w, orig_h = logo.getSize()
+    aspect = orig_h / float(orig_w)
+
+    # Set a fixed width, and let the height scale proportionally
+    logo_size = 60
+
+    logo_w = 40
+    logo_h = logo_w * aspect
+    
+    # Calculate group width to center the logo + text together
+    header_text_font = "Helvetica-Bold"
+    header_text_size = 18
+    line1 = "RIDGEWOOD"
+    line2 = "PUBLIC LIBRARY"
+    
+    # Grouped layout: Logo on left, Text on right
+    total_header_w = logo_w + 15 + max(c.stringWidth(line1, header_text_font, header_text_size), 
+                                         c.stringWidth(line2, header_text_font, header_text_size))
+    header_start_x = (W - total_header_w) / 2
+    
+    c.drawImage(logo, header_start_x, H - 110, logo_w, logo_h, mask='auto')
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", header_text_size + 6)
+    c.drawString(header_start_x + logo_w + 12, H - 82, line1)
+    c.setFont(header_text_font, header_text_size)
+    c.drawString(header_start_x + logo_w + 12, H - 102, line2)
+
+    # 3. MAIN TITLE
+    c.setFont("Times-Bold", 42)
+    c.drawCentredString(W / 2, H - 180, "CERTIFICATE OF COMPLETION")
+
+    # 4. SUB-TEXT
+    c.setFont("Helvetica", 12)
+    c.setFillColor(colors.HexColor('#444444'))
+    c.drawCentredString(W / 2, H - 220, "THIS CERTIFIES THAT")
+
+    # 5. VOLUNTEER NAME (The Focus)
+    c.setFont("Helvetica-Bold", 40)
+    c.setFillColor(colors.HexColor('#7b2d8b')) # Dark Purple
+    c.drawCentredString(W / 2, H - 275, f"{first_name.upper()} {last_name.upper()}")
+    
+    # Elegant Underline
+    c.setStrokeColor(colors.HexColor('#333333'))
+    c.setLineWidth(1)
+    c.line(W*0.2, H - 285, W*0.8, H - 285)
+
+    # 6. HOURS BLOCK
+    # We use a helper to mix fonts in one line
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 14)
+    txt_has = "HAS COMPLETED "
+    txt_hours = f"{cert_hours}"
+    txt_suffix = " HOURS"
+    
+    w_has = c.stringWidth(txt_has, "Helvetica", 14)
+    w_hours = c.stringWidth(txt_hours, "Helvetica-Bold", 14)
+    
+    total_middle_w = w_has + w_hours + c.stringWidth(txt_suffix, "Helvetica", 14)
+    mx = (W - total_middle_w) / 2
+    
+    c.drawString(mx, H - 325, txt_has)
+    c.setFont("Helvetica-Bold", 14)
+    c.setFillColor(colors.HexColor('#2a6ee0')) # Blue
+    c.drawString(mx + w_has, H - 325, txt_hours)
+    c.setFont("Helvetica", 14)
+    c.setFillColor(colors.black)
+    c.drawString(mx + w_has + w_hours, H - 325, txt_suffix)
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawCentredString(W / 2, H - 355, "OF VOLUNTEER WORK AS OF")
+
+    # 7. DATE
+    c.setFont("Helvetica-Bold", 16)
+    c.setFillColor(colors.HexColor('#2a6ee0'))
+    c.drawCentredString(W / 2, H - 395, f"{day} {month} {year}".upper())
+
+    # --- Updated Footer Section ---
+    # --- Footer Configuration ---
+    footer_logo_w = 60
+    footer_logo_h = footer_logo_w * aspect
+    gap_to_line = 25  # Gap between logo and vertical line
+    gap_from_line = 15 # Gap between line and text
+    text_block_w = 200 # Approximate width of the contact info text
+
+    # Calculate total width of the grouped footer to center it
+    total_footer_width = footer_logo_w + gap_to_line + gap_from_line + text_block_w
+    footer_start_x = (W - total_footer_width) / 2
+    base_y = 90 
+
+    # 1. Footer Logo
+    c.drawImage(logo, footer_start_x, base_y, footer_logo_w, footer_logo_h, mask='auto')
+
+    # 2. Address (Under Logo)
+    c.setFont("Helvetica", 7)
+    c.setFillColor(colors.HexColor('#555555'))
+    addr_y = base_y - 12
+    c.drawString(footer_start_x, addr_y, "125 N. Maple Avenue")
+    c.drawString(footer_start_x, addr_y - 10, "Ridgewood, NJ 07450")
+    c.setFont("Helvetica", 6.2)
+    c.drawString(footer_start_x, addr_y - 20, "www.ridgewoodlibrary.org")
+
+    # 3. VERTICAL SEPARATOR LINE
+    line_x = footer_start_x + footer_logo_w + gap_to_line
+    c.setStrokeColor(colors.HexColor('#aaaaaa'))
+    c.setLineWidth(1)
+    # Line height spans from top of signature to bottom of address
+    c.line(line_x, base_y + 45, line_x, addr_y)
+
+    # 4. Signature & Info (Right of the line)
+    sig_x = line_x + gap_from_line
+    sig_y_top = base_y + 35
+
+    # Handwritten Style
+    c.setFont("Times-BoldItalic", 22)
+    c.setFillColor(colors.black)
+    c.drawString(sig_x, sig_y_top, "Justin Kontonicolaou")
+
+    # Contact Details
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(sig_x, sig_y_top - 18, "Justin Kontonicolaou")
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColor(colors.HexColor('#444444'))
+    c.drawString(sig_x, sig_y_top - 30, "Teen Librarian")
+
+    c.setFont("Helvetica", 8)
+    c.drawString(sig_x, sig_y_top - 41, "(201) 670-5600, x2112")
+    c.drawString(sig_x, sig_y_top - 51, "jkontonicolaou@ridgewoodlibrary.org")
+
+    c.save()
+    buffer.seek(0)
+
+    filename = f"volunteer_certificate_{first_name}_{last_name}.pdf".replace(" ", "_")
+    return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
     
 @app.route("/update_certificate", methods=["POST"])
 def update_certificate():
