@@ -28,6 +28,12 @@ export default function AllReviews() {
     horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
     dystopian: "https://images.unsplash.com/photo-1520975922323-9d5f6f6b2c5b",
     "literary-fiction": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570",
+    classics: "https://images.unsplash.com/photo-1512820790803-83ca734da794",
+    classic: "https://images.unsplash.com/photo-1512820790803-83ca734da794",
+    fiction: "https://images.unsplash.com/photo-1528207776546-365bb710ee93",
+    novel: "https://images.unsplash.com/photo-1528207776546-365bb710ee93",
+    contemporary: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d",
+    drama: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d",
     default: "https://images.unsplash.com/photo-1519682337058-a94d519337bc"
   };
 

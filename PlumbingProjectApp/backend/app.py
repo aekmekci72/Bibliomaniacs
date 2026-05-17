@@ -698,15 +698,45 @@ def get_book_of_week():
     """Get current book of the week"""
     try:
         book_doc = db.collection("settings").document("book_of_week").get()
-        if book_doc.exists:
-            return jsonify(book_doc.to_dict()), 200
-        else:
-            default_book = {
+
+        if not book_doc.exists:
+            return jsonify({
                 "title": "No book selected",
                 "author": "NA",
+                "genres": [],
                 "lastUpdated": datetime.now().isoformat()
-            }
-            return jsonify(default_book), 200
+            }), 200
+
+        data = book_doc.to_dict()
+
+        title = (data.get("title") or "").strip().lower()
+        author = data.get("author")
+
+        genres = []
+
+        if title in books_data:
+            book_info = books_data[title]
+
+            if book_info.get("genres"):
+                genres = book_info["genres"]
+
+            elif book_info.get("genre"):
+                genres = [book_info["genre"]]
+
+        if not genres:
+            try:
+                genres = fetch_wikipedia_genres(title, author)
+            except Exception as e:
+                print(f"[Genre fallback failed] {e}")
+                genres = ["literary-fiction"]
+
+        return jsonify({
+            "title": data.get("title", "No book selected"),
+            "author": data.get("author", "NA"),
+            "genres": genres,
+            "lastUpdated": data.get("lastUpdated", datetime.now().isoformat())
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1891,10 +1921,21 @@ def get_recommendations():
 
             avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else 0
 
+            genres = (
+                book_info.get("genres")
+                or book_info.get("genre")
+                or []
+            )
+
+            # force list
+            if isinstance(genres, str):
+                genres = [genres]
+
             output.append({
                 "book_id": book_id,
                 "title": book_info.get("title", "Unknown"),
                 "author": book_info.get("author", "Unknown"),
+                "genres": genres,
                 "score": score,
                 "avg_rating": avg_rating
             })
