@@ -11,6 +11,8 @@ import { getAuth } from "firebase/auth";
 import { auth, app } from "../backend/firebaseConfig";
 import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
 import { Mail, MailCheck, Filter, Scroll } from "lucide-react";
+import { Ionicons, Octicons, FontAwesome5, AntDesign, Feather } from "@expo/vector-icons";
+import logoUrl from '../assets/logo.png';
 
 
 export default function ArchiveScreen() {
@@ -209,324 +211,33 @@ export default function ArchiveScreen() {
       };
 
 
-
       const generateCertificate = async (certDate = null, certHours = null) => {
-        const dateObj = certDate ? new Date(certDate) : new Date();
-        const hoursToUse = certHours ?? volunteerHours;
-        const day = dateObj.getDate();
-        const month = dateObj.toLocaleDateString('en-US', { month: 'long' });
-        const year = dateObj.getFullYear();
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) return;
     
-        const certificateHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Lato:wght@400;700;900&display=swap');
-            @page { size: landscape; margin: 0; }
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body {
-                margin: 0;
-                padding: 0;
-                background: white;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                min-height: 100vh;
-                font-family: 'Lato', sans-serif;
-            }
-            .page {
-                width: 1100px;
-                height: 780px;
-                position: relative;
-                background: white;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
+        const idToken = await user.getIdToken(true);
+        
+        const res = await fetch("http://localhost:5001/generate_certificate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken, firstName, lastName, certDate, certHours }),
+        });
     
-            /* Decorative border - outer ring of ornaments */
-            .border-outer {
-                position: absolute;
-                inset: 0;
-                border: 18px solid transparent;
-                background:
-                    repeating-linear-gradient(90deg, #bbb 0px, #bbb 18px, transparent 18px, transparent 36px) top/100% 18px no-repeat,
-                    repeating-linear-gradient(90deg, #bbb 0px, #bbb 18px, transparent 18px, transparent 36px) bottom/100% 18px no-repeat,
-                    repeating-linear-gradient(0deg,  #bbb 0px, #bbb 18px, transparent 18px, transparent 36px) left/18px 100% no-repeat,
-                    repeating-linear-gradient(0deg,  #bbb 0px, #bbb 18px, transparent 18px, transparent 36px) right/18px 100% no-repeat;
-                pointer-events: none;
-                z-index: 10;
-            }
-            .border-inner {
-                position: absolute;
-                inset: 22px;
-                border: 3px solid #ccc;
-                pointer-events: none;
-                z-index: 10;
-            }
+        if (!res.ok) {
+            console.error("Failed to generate certificate");
+            return;
+        }
     
-            .content {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 40px 80px 30px;
-                position: relative;
-                z-index: 1;
-                gap: 0;
-            }
-    
-            /* Logo area */
-            .logo-area {
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                margin-bottom: 18px;
-            }
-            .logo-icon {
-                width: 62px;
-                height: 62px;
-            }
-            .logo-text {
-                display: flex;
-                flex-direction: column;
-                line-height: 1.15;
-            }
-            .logo-text .lib-name {
-                font-family: 'Lato', sans-serif;
-                font-weight: 900;
-                font-size: 22px;
-                color: #1a1a1a;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-            }
-            .logo-text .lib-sub {
-                font-family: 'Lato', sans-serif;
-                font-weight: 900;
-                font-size: 22px;
-                color: #1a1a1a;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-            }
-    
-            /* Title */
-            .cert-title {
-                font-family: 'Cinzel', serif;
-                font-weight: 900;
-                font-size: 52px;
-                color: #111;
-                letter-spacing: 2px;
-                text-transform: uppercase;
-                margin-bottom: 16px;
-                text-align: center;
-            }
-    
-            .certifies-that {
-                font-family: 'Lato', sans-serif;
-                font-size: 13px;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-                color: #333;
-                margin-bottom: 10px;
-            }
-    
-            /* Volunteer name */
-            .volunteer-name {
-                font-family: 'Lato', sans-serif;
-                font-weight: 900;
-                font-size: 46px;
-                color: #7b2d8b;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                margin-bottom: 6px;
-                text-align: center;
-            }
-            .name-underline {
-                width: 70%;
-                height: 2px;
-                background: #333;
-                margin-bottom: 16px;
-            }
-    
-            /* Hours line */
-            .hours-line {
-                font-family: 'Lato', sans-serif;
-                font-size: 17px;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-                color: #222;
-                margin-bottom: 4px;
-            }
-            .hours-line .hours-val {
-                color: #e07b2a;
-                font-weight: 900;
-            }
-            .of-volunteer {
-                font-family: 'Lato', sans-serif;
-                font-weight: 900;
-                font-size: 14px;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-                color: #222;
-                margin-bottom: 4px;
-            }
-    
-            /* Date */
-            .cert-date {
-                font-family: 'Lato', sans-serif;
-                font-weight: 700;
-                font-size: 17px;
-                color: #2a6ee0;
-                letter-spacing: 3px;
-                text-transform: uppercase;
-                margin-bottom: 18px;
-            }
-    
-            /* Footer: logo + signature block */
-            .footer {
-                display: flex;
-                align-items: flex-start;
-                gap: 24px;
-                margin-top: 6px;
-            }
-            .footer-logo-block {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 4px;
-            }
-            .footer-logo {
-                width: 80px;
-                height: 80px;
-            }
-            .footer-address {
-                font-size: 9px;
-                color: #555;
-                text-align: center;
-                line-height: 1.5;
-            }
-            .sig-block {
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-end;
-            }
-            .sig-line {
-                font-family: 'Brush Script MT', cursive;
-                font-size: 36px;
-                color: #222;
-                margin-bottom: 2px;
-                line-height: 1;
-            }
-            .sig-name {
-                font-family: 'Lato', sans-serif;
-                font-weight: 700;
-                font-size: 14px;
-                color: #111;
-            }
-            .sig-title {
-                font-family: 'Lato', sans-serif;
-                font-weight: 700;
-                font-size: 13px;
-                color: #444;
-                margin-bottom: 4px;
-            }
-            .sig-contact {
-                font-family: 'Lato', sans-serif;
-                font-size: 11px;
-                color: #444;
-                line-height: 1.5;
-            }
-            .sig-contact a {
-                color: #2a6ee0;
-                text-decoration: none;
-            }
-            </style>
-        </head>
-        <body>
-        <div class="page">
-            <div class="border-outer"></div>
-            <div class="border-inner"></div>
-    
-            <div class="content">
-                <!-- Logo -->
-                <div class="logo-area">
-                    <svg class="logo-icon" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Ridgewood library puzzle-piece logo approximation -->
-                        <rect x="0" y="0" width="38" height="38" rx="4" fill="#e63946"/>
-                        <rect x="42" y="0" width="38" height="38" rx="4" fill="#2a9d8f"/>
-                        <rect x="0" y="42" width="38" height="38" rx="4" fill="#e9c46a"/>
-                        <rect x="42" y="42" width="38" height="38" rx="4" fill="#457b9d"/>
-                        <!-- white notches to simulate puzzle -->
-                        <rect x="29" y="14" width="22" height="10" rx="3" fill="white"/>
-                        <rect x="14" y="29" width="10" height="22" rx="3" fill="white"/>
-                        <rect x="56" y="29" width="10" height="22" rx="3" fill="white"/>
-                        <rect x="29" y="56" width="22" height="10" rx="3" fill="white"/>
-                        <rect x="29" y="29" width="22" height="22" rx="2" fill="white"/>
-                    </svg>
-                    <div class="logo-text">
-                        <span class="lib-name">Ridgewood</span>
-                        <span class="lib-sub">Public Library</span>
-                    </div>
-                </div>
-    
-                <div class="cert-title">Certificate of Completion</div>
-                <div class="certifies-that">This Certifies That</div>
-    
-                <div class="volunteer-name">${firstName} ${lastName}</div>
-                <div class="name-underline"></div>
-    
-                <div class="hours-line">Has Completed <span class="hours-val">${hoursToUse}</span> Hours</div>
-                <div class="of-volunteer">of Volunteer Work as of</div>
-                <div class="cert-date">${day} ${month} ${year}</div>
-    
-                <!-- Footer -->
-                <div class="footer">
-                    <div class="footer-logo-block">
-                        <svg class="footer-logo" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="0" y="0" width="38" height="38" rx="4" fill="#e63946"/>
-                            <rect x="42" y="0" width="38" height="38" rx="4" fill="#2a9d8f"/>
-                            <rect x="0" y="42" width="38" height="38" rx="4" fill="#e9c46a"/>
-                            <rect x="42" y="42" width="38" height="38" rx="4" fill="#457b9d"/>
-                            <rect x="29" y="14" width="22" height="10" rx="3" fill="white"/>
-                            <rect x="14" y="29" width="10" height="22" rx="3" fill="white"/>
-                            <rect x="56" y="29" width="10" height="22" rx="3" fill="white"/>
-                            <rect x="29" y="56" width="22" height="10" rx="3" fill="white"/>
-                            <rect x="29" y="29" width="22" height="22" rx="2" fill="white"/>
-                        </svg>
-                        <div class="footer-address">
-                            125 N. Maple Avenue<br>
-                            Ridgewood, NJ 07450<br>
-                            www.ridgewoodlibrary.org
-                        </div>
-                    </div>
-                    <div class="sig-block">
-                        <div class="sig-line">Justin Kontonicolaou</div>
-                        <div class="sig-name">Justin Kontonicolaou</div>
-                        <div class="sig-title">Teen Librarian</div>
-                        <div class="sig-contact">
-                            (201) 670-5600, x2112<br>
-                            <a href="mailto:jkontonicolaou@ridgewoodlibrary.org">jkontonicolaou@ridgewoodlibrary.org</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </body>
-        </html>
-        `;
-    
-        const blob = new Blob([certificateHTML], { type: "text/html" });
+        const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `volunteer_certificate_${`${firstName} ${lastName}`.trim().replace(/\s+/g, '_')}.html`;
+        a.download = `volunteer_certificate_${firstName}_${lastName}.pdf`;
         a.click();
         window.URL.revokeObjectURL(url);
     };
+
 
     const create_new_certificate = async (cert_date, cert_hours) => {
         generateCertificate(cert_date, cert_hours);
@@ -669,15 +380,15 @@ export default function ArchiveScreen() {
                                 </td>
                                 <td className="px-4 py-3 text-gray-700">{row.hours}</td>
                                 <td className="px-4 py-3">
-                                    <button
+                                    <Feather name = "download" size={17}
                                         onClick={(e) => {
                                             e.stopPropagation(); // prevent row toggle
                                             generateCertificate(row.parsedDate, row.hours);
                                         }}
-                                        className="text-green-700 font-bold hover:underline text-sm"
+                                        className="text-gray-700 font-bold hover:underline text-sm"
                                     >
-                                        ⬇
-                                    </button>
+                                        
+                                    </Feather>
                                 </td>
                             </tr>
 
