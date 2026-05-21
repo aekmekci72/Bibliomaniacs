@@ -25,6 +25,8 @@ from recommendationModel.model import HybridRecommender
 from recommendationModel.evaluation import RecommenderEvaluator
 from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
 from recommendationModel.parsing import make_book_id, normalize_text
+from recommendationModel.genreCategorization import fetch_wikipedia_genres
+from genre_images import get_genre_image
 import pickle
 import base64
 
@@ -44,6 +46,8 @@ connection(from_file="serviceKey.json")
 db = firestore.client()
 
 profanity.load_censor_words()
+
+genre_cache = {}
 
 REJECTION_REASON_TEMPLATES = {
     "below_ya": """This book is categorized as Children's or Middle Grade. Please submit YA or above titles only.""",
@@ -76,10 +80,12 @@ def firestore_reviews_to_model_format(firestore_reviews, books):
         book_id = make_book_id(title, author)
 
         if book_id not in books:
+            genres = fetch_wikipedia_genres(title, author)
+
             books[book_id] = {
                 "title": title,
                 "author": author,
-                "genres": [],
+                "genres": genres,
                 "reviews": []
             }
         
@@ -130,12 +136,22 @@ def firestore_ratings_to_book_data(ratings_docs, books):
             continue
 
         if book_id not in books:
-            continue
+            books[book_id] = {
+                "title": book_id,
+                "author": "",
+                "genres": [],
+                "reviews": []
+            }
 
         try:
             stars = int(rating)
         except:
             continue
+
+        if not books[book_id]["genres"]:
+            books[book_id]["genres"] = fetch_wikipedia_genres(
+                books[book_id]["title"]
+            )
 
         # basically create synthetic review
         books[book_id]["reviews"].append({
@@ -191,6 +207,12 @@ firestore_reviews = list(Review.collection.fetch())
 books_data = firestore_reviews_to_model_format(firestore_reviews, books_data)
 ratings_docs = [doc.to_dict() for doc in db.collection("ratings").stream()]
 books_data = firestore_ratings_to_book_data(ratings_docs, books_data)
+for book_id, book in books_data.items():
+    if not book.get("genres"):
+        book["genres"] = fetch_wikipedia_genres(
+            book["title"],
+            book.get("author")
+        )
 book_embeddings, recommender, context_recommender = load_or_train_model()
 print("Model Ready.")
 
@@ -676,15 +698,45 @@ def get_book_of_week():
     """Get current book of the week"""
     try:
         book_doc = db.collection("settings").document("book_of_week").get()
-        if book_doc.exists:
-            return jsonify(book_doc.to_dict()), 200
-        else:
-            default_book = {
+
+        if not book_doc.exists:
+            return jsonify({
                 "title": "No book selected",
                 "author": "NA",
+                "genres": [],
                 "lastUpdated": datetime.now().isoformat()
-            }
-            return jsonify(default_book), 200
+            }), 200
+
+        data = book_doc.to_dict()
+
+        title = (data.get("title") or "").strip().lower()
+        author = data.get("author")
+
+        genres = []
+
+        if title in books_data:
+            book_info = books_data[title]
+
+            if book_info.get("genres"):
+                genres = book_info["genres"]
+
+            elif book_info.get("genre"):
+                genres = [book_info["genre"]]
+
+        if not genres:
+            try:
+                genres = fetch_wikipedia_genres(title, author)
+            except Exception as e:
+                print(f"[Genre fallback failed] {e}")
+                genres = ["literary-fiction"]
+
+        return jsonify({
+            "title": data.get("title", "No book selected"),
+            "author": data.get("author", "NA"),
+            "genres": genres,
+            "lastUpdated": data.get("lastUpdated", datetime.now().isoformat())
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1164,6 +1216,21 @@ def bulk_import_reviews():
         "total_attempted": len(reviews_data)
     }), 201 if not failed_imports else 207
 
+def safe_genres(title, author):
+    try:
+        return fetch_wikipedia_genres(title, author) or []
+    except:
+        return []
+
+def get_cached_genres(title, author):
+    key = (title or "", author or "")
+    
+    if key in genre_cache:
+        return genre_cache[key]
+
+    genres = safe_genres(title, author)
+    genre_cache[key] = genres
+    return genres
 @app.route("/get_reviews", methods=["GET"])
 def get_reviews():
     cache_key = reviews_cache_key(request.args)
@@ -1198,6 +1265,9 @@ def get_reviews():
     
     results = []
     for r in reviews:
+
+        genres = get_cached_genres(r.book_title, r.author)
+
         # Apply email sent filter
         if email_sent_filter:
             if email_sent_filter == "sent" and not r.sent_confirmation_email:
@@ -1233,6 +1303,7 @@ def get_reviews():
             "form_url": r.form_url,
             "notes_to_admin": r.notes_to_admin,
             "comment_to_user": r.comment_to_user,
+            "genres": genres,
         }
         
         if search:
@@ -1850,10 +1921,21 @@ def get_recommendations():
 
             avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else 0
 
+            genres = (
+                book_info.get("genres")
+                or book_info.get("genre")
+                or []
+            )
+
+            # force list
+            if isinstance(genres, str):
+                genres = [genres]
+
             output.append({
                 "book_id": book_id,
                 "title": book_info.get("title", "Unknown"),
                 "author": book_info.get("author", "Unknown"),
+                "genres": genres,
                 "score": score,
                 "avg_rating": avg_rating
             })
@@ -1862,6 +1944,114 @@ def get_recommendations():
 
     except Exception as e:
         print("rec error trace:")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_recommended_reviews", methods=["POST"])
+def get_recommended_reviews():
+    try:
+        data = request.json
+        id_token = data.get("idToken")
+
+        if not id_token or not verify_firebase_token(id_token):
+            return jsonify({"error": "Unauthorized"}), 401
+
+        decoded = auth.verify_id_token(id_token)
+        uid = decoded["uid"]
+        email = decoded.get("email")
+
+        user_doc = db.collection("users").document(uid).get().to_dict() or {}
+
+        user_grade = user_doc.get("grade", 8)
+        user_genres = user_doc.get("favoriteGenres", ["fantasy"])
+
+        past_reviews_query = Review.collection.filter(
+            'email', '==', email
+        ).fetch()
+
+        user_reviews = []
+
+        for r in past_reviews_query:
+            if not r.book_title or r.rating is None:
+                continue
+
+            book_id = make_book_id(r.book_title, r.author)
+
+            if book_id in books_data:
+                user_reviews.append({
+                    "book_id": book_id,
+                    "rating": float(r.rating),
+                    "source": "review",
+                    "genres": books_data.get(book_id, {}).get("genres", [])
+                })
+
+        user_profile = recommender.build_user_profile(user_reviews)
+
+        reviews = Review.collection.filter(
+            'approved', '==', True
+        ).fetch()
+
+        reviewed_book_ids = set()
+
+        for r in reviews:
+            if r.book_title:
+                reviewed_book_ids.add(
+                    make_book_id(r.book_title, r.author)
+                )
+
+        total_books = len(reviewed_book_ids)
+
+        if user_profile is None:
+            recommendations = recommender.cold_start_recommend(
+                user_genres=user_genres,
+                user_grade=float(user_grade),
+                top_k=total_books
+            )
+        else:
+            recommendations = context_recommender.recommend(
+                user_profile=user_profile,
+                user_reviews=user_reviews,
+                user_genres=user_genres,
+                user_grade=user_grade,
+                top_k=total_books
+            )
+
+        recommendation_map = {
+            book_id: score
+            for book_id, score in recommendations
+        }
+
+        reviews = Review.collection.filter(
+            'approved', '==', True
+        ).fetch()
+
+        output = []
+
+        for r in reviews:
+            book_id = make_book_id(r.book_title, r.author)
+
+            output.append({
+                "id": r.id,
+                "book_title": r.book_title,
+                "author": r.author,
+                "review": r.review,
+                "rating": r.rating,
+                "date_received": r.date_received,
+                "first_name": r.first_name,
+                "last_name": r.last_name,
+                "anonymous": r.anonymous,
+                "recommendation_score":
+                    recommendation_map.get(book_id, 0)
+            })
+
+        output.sort(
+            key=lambda x: x["recommendation_score"],
+            reverse=True
+        )
+
+        return jsonify(output), 200
+
+    except Exception as e:
         print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 

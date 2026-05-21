@@ -15,8 +15,28 @@ export default function AllReviews() {
   const [userRating, setUserRating] = useState(0);
   const [userStarHover, setUserStarHover] = useState(0);
   const { reviewId } = useLocalSearchParams();
+  const GENRE_IMAGES = {
+    horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
+    fantasy: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23",
+    "sci-fi": "https://images.unsplash.com/photo-1451187580459-43490279c0fa",
+    sci: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa",
+    romance: "https://images.unsplash.com/photo-1518199266791-5375a83190b7",
+    mystery: "https://images.unsplash.com/photo-1524985069026-dd778a71c7b4",
+    thriller: "https://images.unsplash.com/photo-1517971071642-34a2d3ecc9cd",
+    "historical-fiction": "https://images.unsplash.com/photo-1461360228754-6e81c478b882",
+    "young-adult": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac",
+    horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
+    dystopian: "https://images.unsplash.com/photo-1520975922323-9d5f6f6b2c5b",
+    "literary-fiction": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570",
+    classics: "https://images.unsplash.com/photo-1512820790803-83ca734da794",
+    classic: "https://images.unsplash.com/photo-1512820790803-83ca734da794",
+    fiction: "https://images.unsplash.com/photo-1528207776546-365bb710ee93",
+    novel: "https://images.unsplash.com/photo-1528207776546-365bb710ee93",
+    contemporary: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d",
+    drama: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d",
+    default: "https://images.unsplash.com/photo-1519682337058-a94d519337bc"
+  };
 
-  // Fetch approved reviews from backend
   useEffect(() => {
     fetch('http://localhost:5001/clear_cache', { method: 'POST' })
     fetchReviews();
@@ -32,7 +52,7 @@ export default function AllReviews() {
 
       const auth = getAuth();
       const user = auth.currentUser;
-      if (!user) return; // silently skip if not logged in
+      if (!user) return; 
 
       const idToken = await user.getIdToken(true);
       const res2 = await fetch(`http://localhost:5001/get_users_community_rating/${bookId}`, {
@@ -42,12 +62,23 @@ export default function AllReviews() {
       });
       const data2 = await res2.json();
       if (res2.ok && data2.rating !== null) {
-        setUserRating(data2.rating); // convert back to 1-5 scale for star display
+        setUserRating(data2.rating);
       }
       console.log(userRating);
     } catch (err) {
       console.error("Failed to fetch community rating:", err);
     }
+  };
+
+  const getBookImage = (book) => {
+    const genres = book.genres || [];
+
+    for (let g of genres) {
+      const key = g.toLowerCase();
+      if (GENRE_IMAGES[key]) return GENRE_IMAGES[key];
+    }
+
+    return GENRE_IMAGES.default;
   };
 
   const handleSubmitCommunityRating = async (bookId, star) => {
@@ -85,11 +116,40 @@ export default function AllReviews() {
   const fetchReviews = async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const res = await fetch("http://localhost:5001/get_reviews?status=approved");
-      if (!res.ok) throw new Error("Failed to fetch reviews");
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      let res;
+
+      if (user) {
+        const idToken = await user.getIdToken(true);
+
+        res = await fetch(
+          "http://localhost:5001/get_recommended_reviews",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ idToken })
+          }
+        );
+      } else {
+        res = await fetch(
+          "http://localhost:5001/get_reviews?status=approved"
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch reviews");
+      }
+
       const data = await res.json();
+
       setReviews(data);
+
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -127,10 +187,37 @@ export default function AllReviews() {
     filtered.sort((a, b) => new Date(b.date_received) - new Date(a.date_received));
   } else if (filter === "Oldest") {
     filtered.sort((a, b) => new Date(a.date_received) - new Date(b.date_received));
+  } else if (filter === "Best Match") {
+    filtered.sort((a, b) => {
+      const scoreDiff =
+        (b.recommendation_score || 0) -
+        (a.recommendation_score || 0);
+
+      if (scoreDiff !== 0) {
+        return scoreDiff;
+      }
+
+      return a.book_title.localeCompare(b.book_title);
+    });
+
+  } else if (filter === "Worst Match") {
+    filtered.sort((a, b) => {
+      const scoreDiff =
+        (a.recommendation_score || 0) -
+        (b.recommendation_score || 0);
+
+      if (scoreDiff !== 0) {
+        return scoreDiff;
+      }
+
+      return b.book_title.localeCompare(a.book_title);
+    });
   }
 
   const filterOptions = [
     { label: "All", icon: Filter },
+    { label: "Best Match", icon: ThumbsUp },
+    { label: "Worst Match", icon: TrendingDown },
     { label: "Top Rated", icon: TrendingUp },
     { label: "Lowest Rated", icon: TrendingDown },
     { label: "Newest", icon: Calendar },
@@ -376,6 +463,11 @@ export default function AllReviews() {
                          transition-all duration-300 transform hover:-translate-y-1
                          border border-emerald-100 p-4 text-left cursor-pointer group"
               >
+
+              <img
+                src={getBookImage(r)}
+                className="w-full h-28 object-cover rounded-lg mb-2"
+              />
                 <div className="space-y-2">
                   {/* Title and Author */}
                   <div>

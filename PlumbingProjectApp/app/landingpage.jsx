@@ -23,6 +23,38 @@ export default function LandingPage() {
 
   const [index, setIndex] = useState(0);
 
+  const GENRE_IMAGES = {
+    horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
+    fantasy: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23",
+    "sci-fi": "https://images.unsplash.com/photo-1451187580459-43490279c0fa",
+    sci: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa",
+    romance: "https://images.unsplash.com/photo-1518199266791-5375a83190b7",
+    mystery: "https://images.unsplash.com/photo-1524985069026-dd778a71c7b4",
+    thriller: "https://images.unsplash.com/photo-1517971071642-34a2d3ecc9cd",
+    "historical-fiction": "https://images.unsplash.com/photo-1461360228754-6e81c478b882",
+    "young-adult": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac",
+    horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
+    dystopian: "https://images.unsplash.com/photo-1520975922323-9d5f6f6b2c5b",
+    "literary-fiction": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570",
+    default: "https://images.unsplash.com/photo-1519682337058-a94d519337bc"
+  };
+
+  const getGenreImage = (genres) => {
+    if (!genres || genres.length === 0) {
+      return GENRE_IMAGES.default;
+    }
+
+    for (const g of genres) {
+      const normalized = g.toLowerCase().trim();
+
+      if (GENRE_IMAGES[normalized]) {
+        return GENRE_IMAGES[normalized];
+      }
+    }
+
+    return GENRE_IMAGES.default;
+  };
+
   const next = () => {
     setIndex((prev) => (prev + 1) % topRecs.length);
   };
@@ -31,20 +63,7 @@ export default function LandingPage() {
     setIndex((prev) => (prev - 1 + topRecs.length) % topRecs.length);
   };
 
-  const topRecs = [
-    {
-      title: "Harry Potter",
-      meta: "Fantasy · 4.7 ★",
-    },
-    {
-      title: "Atomic Habits",
-      meta: "Non-fiction · 4.6 ★",
-    },
-    {
-      title: "Dark Matter",
-      meta: "Sci-fi · 4.9 ★",
-    },
-  ];
+  const [topRecs, setTopRecs] = useState([]);
 
   const getUserRole = async (user) => {
     const idToken = await user.getIdToken(true);
