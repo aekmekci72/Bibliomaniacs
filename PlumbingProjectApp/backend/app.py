@@ -833,7 +833,7 @@ def get_books():
 @app.route("/check_book_popularity", methods=["GET"])
 def check_book_popularity():
     title = request.args.get("title", "").strip()
-    threshold = request.args.get("threshold", 3, type=int)
+    threshold = request.args.get("threshold", 2, type=int)
 
     if not title:
         return jsonify({"error": "Missing 'title' query parameter"}), 400
@@ -1254,12 +1254,12 @@ def get_reviews():
     
     query = Review.collection
     
-    if status == "approved":
-        query = query.filter('approved', '==', True)
-    elif status == "pending":
-        query = query.filter('approved', '==', False).filter('date_processed', '==', None)
-    elif status == "rejected":
-        query = query.filter('approved', '==', False)
+    # if status == "approved":
+    #     query = query.filter('approved', '==', True)
+    # elif status == "pending":
+    #     query = query.filter('approved', '==', False).filter('date_processed', '==', None)
+    # elif status == "rejected":
+    #     query = query.filter('approved', '==', False)
     
     if grade is not None:
         query = query.filter('grade', '==', grade)
