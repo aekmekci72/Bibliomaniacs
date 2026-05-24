@@ -15,24 +15,22 @@ export default function AdminHomePage() {
   const API_BASE_URL = "http://localhost:5001";
 
   const GENRE_IMAGES = {
-    horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
+    horror: "https://images.unsplash.com/photo-1504701954957-2010ec3bcec1",
     fantasy: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23",
     "sci-fi": "https://images.unsplash.com/photo-1451187580459-43490279c0fa",
     sci: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa",
-    Romance: "https://images.unsplash.com/photo-1518199266791-5375a83190b7",
-    mystery: "https://images.unsplash.com/photo-1524985069026-dd778a71c7b4",
-    thriller: "https://images.unsplash.com/photo-1517971071642-34a2d3ecc9cd",
-    "historical-fiction": "https://images.unsplash.com/photo-1461360228754-6e81c478b882",
+    romance: "https://images.unsplash.com/photo-1518199266791-5375a83190b7",
+    mystery: "https://images.unsplash.com/photo-1577401159468-3bbc7ee440b5",
+    thriller: "https://images.unsplash.com/photo-1628490673809-6c16ee26d28d",
+    "historical-fiction": "https://images.unsplash.com/photo-1505664194779-8beaceb93744",
     "young-adult": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac",
-    horror: "https://images.unsplash.com/photo-1509565840034-3c385bbe6451",
-    dystopian: "https://images.unsplash.com/photo-1520975922323-9d5f6f6b2c5b",
-    "literary-fiction": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570",
-    classics: "https://images.unsplash.com/photo-1512820790803-83ca734da794",
-    classic: "https://images.unsplash.com/photo-1512820790803-83ca734da794",
-    fiction: "https://images.unsplash.com/photo-1528207776546-365bb710ee93",
-    novel: "https://images.unsplash.com/photo-1528207776546-365bb710ee93",
-    contemporary: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d",
-    drama: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d",
+    dystopian: "https://images.unsplash.com/photo-1713362280665-21ffc10ae3b0",
+    "literary-fiction": "https://images.unsplash.com/photo-1455390582262-044cdead277a",
+    classics: "https://images.unsplash.com/photo-1478641300939-0ec5188d3802",
+    classic: "https://images.unsplash.com/photo-1478641300939-0ec5188d3802",
+    fiction: "https://images.unsplash.com/photo-1673526475171-753a32e74535",
+    novel: "https://images.unsplash.com/photo-1651643367896-43a10f05bc69",
+    drama: "https://images.unsplash.com/photo-1601723897234-327147304013",
     default: "https://images.unsplash.com/photo-1519682337058-a94d519337bc"
   };
 
@@ -123,7 +121,7 @@ export default function AdminHomePage() {
   useEffect(() => {
     if (bookOfWeek?.genres || bookOfWeek?.genre) {
       const genres = bookOfWeek.genres || [bookOfWeek.genre];
-      setbookOfTheWeekGenre(genres[0]);
+      setbookOfTheWeekGenre(genres[0].substring(0, 1).toUpperCase() + genres[0].substring(1));
     }
   }, [bookOfWeek]);
   const getBookOfWeekImage = (book) => {
@@ -188,16 +186,15 @@ export default function AdminHomePage() {
                 </View>
               </ImageBackground>
 
-              <View className="adminHomeBookMetaRow">
-                <View className="adminHomeBookTag">
-                  <Text className="adminHomeBookTagText">
+              <View className="bookWeekMetaRow">
+                <View className="bookWeekTag">
+                  <Text className="bookWeekTagText">
                     {bookOfTheWeekGenre}
                   </Text>
                 </View>
-                
               </View>
 
-              <Text className="adminHomeBookBlurb">{bookOfTheWeek.blurb}</Text>
+              <Text className="bookWeekBlurb">{bookOfTheWeek.blurb}</Text>
             </View>
           </View>
 

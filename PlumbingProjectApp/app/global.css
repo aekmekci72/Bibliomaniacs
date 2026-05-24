@@ -168,7 +168,7 @@
   /* === Bottom recommendations band === */
 
   .landingBottomSection {
-    @apply w-full bg-white items-center border-t border-[#dde5dd] pt-4;
+    @apply w-full bg-white items-center border-t border-[#dde5dd] pt-4 pb-4;
   }
 
   .landingBottomInner {
