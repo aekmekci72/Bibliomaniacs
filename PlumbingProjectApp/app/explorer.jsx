@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Search, Star, ThumbsUp, Calendar, TrendingUp, TrendingDown, Filter, ArrowLeft } from "lucide-react";
 import { View, Text, TextInput, Pressable, ScrollView, Alert } from "react-native";
 import { getAuth } from "firebase/auth";
@@ -12,6 +12,7 @@ export default function AllReviews() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [genreMap, setGenreMap] = useState({});
   const [userRating, setUserRating] = useState(0);
   const [userStarHover, setUserStarHover] = useState(0);
   const { reviewId } = useLocalSearchParams();
@@ -40,11 +41,13 @@ export default function AllReviews() {
     fetchReviews();
   }, []);
 
+  
+
   const fetchCommunityRating = async (bookId) => {
     try {
       const res = await fetch(`http://localhost:5001/get_community_rating/${bookId}`);
       const data = await res.json();
-      if (res.ok & data.rating_count != 0) {
+      if (res.ok && data.rating_count != 0) {
         setCommunityRating(data.average_rating);
       }
 
@@ -69,11 +72,7 @@ export default function AllReviews() {
   };
 
   const getBookImage = (book) => {
-    const genres = book.genres || [];
-
-    if (book.title === "Hunger Games") {
-      console.log(genres);
-    }
+    const genres = genreMap[book.id] || book.genres || [];
 
     for (let g of genres) {
       const key = g.toLowerCase();
@@ -82,6 +81,33 @@ export default function AllReviews() {
 
     return GENRE_IMAGES.default;
   };
+
+  const hydGenres = async (book) => {
+    if (!book?.id) return;
+
+    try {
+      const res = await fetch(`http://localhost:5001/get_reviews?search=${book.book_title}`);
+      const data = await res.json();
+
+      const match = data.find(r => r.id === book.id);
+      if (match?.genres?.length) {
+        setGenreMap(prev => ({
+          ...prev,
+          [book.id]: match.genres
+        }));
+      }
+    } catch (e) {
+    }
+  };
+
+  useEffect(() => {
+    reviews.forEach(r => {
+      if (!genreMap[r.id]) {
+        hydGenres(r);
+      }
+    });
+  }, [reviews]);
+
 
   const handleSubmitCommunityRating = async (bookId, star) => {
     setUserRating(star);
@@ -114,6 +140,7 @@ export default function AllReviews() {
       console.error("Failed to submit community rating:", err);
     }
   };
+  
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -152,6 +179,14 @@ export default function AllReviews() {
 
       setReviews(data);
 
+      const initialMap = {};
+      data.forEach(r => {
+        if (r?.genres?.length) {
+          initialMap[r.id] = r.genres;
+        }
+      });
+      setGenreMap(initialMap);
+
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -159,6 +194,7 @@ export default function AllReviews() {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     if (reviewId && reviews.length > 0) {
@@ -174,12 +210,14 @@ export default function AllReviews() {
   }, [reviewId, reviews]);
 
   // Filter + search logic
-  let filtered = reviews.filter(
-    (r) =>
-      r.book_title.toLowerCase().includes(search.toLowerCase()) ||
-      r.author.toLowerCase().includes(search.toLowerCase()) ||
-      (r.first_name + " " + r.last_name).toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return reviews.filter(
+      (r) =>
+        r.book_title.toLowerCase().includes(search.toLowerCase()) ||
+        r.author.toLowerCase().includes(search.toLowerCase()) ||
+        (r.first_name + " " + r.last_name).toLowerCase().includes(search.toLowerCase())
+    );
+  }, [reviews, search]);
 
   if (filter === "Top Rated") {
     filtered.sort((a, b) => b.rating - a.rating);
@@ -456,6 +494,8 @@ export default function AllReviews() {
               ? r.first_name
               : `${r.first_name} ${r.last_name}`;
 
+            console.log(r.book_title, r.genres);
+
             return (
               <button
                 key={r.id}
@@ -468,7 +508,7 @@ export default function AllReviews() {
 
               <img
                 src={getBookImage(r)}
-                className="w-full h-28 object-cover rounded-lg mb-2"
+                className="w-full h-32 rounded-lg mb-2"
               />
                 <div className="space-y-2">
                   {/* Title and Author */}

@@ -1241,21 +1241,45 @@ def bulk_import_reviews():
         "total_attempted": len(reviews_data)
     }), 201 if not failed_imports else 207
 
+genre_cache = {}
+
 def safe_genres(title, author):
     try:
-        return fetch_wikipedia_genres(title, author) or []
-    except:
-        return []
+        genres = fetch_wikipedia_genres(title, author)
+
+        if not genres:
+            return None
+
+        return genres
+
+    except Exception as e:
+        print(f"[Genre Fetch Error] {title}: {e}")
+        return None
+
 
 def get_cached_genres(title, author):
-    key = (title or "", author or "")
-    
-    if key in genre_cache:
-        return genre_cache[key]
+    key = (
+        (title or "").strip().lower(),
+        (author or "").strip().lower()
+    )
+
+    # Return only VALID cached data
+    cached = genre_cache.get(key)
+
+    if cached:
+        return cached
 
     genres = safe_genres(title, author)
-    genre_cache[key] = genres
-    return genres
+
+    # ONLY cache successful fetches
+    if genres and len(genres) > 0:
+        genre_cache[key] = genres
+        return genres
+
+    # fallback genre
+    return ["literary-fiction"]
+
+
 @app.route("/get_reviews", methods=["GET"])
 def get_reviews():
     cache_key = reviews_cache_key(request.args)
@@ -1291,7 +1315,10 @@ def get_reviews():
     results = []
     for r in reviews:
 
-        genres = r.genres or get_cached_genres(r.book_title, r.author)
+        genres = r.genres
+
+        if not genres:
+            genres = get_cached_genres(r.book_title, r.author)
 
         # Apply email sent filter
         if email_sent_filter:
