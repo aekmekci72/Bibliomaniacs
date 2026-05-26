@@ -17,3 +17,4 @@ pandas
 scipy
 matplotlib
 reportlab
+better_profanity
