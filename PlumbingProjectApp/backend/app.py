@@ -21,6 +21,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas as pdf_canvas
 from reportlab.lib.utils import ImageReader
 import io
+import re
 import os
 from email_utils import generate_email_draft, generate_bulk_email_drafts
 from better_profanity import profanity
@@ -29,8 +30,8 @@ import logging
 # from recommendationModel.embeddings import EmbeddingBuilder
 # from recommendationModel.model import HybridRecommender
 # from recommendationModel.evaluation import RecommenderEvaluator
-from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
-from recommendationModel.parsing import make_book_id, normalize_text
+# from recommendationModel.housedBooks.modelIncorp import (AvailabilityCache, AvailabilityService, ContextAwareRecommender)
+# from recommendationModel.parsing import make_book_id, normalize_text
 # from recommendationModel.genreCategorization import fetch_wikipedia_genres
 from genre_images import get_genre_image
 import pickle
@@ -55,7 +56,14 @@ db = firestore.client()
 profanity.load_censor_words()
 
 genre_cache = {}
+def normalize_text(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
+def make_book_id(title, author):
+    return normalize_text(f"{title}::{author}")
 REJECTION_REASON_TEMPLATES = {
     "below_ya": """This book is categorized as Children's or Middle Grade. Please submit YA or above titles only.""",
 
@@ -221,12 +229,12 @@ def firestore_ratings_to_book_data(ratings_docs, books):
 
 #     return book_embeddings, recommender, context_recommender
 
-cache = AvailabilityCache(
-    redis_host="localhost",
-    redis_port=6380,
-)
+# cache = AvailabilityCache(
+#     redis_host="localhost",
+#     redis_port=6380,
+# )
 
-availability_service = AvailabilityService(cache)
+# availability_service = AvailabilityService(cache)
 
 # books_data = load_books("./backend/recommendationModel/reviewedBooks.csv")
 # books_data = load_reviews("./backend/recommendationModel/bigReviews.csv", books_data)

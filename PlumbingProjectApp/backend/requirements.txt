@@ -23,6 +23,8 @@ httpx
 sentence-transformers
 tokenizers
 safetensors
+selenium
+sentence-transformers
 sentencepiece
 scikit-learn
 nltk
